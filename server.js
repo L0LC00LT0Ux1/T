@@ -14,25 +14,43 @@ const SIGNUP_OPEN = process.env.SIGNUP !== 'off';
 const MAX_IMG = parseInt(process.env.MAX_IMAGE_MB || '10', 10) * 1024 * 1024;
 const MAX_VID = parseInt(process.env.MAX_VIDEO_MB || '30', 10) * 1024 * 1024;
 const QUOTA = parseInt(process.env.QUOTA_MB || '300', 10) * 1024 * 1024;
-const MAX_LIBS = parseInt(process.env.MAX_LIBS_PER_BOT || '30', 10);
+const MAX_LIB = parseInt(process.env.MAX_LIB_MB || '300', 10) * 1024 * 1024;
+const MAX_INSTALLS = 2;
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+// ที่เก็บข้อมูล: DATA_DIR > จุดเมานต์ Volume ของ Railway > ./data
+const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
+const DATA_DIR = process.env.DATA_DIR || volPath || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const HUB_FILE = path.join(DATA_DIR, 'hub.json');
 fs.mkdirSync(BOTS_DIR, { recursive: true });
 fs.mkdirSync(MEDIA_DIR, { recursive: true });
+fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
+// เช็กว่าข้อมูลอยู่บน Volume จริงไหม (ถ้าไม่ใช่ ข้อมูลจะหายตอน deploy)
+function detectPersistent() {
+  if (process.env.ASSUME_PERSISTENT === '1') return true;
+  try {
+    if (volPath && path.resolve(DATA_DIR).startsWith(path.resolve(volPath))) return true;
+    return fs.statSync(DATA_DIR).dev !== fs.statSync('/').dev;
+  } catch { return false; }
+}
+const PERSISTENT = detectPersistent();
+
+// แยกผู้ใช้ด้วย uid ของระบบ (ทำได้เมื่อเซิร์ฟเวอร์รันเป็น root) ปิดได้ด้วย ISOLATION=off
 const ISOLATE = typeof process.getuid === 'function' && process.getuid() === 0 && process.env.ISOLATION !== 'off';
 if (ISOLATE) {
   try {
     fs.chmodSync(DATA_DIR, 0o711);
     fs.chmodSync(BOTS_DIR, 0o711);
     fs.chmodSync(MEDIA_DIR, 0o700);
+    fs.chmodSync(BACKUP_DIR, 0o700);
   } catch (e) { console.error('chmod:', e.message); }
 }
 
+// ให้บอท JS ที่อยู่ใน Volume หา discord.js ใน /app/node_modules เจอ
 try {
   const link = path.join(BOTS_DIR, 'node_modules');
   try { fs.unlinkSync(link); } catch {}
@@ -41,27 +59,86 @@ try {
   console.error('symlink node_modules ไม่สำเร็จ:', e.message);
 }
 
+// ---------- โหลด/บันทึกไฟล์ข้อมูลแบบปลอดภัย ----------
+// อ่านไฟล์หลักก่อน ถ้าพัง ย้ายไฟล์เสียไว้ข้างๆ แล้วลองไฟล์สำรอง (.bak)
+function loadJson(file) {
+  for (const f of [file, file + '.bak']) {
+    try {
+      return { data: JSON.parse(fs.readFileSync(f, 'utf8')), from: f };
+    } catch (e) {
+      if (e.code !== 'ENOENT') {
+        console.error('อ่านไฟล์ไม่ได้:', f, e.message);
+        try { fs.copyFileSync(f, f + '.corrupt-' + Date.now()); } catch {}
+      }
+    }
+  }
+  return null;
+}
+// สำรองไฟล์เก่าไว้เป็น .bak อย่างน้อยทุก 5 นาที (ก่อนเขียนทับ)
+function backupOnce(file) {
+  try {
+    const b = file + '.bak';
+    const t = fs.existsSync(b) ? fs.statSync(b).mtimeMs : 0;
+    if (Date.now() - t > 300000 && fs.existsSync(file)) {
+      fs.copyFileSync(file, b);
+      fs.chmodSync(b, 0o600);
+    }
+  } catch {}
+}
+// สำเนารายวัน เก็บย้อนหลัง 7 วัน
+function snapshot() {
+  const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  for (const [name, file] of [['state', STATE_FILE], ['hub', HUB_FILE]]) {
+    const dest = path.join(BACKUP_DIR, name + '-' + d + '.json');
+    try { if (fs.existsSync(file)) { fs.copyFileSync(file, dest); fs.chmodSync(dest, 0o600); } } catch {}
+  }
+  try {
+    const groups = {};
+    for (const f of fs.readdirSync(BACKUP_DIR).sort()) {
+      const m = /^(state|hub)-\d{8}\.json$/.exec(f);
+      if (m) (groups[m[1]] = groups[m[1]] || []).push(f);
+    }
+    for (const k of Object.keys(groups)) {
+      while (groups[k].length > 7) fs.unlinkSync(path.join(BACKUP_DIR, groups[k].shift()));
+    }
+  } catch {}
+}
+
+// ---------- state: ผู้ใช้ / เซสชัน / บอท ----------
 let state = { users: {}, sessions: {}, bots: {}, nextUid: 20000 };
-try {
-  const raw = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  if (raw && raw.users && raw.bots) state = Object.assign(state, raw);
-  else if (raw && typeof raw === 'object') state.bots = raw;
-} catch {}
+{
+  const r = loadJson(STATE_FILE);
+  if (r) {
+    const raw = r.data;
+    if (raw && raw.users && raw.bots) state = Object.assign(state, raw);
+    else if (raw && typeof raw === 'object') state.bots = raw; // ไฟล์รุ่นเก่า (ยังไม่มีผู้ใช้)
+    if (r.from !== STATE_FILE) console.error('ไฟล์หลักเสีย ใช้ไฟล์สำรองแทน:', r.from);
+  }
+}
 const bots = state.bots;
 
 function save() {
   const tmp = STATE_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(state, null, 1), { mode: 0o600 });
+  backupOnce(STATE_FILE);
   fs.renameSync(tmp, STATE_FILE);
   try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
 }
 
+// ---------- hub: โพสต์ตลาด / แชท / ไฟล์สื่อ ----------
 let hub = { posts: {}, chats: {}, media: {} };
-try { hub = Object.assign(hub, JSON.parse(fs.readFileSync(HUB_FILE, 'utf8'))); } catch {}
+{
+  const r = loadJson(HUB_FILE);
+  if (r) {
+    hub = Object.assign(hub, r.data);
+    if (r.from !== HUB_FILE) console.error('ไฟล์ hub เสีย ใช้ไฟล์สำรองแทน:', r.from);
+  }
+}
 let hubTimer = null;
 function writeHub() {
   const tmp = HUB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(hub), { mode: 0o600 });
+  backupOnce(HUB_FILE);
   fs.renameSync(tmp, HUB_FILE);
 }
 function saveHub() {
@@ -74,6 +151,8 @@ const own = (o, k) => (hasOwn(o, k) ? o[k] : null);
 const getUser = (u) => own(state.users, u);
 
 const procs = {};
+const installs = {};
+let activeInstalls = 0;
 const logs = {};
 let shuttingDown = false;
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
@@ -90,9 +169,11 @@ const codeFile = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'bot.py' : '
 const readCode = (b) => { try { return fs.readFileSync(codeFile(b), 'utf8'); } catch { return ''; } };
 const pub = (b, full) => Object.assign({
   id: b.id, name: b.name, lang: b.lang, status: b.status,
-  startedAt: b.startedAt || 0, lastExit: b.lastExit || '', hasToken: !!b.token
+  startedAt: b.startedAt || 0, lastExit: b.lastExit || '', hasToken: !!b.token,
+  libs: b.libs || [], installing: !!installs[b.id]
 }, full ? { code: readCode(b) } : {});
 
+// ตั้งสิทธิ์โฟลเดอร์/ไฟล์ของบอท ให้เจ้าของเท่านั้นที่อ่านได้
 function fixPerm(b) {
   if (!ISOLATE) return;
   const u = getUser(b.owner);
@@ -105,13 +186,13 @@ function fixPerm(b) {
     if (fs.existsSync(f)) { fs.chownSync(f, u.uid, u.uid); fs.chmodSync(f, 0o600); }
   } catch (e) { console.error('fixPerm:', e.message); }
 }
+const dropOpts = (owner) => (ISOLATE ? { uid: owner.uid, gid: owner.uid } : {});
 
 function createBot(owner, name, lang, code) {
   const id = crypto.randomBytes(4).toString('hex');
   const b = {
     id, owner, lang, name: String(name || 'บอทใหม่').trim().slice(0, 40) || 'บอทใหม่',
-    token: '', desired: false, status: 'stopped', startedAt: 0, lastExit: '', created: Date.now(),
-    libs: []
+    token: '', libs: [], desired: false, status: 'stopped', startedAt: 0, lastExit: '', created: Date.now()
   };
   bots[id] = b;
   fs.mkdirSync(path.join(BOTS_DIR, id), { recursive: true });
@@ -122,262 +203,74 @@ function createBot(owner, name, lang, code) {
 }
 const botCount = (u) => Object.values(bots).filter((b) => b.owner === u).length;
 
-// ---------- install library ----------
-function validLibName(name) {
-  if (!name || name.length > 200) return false;
-  if (/\s/.test(name)) return false;
-  if (/[;'"|`$&(){}<>\n\r\t]/.test(name)) return false;
-  return /^[@a-zA-Z0-9]/.test(name);
-}
-
-function cleanLibInput(raw) {
-  return String(raw || '')
-    .replace(/^\s*(?:sudo\s+)?(?:python3?(?:\.\d+)?\s+-m\s+)?pip3?\s+install\s+/i, '')
-    .replace(/^\s*npm\s+(?:install|i|add)\s+/i, '')
-    .trim();
-}
-
-function runCmd(cmd, args, opts, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    let child;
-    try { child = spawn(cmd, args, opts); }
-    catch (e) { return reject(new Error('เรียก ' + cmd + ' ไม่ได้: ' + e.message)); }
-
-    let out = '', done = false;
-    const finish = (err) => { if (done) return; done = true; err ? reject(err) : resolve(out); };
-    const killer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch {}
-      finish(new Error('ใช้เวลานานเกิน ' + Math.round(timeoutMs / 60000) + ' นาที'));
-    }, timeoutMs);
-
-    child.stdout.on('data', (d) => { out += d.toString(); });
-    child.stderr.on('data', (d) => { out += d.toString(); });
-    child.on('error', (e) => { clearTimeout(killer); finish(new Error(e.message)); });
-    child.on('exit', (code) => {
-      clearTimeout(killer);
-      if (code === 0) return finish();
-      const tail = out.replace(ANSI, '').split('\n').filter(Boolean).slice(-20).join('\n');
-      finish(new Error('exit ' + code + '\n' + tail));
-    });
-  });
-}
-
-function installLib(botId, name) {
-  return (async () => {
-    const b = bots[botId];
-    if (!b) throw new Error('ไม่เจอบอท');
-    const dir = path.join(BOTS_DIR, botId);
-    fs.mkdirSync(dir, { recursive: true });
-    const owner = getUser(b.owner);
-
-    const env = Object.assign({}, process.env, {
-      HOME: dir,
-      TMPDIR: dir,
-      LANG: 'C.UTF-8',
-      LC_ALL: 'C.UTF-8',
-      PIP_DISABLE_PIP_VERSION_CHECK: '1',
-      PIP_NO_INPUT: '1',
-      PIP_NO_CACHE_DIR: '1'
-    });
-
-    const opts = { cwd: dir, env };
-    if (ISOLATE && owner && typeof process.getuid === 'function' && process.getuid() === 0) {
-      opts.uid = owner.uid;
-      opts.gid = owner.uid;
-    }
-
-    if (b.lang === 'py') {
-      const venvDir = path.join(dir, 'venv');
-      const venvPython = path.join(venvDir, 'bin', 'python3');
-
-      if (!fs.existsSync(venvPython)) {
-        console.log('[installLib] สร้าง venv ที่', venvDir);
-        await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
-        const pipBase = path.join(venvDir, 'bin', 'pip');
-        try {
-          await runCmd(pipBase, ['install', '--upgrade', '--ignore-installed', 'discord.py>=2.4.0'], opts, 300000);
-        } catch (e) { console.log('[installLib] baseline discord.py ไม่สำเร็จ:', e.message); }
-      }
-
-      const pip = path.join(venvDir, 'bin', 'pip');
-      console.log('[installLib] py', pip, 'install', name);
-      return await runCmd(pip, [
-        'install',
-        '--upgrade',
-        '--ignore-installed',
-        name
-      ], opts, 600000);
-    } else {
-      console.log('[installLib] npm install', name, 'ใน', dir);
-      return await runCmd('npm', [
-        'install', '--prefix', dir,
-        '--no-audit', '--no-fund', '--loglevel=error',
-        name
-      ], opts, 600000);
-    }
-  })();
-}
-
 // ---------- start / stop ----------
-const starting = new Set();
-
-// ตรวจสอบเวอร์ชัน discord.py ที่ Python ตัวนี้จะใช้ + แสดงพาธจริง
-// คืนค่า true ถ้าพร้อมใช้ (>=2.4) / false ถ้ายังไม่พร้อม
-async function ensureDiscord(id, pythonExe, opts) {
-  const probe = [
-    '-c',
-    'import sys, discord;' +
-    'print("PY=" + sys.executable);' +
-    'print("FILE=" + (discord.__file__ or ""));' +
-    'print("VER=" + discord.__version__)'
-  ].join('');
-
-  let out = '';
-  try {
-    out = await runCmd(pythonExe, probe, opts, 30000);
-  } catch (e) {
-    addLog(id, 'err', 'ตรวจสอบ discord.py ไม่ได้: ' + e.message);
-    return false;
-  }
-
-  const lines = out.replace(ANSI, '').split('\n').map((x) => x.trim()).filter(Boolean);
-  const py = (lines.find((l) => l.startsWith('PY=')) || '').slice(3);
-  const file = (lines.find((l) => l.startsWith('FILE=')) || '').slice(5);
-  const ver = (lines.find((l) => l.startsWith('VER=')) || '').slice(4);
-
-  addLog(id, 'sys', 'Python: ' + py);
-  addLog(id, 'sys', 'discord.py path: ' + file);
-  addLog(id, 'sys', 'discord.py version: ' + ver);
-
-  const parts = ver.split('.').map((x) => parseInt(x, 10) || 0);
-  const maj = parts[0] || 0, minr = parts[1] || 0;
-  if (maj > 2 || (maj === 2 && minr >= 4)) return true;
-  return false;
-}
-
-async function startBot(id) {
+function startBot(id) {
   const b = bots[id];
-  if (!b || procs[id] || starting.has(id)) return;
-  starting.add(id);
-  try {
-    const owner = getUser(b.owner);
-    if (!owner) {
-      b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save();
-      addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ จึงไม่รันให้');
-      return;
-    }
-
-    const file = codeFile(b);
-    const dir = path.dirname(file);
-    fs.mkdirSync(dir, { recursive: true });
-    if (!fs.existsSync(file)) fs.writeFileSync(file, '');
-    fixPerm(b);
-
-    const py = b.lang === 'py';
-    const env = {
-      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
-      HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
-      DISCORD_TOKEN: b.token || '',
-      PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
-    };
-    const opts = { cwd: dir, env };
-    if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
-
-    b.status = 'running';
-    b.desired = true;
-    b.startedAt = Date.now();
-    b.lastExit = '';
-    save();
-
-    let pythonExe = 'python3';
-    if (py) {
-      const venvDir = path.join(dir, 'venv');
-      const venvPython = path.join(venvDir, 'bin', 'python3');
-
-      if (!fs.existsSync(venvPython)) {
-        addLog(id, 'sys', 'สร้าง venv สำหรับบอท (ครั้งแรก ใช้เวลาสักครู่)');
-        try {
-          await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
-        } catch (e) {
-          addLog(id, 'err', 'สร้าง venv ล้มเหลว: ' + e.message);
-        }
-      }
-
-      if (fs.existsSync(venvPython)) {
-        pythonExe = venvPython;
-      } else {
-        addLog(id, 'err', 'venv ใช้งานไม่ได้ → ใช้ python3 ระบบ');
-      }
-
-      // ตรวจสอบเวอร์ชัน — ถ้าเก่าไป ให้ติดตั้งใหม่
-      let ok = await ensureDiscord(id, pythonExe, opts);
-      if (!ok) {
-        addLog(id, 'sys', 'กำลังติดตั้ง discord.py ใหม่ (รอ 10-60 วิ) ...');
-        try {
-          await runCmd(pythonExe, [
-            '-m', 'pip', 'install',
-            '--upgrade', '--ignore-installed',
-            'discord.py>=2.4.0'
-          ], opts, 300000);
-          addLog(id, 'sys', 'ติดตั้ง discord.py เสร็จ — ตรวจสอบซ้ำ');
-          ok = await ensureDiscord(id, pythonExe, opts);
-        } catch (e) {
-          addLog(id, 'err', 'ติดตั้ง discord.py ล้มเหลว: ' + e.message);
-        }
-      }
-
-      if (!ok) {
-        addLog(id, 'err', 'discord.py ยังไม่ใช่ >= 2.4 → บอทอาจ error เรื่อง description_localizations');
-      }
-    }
-
-    if (!b.desired) {
-      b.status = 'stopped';
-      save();
-      addLog(id, 'sys', 'ถูกยกเลิกก่อนเริ่ม');
-      return;
-    }
-
-    let child;
-    try {
-      child = spawn(py ? pythonExe : 'node', py ? ['-u', file] : [file], opts);
-    } catch (e) {
-      b.status = 'error'; b.desired = false; b.lastExit = 'สตาร์ทไม่ได้: ' + e.message; save();
-      addLog(id, 'err', b.lastExit);
-      return;
-    }
-
-    procs[id] = child;
-    addLog(id, 'sys', 'เริ่มรันบอท (' + (py ? 'Python' : 'JavaScript') + ')');
-
-    child.stdout.on('data', (d) => addLog(id, 'out', d));
-    child.stderr.on('data', (d) => addLog(id, 'err', d));
-
-    const done = (status, msg) => {
-      if (procs[id] !== child) return;
-      delete procs[id];
-      if (shuttingDown) return;
-      const cur = bots[id];
-      if (!cur) return;
-      cur.status = status;
-      cur.desired = false;
-      cur.lastExit = msg;
-      save();
-      addLog(id, status === 'error' ? 'err' : 'sys', msg);
-    };
-    child.on('error', (e) => {
-      let msg = 'สตาร์ทไม่ได้: ' + e.message;
-      if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้บนโฮสต์นี้ ดูตัวแปร ISOLATION)';
-      done('error', msg);
-    });
-    child.on('exit', (code, sig) => {
-      if (child.stopRequested) return done('stopped', 'หยุดบอทแล้ว');
-      if (code === 0) return done('stopped', 'โค้ดทำงานจบเอง (exit 0)');
-      done('error', 'บอทหยุดเพราะ error (' + (sig ? 'signal ' + sig : 'exit code ' + code) + ')');
-    });
-  } finally {
-    starting.delete(id);
+  if (!b || procs[id]) return;
+  const owner = getUser(b.owner);
+  if (!owner) {
+    b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save();
+    addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ จึงไม่รันให้');
+    return;
   }
+  const file = codeFile(b);
+  const dir = path.dirname(file);
+  fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(file)) fs.writeFileSync(file, '');
+  fixPerm(b);
+
+  // ส่ง env เฉพาะที่จำเป็น ไม่ส่งตัวแปรลับของเซิร์ฟเวอร์ให้โค้ดผู้ใช้
+  const env = {
+    PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+    HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
+    DISCORD_TOKEN: b.token || '',
+    PYTHONPATH: path.join(dir, 'pylibs'),
+    PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
+  };
+  const opts = Object.assign({ cwd: dir, env }, dropOpts(owner));
+
+  const py = b.lang === 'py';
+  let child;
+  try {
+    child = spawn(py ? 'python3' : 'node', py ? ['-u', file] : [file], opts);
+  } catch (e) {
+    b.status = 'error'; b.desired = false; b.lastExit = 'สตาร์ทไม่ได้: ' + e.message; save();
+    addLog(id, 'err', b.lastExit);
+    return;
+  }
+  procs[id] = child;
+  b.status = 'running';
+  b.desired = true;
+  b.startedAt = Date.now();
+  b.lastExit = '';
+  save();
+  addLog(id, 'sys', 'เริ่มรันบอท (' + (py ? 'Python' : 'JavaScript') + ')');
+
+  child.stdout.on('data', (d) => addLog(id, 'out', d));
+  child.stderr.on('data', (d) => addLog(id, 'err', d));
+
+  const done = (status, msg) => {
+    if (procs[id] !== child) return;
+    delete procs[id];
+    if (shuttingDown) return; // เซิร์ฟเวอร์ปิดเอง -> คงสถานะเดิมไว้ เพื่อเปิดใหม่อัตโนมัติ
+    const cur = bots[id];
+    if (!cur) return;
+    cur.status = status;
+    cur.desired = false;
+    cur.lastExit = msg;
+    save();
+    addLog(id, status === 'error' ? 'err' : 'sys', msg);
+  };
+  child.on('error', (e) => {
+    let msg = 'สตาร์ทไม่ได้: ' + e.message;
+    if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้บนโฮสต์นี้ ดูตัวแปร ISOLATION)';
+    done('error', msg);
+  });
+  child.on('exit', (code, sig) => {
+    if (child.stopRequested) return done('stopped', 'หยุดบอทแล้ว');
+    if (code === 0) return done('stopped', 'โค้ดทำงานจบเอง (exit 0)');
+    done('error', 'บอทหยุดเพราะ error (' + (sig ? 'signal ' + sig : 'exit code ' + code) + ')');
+  });
 }
 
 function stopBot(id) {
@@ -394,6 +287,132 @@ function stopBot(id) {
     c.kill('SIGTERM');
     setTimeout(() => { try { c.kill('SIGKILL'); } catch {} }, 4000);
   });
+}
+
+// ---------- ติดตั้งไลบรารี (pip / npm) ----------
+// ตัวอักษรที่อนุญาต: ขึ้นต้นด้วยตัวอักษร/ตัวเลข/@ เท่านั้น (กันการแทรกออปชันอย่าง -r หรือ --index-url)
+function validSpec(s) {
+  return typeof s === 'string' && s.length <= 200 &&
+    /^[A-Za-z0-9@][A-Za-z0-9@\/._:+#^~<>=!*|,%?&\[\]-]*$/.test(s) && !/^file:/i.test(s);
+}
+// คีย์ชื่อแพ็กเกจ (ไว้แทนที่เวอร์ชันเก่าเมื่อติดตั้งซ้ำ)
+function keyOf(lang, spec) {
+  if (/^(git\+|github:|https?:)/i.test(spec)) return spec;
+  if (lang === 'py') return spec.split(/[=<>!~\[;]/)[0].toLowerCase().replace(/[-_.]+/g, '-');
+  const m = /^(@[^/@]+\/[^@]+|[^@]+)/.exec(spec);
+  return m ? m[1].toLowerCase() : spec;
+}
+const libDir = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'pylibs' : 'node_modules');
+function wipeLibs(b) {
+  const dir = path.join(BOTS_DIR, b.id);
+  const rm = (p) => { try { fs.rmSync(p, { recursive: true, force: true }); } catch {} };
+  if (b.lang === 'py') rm(path.join(dir, 'pylibs'));
+  else { rm(path.join(dir, 'node_modules')); rm(path.join(dir, 'package.json')); rm(path.join(dir, 'package-lock.json')); }
+}
+function dirSize(d) {
+  let n = 0, ents;
+  try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { return 0; }
+  for (const e of ents) {
+    const p = path.join(d, e.name);
+    try {
+      if (e.isDirectory()) n += dirSize(p);
+      else if (e.isFile()) n += fs.statSync(p).size;
+    } catch {}
+  }
+  return n;
+}
+
+function runInstall(id, specs) {
+  return new Promise((resolve) => {
+    const b = bots[id];
+    const owner = b && getUser(b.owner);
+    if (!owner) return resolve({ ok: false, msg: 'บอทนี้ไม่มีเจ้าของ' });
+    const dir = path.join(BOTS_DIR, id);
+    const py = b.lang === 'py';
+    fixPerm(b);
+    const env = {
+      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+      HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
+      GIT_TERMINAL_PROMPT: '0',
+      PIP_DISABLE_PIP_VERSION_CHECK: '1',
+      npm_config_cache: path.join(dir, '.npm-cache'),
+      npm_config_update_notifier: 'false',
+      npm_config_fund: 'false',
+      npm_config_audit: 'false',
+      npm_config_nodedir: '/usr/local'
+    };
+    const cmd = py ? 'python3' : 'npm';
+    const args = py
+      ? ['-m', 'pip', 'install', '--target', path.join(dir, 'pylibs'), '--no-cache-dir', '--upgrade', '--break-system-packages'].concat(specs)
+      : ['install', '--prefix', dir, '--no-audit', '--no-fund'].concat(specs);
+    let child;
+    try { child = spawn(cmd, args, Object.assign({ cwd: dir, env }, dropOpts(owner))); }
+    catch (e) { return resolve({ ok: false, msg: e.message }); }
+    if (installs[id]) installs[id].child = child;
+    child.stdout.on('data', (d) => addLog(id, 'out', d));
+    child.stderr.on('data', (d) => addLog(id, 'out', d));
+    const to = setTimeout(() => {
+      addLog(id, 'err', 'ติดตั้งนานเกิน 10 นาที จึงยกเลิก');
+      try { child.kill('SIGKILL'); } catch {}
+    }, 600000);
+    child.on('error', (e) => { clearTimeout(to); resolve({ ok: false, msg: 'สั่งติดตั้งไม่ได้: ' + e.message }); });
+    child.on('exit', (code) => {
+      clearTimeout(to);
+      resolve({ ok: code === 0, msg: code === 0 ? '' : 'ติดตั้งไม่สำเร็จ (exit code ' + code + ')' });
+    });
+  });
+}
+
+// o = { add:[...] } | { remove:'spec' } | { reinstall:true }
+async function libJob(id, o) {
+  const b = bots[id];
+  if (!b) return;
+  installs[id] = { t: Date.now(), child: null };
+  activeInstalls++;
+  const dir = path.join(BOTS_DIR, id);
+  try {
+    let libs = (b.libs || []).slice();
+    let specs;
+    if (o.reinstall || o.remove) {
+      if (o.remove) libs = libs.filter((x) => x !== o.remove);
+      b.libs = libs;
+      save();
+      wipeLibs(b);
+      specs = libs;
+      addLog(id, 'sys', o.remove ? 'ลบ ' + o.remove + ' แล้วติดตั้งที่เหลือใหม่' : 'ติดตั้งไลบรารีทั้งหมดใหม่');
+    } else {
+      specs = o.add;
+      addLog(id, 'sys', 'ติดตั้งไลบรารี: ' + specs.join(' '));
+    }
+
+    let r = { ok: true, msg: '' };
+    if (specs.length) r = await runInstall(id, specs);
+
+    if (r.ok && specs.length && dirSize(libDir(b)) > MAX_LIB) {
+      wipeLibs(b);
+      b.libs = [];
+      r = { ok: false, msg: 'ไลบรารีรวมกันใหญ่เกิน ' + Math.round(MAX_LIB / 1048576) + ' MB จึงลบทิ้งทั้งหมด' };
+    }
+    for (const c of ['.npm-cache', '.cache', '.npm']) {
+      try { fs.rmSync(path.join(dir, c), { recursive: true, force: true }); } catch {}
+    }
+
+    if (bots[id]) {
+      if (r.ok && o.add) {
+        for (const a of o.add) {
+          const k = keyOf(b.lang, a);
+          libs = libs.filter((x) => keyOf(b.lang, x) !== k);
+          libs.push(a);
+        }
+        b.libs = libs;
+      }
+      save();
+      addLog(id, r.ok ? 'sys' : 'err', r.ok ? 'ติดตั้งเสร็จแล้ว รันบอทใหม่เพื่อใช้ไลบรารีที่เปลี่ยน' : r.msg);
+    }
+  } finally {
+    delete installs[id];
+    activeInstalls--;
+  }
 }
 
 // ---------- session / auth ----------
@@ -447,7 +466,7 @@ function msgLimited(u) {
   return f.n > 40;
 }
 
-// ---------- ตลาด / แชท ----------
+// ---------- ตลาดโค้ด / แชท ----------
 const pubPost = (p, me) => ({
   id: p.id, owner: p.owner, title: p.title, lang: p.lang, cover: p.cover || '',
   price: p.price, created: p.created, mine: p.owner === me
@@ -558,6 +577,7 @@ const server = http.createServer(async (req, res) => {
 
     const ip = ipOf(req);
 
+    // ----- สมัครสมาชิก (สมัครเสร็จเข้าสู่ระบบให้เลย) -----
     if (p === '/api/register' && M === 'POST') {
       if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัครอยู่' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป ลองใหม่ภายหลัง' });
@@ -571,6 +591,7 @@ const server = http.createServer(async (req, res) => {
       const hash = (await scrypt(pw, salt, 64)).toString('hex');
       if (getUser(u)) return json(res, 409, { error: 'ชื่อนี้มีคนใช้แล้ว' });
       state.users[u] = { salt, hash, uid: state.nextUid++, created: Date.now() };
+      // บอทรุ่นเก่าที่ยังไม่มีเจ้าของ ยกให้คนแรกที่สมัคร
       if (Object.keys(state.users).length === 1) {
         for (const b of Object.values(bots)) if (!b.owner) { b.owner = u; fixPerm(b); }
       }
@@ -579,6 +600,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
+    // ----- เข้าสู่ระบบ -----
     if (p === '/api/login' && M === 'POST') {
       if (tooMany(loginFails, ip, 10, 600000)) return json(res, 429, { error: 'ลองผิดบ่อยเกินไป รอ 10 นาทีนะ' });
       const d = await readBody(req);
@@ -593,30 +615,36 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
+    // ----- ออกจากระบบ -----
     if (p === '/api/logout' && M === 'POST') {
       const tok = getCookie(req, 'sid');
       if (tok) { delete state.sessions[sha(tok)]; save(); }
       return json(res, 200, { ok: true }, { 'Set-Cookie': sessCookie(req, '', 0) });
     }
 
+    // ----- ต่อจากนี้ต้องล็อกอินแล้ว -----
     const me = userOf(req);
     if (!me) return json(res, 401, { error: 'unauthorized' });
     if (p === '/api/me') return json(res, 200, { user: me });
 
+    // ----- ไฟล์รูป/วิดีโอ -----
     const mm = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mm && M === 'GET') return serveMedia(req, res, mm[1], me);
     if (p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
 
+    // ----- สถิติหน้าหลัก -----
     if (p === '/api/stats' && M === 'GET') {
       const run = Object.values(bots).filter((b) => b.status === 'running');
       return json(res, 200, {
         runningUsers: new Set(run.map((b) => b.owner)).size,
         runningBots: run.length,
         users: Object.keys(state.users).length,
-        posts: Object.keys(hub.posts).length
+        posts: Object.keys(hub.posts).length,
+        persistent: PERSISTENT
       });
     }
 
+    // ----- อัปโหลดไฟล์ (ส่งเป็น binary ตรงๆ) -----
     if (p === '/api/upload' && M === 'POST') {
       const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
       const ext = own(MIME, ct);
@@ -643,6 +671,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { id, kind });
     }
 
+    // ----- ตลาดโค้ด -----
     if (p === '/api/posts') {
       if (M === 'GET') {
         const list = Object.values(hub.posts).sort((a, b) => b.created - a.created).slice(0, 200);
@@ -705,6 +734,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
+    // ----- แชท -----
     if (p === '/api/chats') {
       if (M === 'GET') {
         const list = Object.values(hub.chats).filter((c) => c.members.includes(me))
@@ -775,6 +805,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
+    // ----- บอท (เฉพาะของตัวเอง) -----
     if (p === '/api/bots') {
       if (M === 'GET') {
         const list = Object.values(bots).filter((b) => b.owner === me).sort((a, b) => (a.created || 0) - (b.created || 0));
@@ -789,91 +820,8 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // ----- ไลบรารีของบอท -----
-    const lm = p.match(/^\/api\/bots\/([a-f0-9]{8})\/libs(?:\/(.+))?$/);
-    if (lm) {
-      const id = lm[1];
-      const pkg = lm[2] ? decodeURIComponent(lm[2]) : '';
-      const b = bots[id];
-      if (!b || b.owner !== me) return json(res, 404, { error: 'ไม่เจอบอทนี้' });
-      if (!Array.isArray(b.libs)) b.libs = [];
-
-      if (!pkg && M === 'GET') return json(res, 200, { libs: b.libs });
-
-      if (!pkg && M === 'POST') {
-        const d = await readBody(req);
-        const raw = String(d.name || '').trim();
-        if (!raw) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
-
-        const cleaned = cleanLibInput(raw);
-        if (!cleaned) {
-          return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
-        }
-
-        const names = cleaned
-          .split(/[\s,]+/)
-          .map((x) => x.trim())
-          .filter(Boolean)
-          .filter((x) => !x.startsWith('-'));
-
-        if (!names.length) {
-          return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
-        }
-        if (names.length > 20) return json(res, 400, { error: 'ติดตั้งได้สูงสุด 20 ไลบรารีต่อครั้ง' });
-
-        for (const n of names) {
-          if (!validLibName(n)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง: "' + n + '" (ห้ามมีช่องว่างหรืออักขระพิเศษ)' });
-        }
-
-        const todo = names.filter((n) => !b.libs.includes(n));
-        const skipped = names.filter((n) => b.libs.includes(n));
-        if (!todo.length) {
-          return json(res, 400, { error: 'มีทุกไลบรารีที่พิมพ์อยู่แล้ว: ' + skipped.join(', ') });
-        }
-        if (b.libs.length + todo.length > MAX_LIBS) {
-          return json(res, 400, { error: 'เกินขีดจำกัด ' + MAX_LIBS + ' ไลบรารีต่อบอท' });
-        }
-
-        const okList = [], failList = [], allLogs = [];
-        for (const n of todo) {
-          try {
-            const log = await installLib(id, n);
-            b.libs.push(n);
-            okList.push(n);
-            allLogs.push('=== ' + n + ' ===\n' + log.replace(ANSI, '').slice(-400));
-            addLog(id, 'sys', 'ติดตั้งไลบรารี "' + n + '" สำเร็จ');
-          } catch (e) {
-            failList.push(n + ': ' + e.message);
-            addLog(id, 'err', 'ติดตั้งไลบรารี "' + n + '" ไม่สำเร็จ: ' + e.message);
-          }
-          save();
-        }
-
-        const summary =
-          (okList.length ? 'สำเร็จ: ' + okList.join(', ') : '') +
-          (skipped.length ? '\nข้าม (มีอยู่แล้ว): ' + skipped.join(', ') : '') +
-          (failList.length ? '\nไม่สำเร็จ: ' + failList.join('\n') : '');
-
-        const status = failList.length && !okList.length ? 500 : 200;
-        return json(res, status, {
-          libs: b.libs,
-          installed: okList,
-          failed: failList,
-          skipped,
-          log: allLogs.join('\n\n').slice(-1500),
-          message: summary
-        });
-      }
-
-      if (pkg && M === 'DELETE') {
-        b.libs = b.libs.filter((x) => x !== pkg);
-        save();
-        return json(res, 200, { libs: b.libs });
-      }
-      return json(res, 405, { error: 'method not allowed' });
-    }
-
-    const m = p.match(/^\/api\/bots\/([a-f0-9]{8})(?:\/(start|stop|logs))?$/);
+    const m = p.match(/^\/api\/bots\/([a-f0-9]{8})(?:\/(start|stop|logs|libs))?$/);
+    // บอทของคนอื่น = ตอบว่า "ไม่เจอ" เหมือนไม่มีอยู่จริง
     if (!m || !bots[m[1]] || bots[m[1]].owner !== me) return json(res, 404, { error: 'ไม่เจอบอทนี้' });
     const id = m[1], b = bots[id], sub = m[2];
 
@@ -889,6 +837,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (!sub && M === 'DELETE') {
+      if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งไลบรารีอยู่ รอให้เสร็จก่อนค่อยลบ' });
       await stopBot(id);
       fs.rmSync(path.join(BOTS_DIR, id), { recursive: true, force: true });
       delete bots[id];
@@ -899,7 +848,7 @@ const server = http.createServer(async (req, res) => {
 
     if (sub === 'start' && M === 'POST') {
       await stopBot(id);
-      startBot(id).catch((e) => console.error('startBot:', e));
+      startBot(id);
       return json(res, 200, pub(b));
     }
     if (sub === 'stop' && M === 'POST') {
@@ -909,6 +858,28 @@ const server = http.createServer(async (req, res) => {
     }
     if (sub === 'logs' && M === 'GET') return json(res, 200, { logs: logs[id] || [] });
 
+    if (sub === 'libs' && M === 'POST') {
+      const d = await readBody(req);
+      if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่แล้ว รอให้เสร็จก่อน' });
+      if (activeInstalls >= MAX_INSTALLS) return json(res, 429, { error: 'เซิร์ฟเวอร์กำลังติดตั้งให้คนอื่นอยู่ รอสักครู่แล้วลองใหม่' });
+      const o = {};
+      if (d.reinstall) {
+        o.reinstall = true;
+      } else if (typeof d.remove === 'string') {
+        if (!(b.libs || []).includes(d.remove)) return json(res, 404, { error: 'ไม่เจอไลบรารีนี้ในรายการ' });
+        o.remove = d.remove;
+      } else {
+        const add = Array.isArray(d.add) ? d.add.map(String) : [];
+        if (!add.length) return json(res, 400, { error: 'ใส่ชื่อไลบรารีอย่างน้อย 1 ตัว' });
+        if (add.length > 30) return json(res, 400, { error: 'ติดตั้งครั้งละไม่เกิน 30 ตัว' });
+        for (const a of add) if (!validSpec(a)) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + a.slice(0, 60) });
+        o.add = Array.from(new Set(add));
+        if ((b.libs || []).length + o.add.length > 80) return json(res, 400, { error: 'มีไลบรารีมากเกินไป (สูงสุด 80 รายการ)' });
+      }
+      libJob(id, o).catch((e) => { console.error(e); addLog(id, 'err', 'ติดตั้งผิดพลาด: ' + e.message); });
+      return json(res, 200, pub(b));
+    }
+
     return json(res, 405, { error: 'method not allowed' });
   } catch (e) {
     console.error(e);
@@ -916,11 +887,14 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// ---------- shutdown: ไม่แตะสถานะบอท เพื่อให้บูตใหม่แล้วเปิดบอทต่อ ----------
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  try { save(); } catch (e) { console.error('save:', e.message); }
   try { if (hubTimer) clearTimeout(hubTimer); writeHub(); } catch (e) { console.error('writeHub:', e.message); }
   for (const c of Object.values(procs)) { try { c.kill('SIGTERM'); } catch {} }
+  for (const i of Object.values(installs)) { try { if (i.child) i.child.kill('SIGKILL'); } catch {} }
   setTimeout(() => process.exit(0), 1500);
 }
 process.on('SIGTERM', shutdown);
@@ -928,15 +902,19 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
+// ---------- boot ----------
+snapshot();
+setInterval(snapshot, 6 * 3600 * 1000);
+
 for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
-for (const b of Object.values(bots)) { if (!Array.isArray(b.libs)) b.libs = []; fixPerm(b); }
+for (const b of Object.values(bots)) fixPerm(b);
 
 let i = 0;
 for (const b of Object.values(bots)) {
   if (b.desired) {
     setTimeout(() => {
       addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทให้อัตโนมัติ');
-      startBot(b.id).catch((e) => console.error('startBot:', e));
+      startBot(b.id);
     }, 800 + i++ * 1500);
   } else if (b.status === 'running') {
     b.status = 'stopped';
@@ -945,5 +923,5 @@ for (const b of Object.values(bots)) {
 save();
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('Alexa Hub รันที่พอร์ต ' + PORT + ' | ข้อมูล: ' + DATA_DIR + ' | แยกผู้ใช้: ' + (ISOLATE ? 'เปิด' : 'ปิด'));
+  console.log('Alexa Hub รันที่พอร์ต ' + PORT + ' | ข้อมูล: ' + DATA_DIR + ' | Volume: ' + (PERSISTENT ? 'ใช่' : 'ไม่ใช่ (ข้อมูลจะหายตอน deploy)') + ' | แยกผู้ใช้: ' + (ISOLATE ? 'เปิด' : 'ปิด'));
 });
