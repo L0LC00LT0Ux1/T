@@ -12,7 +12,7 @@ html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
 
-/* ---------- พื้นหลัง: ไฟขาว ---------- */
+/* ---------- พื้นหลัง ---------- */
 .bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
 .bg i{position:absolute;border-radius:50%;will-change:transform;
   background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
@@ -90,7 +90,7 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .authbox .brand{justify-content:center;margin-bottom:20px;cursor:default}
 .hint{font-size:13px;color:var(--mut);text-align:center;margin:14px 0 0}
 
-/* ---------- ส่วนหัว + เมนูสามจุด ---------- */
+/* ---------- ส่วนหัว + เมนู ---------- */
 .top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 .menuwrap{position:relative}
 .iconbtn{width:42px;padding:0;position:relative}
@@ -153,6 +153,7 @@ textarea.code:focus{border-color:var(--line2)}
 .lg .t{color:#666;margin-right:8px}
 .danger-zone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
+.foot code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:11px}
 
 /* ---------- ไลบรารี ---------- */
 .libitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
@@ -265,7 +266,7 @@ textarea.code:focus{border-color:var(--line2)}
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
 
-<!-- ===== เข้าสู่ระบบ / สมัครสมาชิก ===== -->
+<!-- ===== เข้าสู่ระบบ ===== -->
 <div id="auth" class="hide">
   <div class="authbox panel">
     <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>ALEXA HUB</span></div>
@@ -321,8 +322,8 @@ textarea.code:focus{border-color:var(--line2)}
         <div>
           <h3>ความเป็นส่วนตัวและความปลอดภัย</h3>
           <ul>
-            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช อ่านย้อนกลับไม่ได้) โค้ดและโทเคนบอทของคุณ โพสต์ที่คุณอัปโหลด และข้อความแชท</li>
-            <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ของคุณลงข้อมูลของเว็บ</li>
+            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช) โค้ดและโทเคนบอทของคุณ โพสต์ และข้อความแชท</li>
+            <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ลงข้อมูลของเว็บ</li>
             <li>ไม่ขายและไม่แชร์ข้อมูลให้บุคคลภายนอก</li>
             <li>บอทและโทเคนของคุณคนอื่นมองไม่เห็น แชทเห็นได้เฉพาะสองฝ่ายที่คุยกัน</li>
           </ul>
@@ -336,7 +337,7 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </section>
 
-    <!-- ===== รันบอท 24 ชั่วโมง ===== -->
+    <!-- ===== รันบอท ===== -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์ แม้ปิดหน้าเว็บหรือรีเว็บ</p></div>
       <div id="tabs"></div>
@@ -383,10 +384,11 @@ textarea.code:focus{border-color:var(--line2)}
         <div class="pane hide" id="p-libs">
           <label class="l" style="margin-top:0">ติดตั้งไลบรารีเพิ่มเติม</label>
           <div class="row">
-            <input class="inp" id="libInp" placeholder="เช่น requests, numpy, axios, @discordjs/voice" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <input class="inp" id="libInp" placeholder="requests, pandas&gt;=2.0, opencv-python, @discordjs/voice, axios@1.6" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
             <button class="btn solid" id="libAdd"><svg class="ic"><use href="#i-plus"/></svg><span>ติดตั้ง</span></button>
           </div>
           <div class="foot" id="libHint"></div>
+          <div class="foot" style="margin-top:6px">พิมพ์ชื่อไลบรารีเดี่ยว ๆ 1 ตัวต่อครั้ง รองรับเวอร์ชัน (เช่น <code>pandas&gt;=2.0</code>) และ npm scope (เช่น <code>@discordjs/voice</code>) — ใช้เวลา 10 วิ ถึง 5 นาที แล้วแต่ขนาด</div>
           <div id="libProgress" class="foot hide" style="color:#fff"></div>
           <div style="margin-top:14px" id="libList"></div>
           <div class="foot" style="margin-top:14px">หลังติดตั้งแล้ว ต้องกด "บันทึก + รันใหม่" เพื่อให้บอทโหลดไลบรารีใหม่</div>
@@ -406,7 +408,7 @@ textarea.code:focus{border-color:var(--line2)}
       </section>
     </section>
 
-    <!-- ===== แจก/ซื้อขายโค้ดบอท ===== -->
+    <!-- ===== ตลาด ===== -->
     <section id="pg-market" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
@@ -422,7 +424,7 @@ textarea.code:focus{border-color:var(--line2)}
       <div class="grid" id="posts"></div>
     </section>
 
-    <!-- ===== อัปโหลดโค้ดบอท ===== -->
+    <!-- ===== อัปโหลด ===== -->
     <section id="pg-upload" class="page hide">
       <div class="ph"><h2>อัปโหลดโค้ดบอท</h2><p>โพสต์จะขึ้นในหน้าแจก/ซื้อขายโค้ดบอท ให้ทุกคนเห็น</p></div>
       <div class="panel pad">
@@ -600,7 +602,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.remove('hide');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.add('hide'), 2800);
+  toastT = setTimeout(() => t.classList.add('hide'), 3500);
 }
 function openModal(html) {
   $('#mbody').innerHTML = html;
@@ -680,7 +682,7 @@ async function logout() {
   toAuth();
 }
 
-/* ---------- เมนูสามจุด / หน้า ---------- */
+/* ---------- เมนู / หน้า ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   page = p;
@@ -693,7 +695,7 @@ async function setPage(p) {
     else if (p === 'run') await tickRun();
     else if (p === 'market') await loadPosts();
     else if (p === 'chat') await loadChatList();
-  } catch (e) { /* รอรอบหน้า */ }
+  } catch (e) {}
 }
 async function tick() {
   if (busy || !me) return;
@@ -705,7 +707,7 @@ async function tick() {
     else if (page === 'market') { if (tc % 5 === 0) await loadPosts(); }
     else if (page === 'chat') { await loadChatList(); await loadThread(); }
     if (page !== 'chat' && tc % 3 === 0) await loadChatList();
-  } catch (e) { /* รอรอบหน้า */ }
+  } catch (e) {}
   busy = false;
 }
 
@@ -841,8 +843,8 @@ async function saveBot() {
 /* ---------- ไลบรารี ---------- */
 function renderLibs(libs, lang) {
   $('#libHint').textContent = lang === 'py'
-    ? 'Python: ติดตั้งด้วย pip ลงโฟลเดอร์ libs/ ของบอท แล้ว import ได้เลย'
-    : 'JavaScript: ติดตั้งด้วย npm ลง node_modules/ ของบอท แล้ว require() ได้เลย';
+    ? 'Python: ติดตั้งใน venv ของบอท แล้ว import ได้เลย'
+    : 'JavaScript: ติดตั้งใน node_modules/ ของบอท แล้ว require() ได้เลย';
   if (!libs || !libs.length) {
     $('#libList').innerHTML = '<div class="empty">ยังไม่มีไลบรารีที่ติดตั้งเพิ่มเติม</div>';
     return;
@@ -861,7 +863,7 @@ async function loadLibs() {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- ตลาดโค้ด ---------- */
+/* ---------- ตลาด ---------- */
 function cardHtml(p) {
   const cover = p.cover
     ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>'
@@ -940,7 +942,7 @@ async function contactSeller(postId) {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- อัปโหลดโค้ดบอท ---------- */
+/* ---------- อัปโหลด ---------- */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -1122,7 +1124,7 @@ async function sendPostCode() {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- ผูกปุ่มต่างๆ ---------- */
+/* ---------- ผูกปุ่ม ---------- */
 $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
 $('#aGo').onclick = authGo;
 $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
@@ -1223,7 +1225,7 @@ $('#libList').addEventListener('click', async (e) => {
   try {
     const d = await api('DELETE', '/api/bots/' + cur + '/libs/' + encodeURIComponent(name));
     renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
-    toast('ลบออกจากรายการแล้ว (ไฟล์ยังอยู่จนกว่าจะสร้างใหม่)');
+    toast('ลบออกจากรายการแล้ว');
   } catch (e) { toast(e.message); }
 });
 
