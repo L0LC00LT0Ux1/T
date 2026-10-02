@@ -12,6 +12,7 @@ html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
 
+/* ---------- พื้นหลัง: ไฟขาว ---------- */
 .bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
 .bg i{position:absolute;border-radius:50%;will-change:transform;
   background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
@@ -35,6 +36,7 @@ body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Seg
 @keyframes sw2{from{transform:rotate(11deg)}to{transform:rotate(-8deg)}}
 @media (prefers-reduced-motion:reduce){.bg i,.cone{animation:none}}
 
+/* ---------- พื้นฐาน ---------- */
 .wrap{max-width:960px;margin:0 auto;padding:0 14px 60px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
@@ -72,6 +74,7 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .pad{padding:16px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
+/* ---------- สถานะ ---------- */
 .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #777;flex:none;display:inline-block}
 .dot.running{background:#fff;border-color:#fff;box-shadow:0 0 10px #fff}
 .dot.error{background:var(--red);border-color:var(--red);box-shadow:0 0 8px var(--red)}
@@ -80,12 +83,14 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .badge.running .dot{background:#000;border-color:#000;box-shadow:none}
 .badge.error{border-color:var(--red);color:#ff7a7c}
 
+/* ---------- เข้าสู่ระบบ ---------- */
 .authbox{width:min(390px,92vw);margin:13vh auto 0;padding:24px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.24em;cursor:pointer;user-select:none}
 .brand .logo{width:26px;height:26px}
 .authbox .brand{justify-content:center;margin-bottom:20px;cursor:default}
 .hint{font-size:13px;color:var(--mut);text-align:center;margin:14px 0 0}
 
+/* ---------- ส่วนหัว + เมนูสามจุด ---------- */
 .top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 .menuwrap{position:relative}
 .iconbtn{width:42px;padding:0;position:relative}
@@ -100,6 +105,8 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .mi.on .cnt{background:#000;color:#fff}
 .msep{height:1px;background:var(--line);margin:6px 4px}
 
+/* ---------- หน้าหลัก ---------- */
+.warn{margin-bottom:12px;padding:12px 14px;border:1px solid var(--red);border-radius:12px;background:rgba(255,77,79,.1);color:#ffb3b5;font-size:14px}
 .hero{padding:26px 20px;text-align:center;margin-bottom:12px}
 .kicker{font-size:11px;letter-spacing:.4em;color:var(--mut)}
 .hero h1{margin:6px 0 4px;font-size:clamp(34px,9vw,56px);letter-spacing:.18em;font-weight:900;text-shadow:0 0 28px rgba(255,255,255,.55)}
@@ -118,6 +125,7 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .quick{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:620px){.quick{grid-template-columns:repeat(3,1fr)}}
 
+/* ---------- รันบอท ---------- */
 #tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
 .tab{flex:none;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;
@@ -133,16 +141,11 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .title h2{margin:0;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
 .acts{display:flex;gap:8px;flex-wrap:wrap}
 .sub{padding:12px 14px 0}
+@media(max-width:440px){#viewSeg button .ic{display:none}}
 .pane{padding:14px}
-
-/* ---------- error box (มีปุ่มคัดลอก) ---------- */
-.errbox{display:none;align-items:center;gap:8px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
+.errbox{display:none;align-items:center;justify-content:space-between;gap:10px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
   background:rgba(255,77,79,.1);color:#ffb3b5;border-radius:10px;font-size:14px}
-.errbox .errtxt{flex:1;min-width:0;word-break:break-word;line-height:1.4}
-.errbox .btn{min-height:32px;padding:0 10px;font-size:13px;flex:none}
-.errbox .iconbtn2{width:34px;min-height:32px;padding:0;justify-content:center}
-.errbox .iconbtn2 .ic{width:15px;height:15px}
-
+.errbox .btn{min-height:32px;padding:0 10px;font-size:13px}
 textarea.code{display:block;width:100%;min-height:52vh;padding:12px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
   font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;resize:vertical;outline:none;tab-size:4}
 textarea.code:focus{border-color:var(--line2)}
@@ -152,12 +155,20 @@ textarea.code:focus{border-color:var(--line2)}
 .lg .t{color:#666;margin-right:8px}
 .danger-zone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
-.foot code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:11px}
 
-.libitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
-.libitem code{flex:1;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;font-size:13px}
-.libitem .btn{min-height:32px;padding:0 10px}
+/* ---------- ไลบรารี ---------- */
+.libin{display:block;width:100%;min-height:96px;padding:10px 12px;resize:vertical;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
+  font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;outline:none}
+.libin:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pk{padding:4px 11px;border:1px solid var(--line2);border-radius:99px;font:12px ui-monospace,Menlo,monospace;color:#cfcfcf;background:transparent;cursor:pointer}
+.pk:hover{background:rgba(255,255,255,.1)}
+.lib{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:rgba(0,0,0,.5)}
+.lib code{font:13px ui-monospace,Menlo,monospace;word-break:break-all}
+.lib .btn{min-height:32px;width:36px;padding:0}
+.busy{margin-top:12px;padding:10px 14px;border:1px solid var(--line2);border-radius:12px;background:rgba(255,255,255,.07);font-weight:600}
 
+/* ---------- ตลาดโค้ด ---------- */
 .notice{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);font-size:13px;color:#bdbdbd}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
 @media(max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}}
@@ -173,10 +184,12 @@ textarea.code:focus{border-color:var(--line2)}
 .cb b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb small{color:var(--mut)}
 
+/* ---------- อัปโหลด ---------- */
 .prev{aspect-ratio:16/10;max-width:380px;border:1px dashed var(--line2);border-radius:12px;background:#0a0a0a center/cover no-repeat;
   display:flex;align-items:center;justify-content:center;color:var(--mut);margin-top:8px}
 .prev .ic{width:34px;height:34px}
 
+/* ---------- โมดัล / ทอสต์ ---------- */
 .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal{align-items:center}}
 .mback{position:absolute;inset:0;background:rgba(0,0,0,.74)}
@@ -191,6 +204,7 @@ textarea.code:focus{border-color:var(--line2)}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:99px;background:#fff;color:#000;font-weight:700;box-shadow:0 8px 40px rgba(255,255,255,.25)}
 
+/* ---------- แชท ---------- */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:760px){.chatwrap{grid-template-columns:300px 1fr}#cBack{display:none}}
 @media(max-width:759px){.chatwrap.open #cListBox{display:none}.chatwrap:not(.open) #cBox{display:none}}
@@ -240,6 +254,7 @@ textarea.code:focus{border-color:var(--line2)}
   <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
   <symbol id="i-log" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h9"/></symbol>
   <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6"/></symbol>
+  <symbol id="i-pkg" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z" style="fill:currentColor;stroke:none"/></symbol>
   <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.9" style="fill:currentColor;stroke:none"/><circle cx="12" cy="12" r="1.9" style="fill:currentColor;stroke:none"/><circle cx="12" cy="19" r="1.9" style="fill:currentColor;stroke:none"/></symbol>
@@ -255,11 +270,11 @@ textarea.code:focus{border-color:var(--line2)}
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></symbol>
-  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></symbol>
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
 
+<!-- ===== เข้าสู่ระบบ / สมัครสมาชิก ===== -->
 <div id="auth" class="hide">
   <div class="authbox panel">
     <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>ALEXA HUB</span></div>
@@ -277,6 +292,7 @@ textarea.code:focus{border-color:var(--line2)}
   </div>
 </div>
 
+<!-- ===== แอปหลัก ===== -->
 <div id="app" class="hide">
   <div class="wrap">
     <div class="top">
@@ -296,7 +312,9 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </div>
 
+    <!-- ===== หน้าหลัก ===== -->
     <section id="pg-home" class="page">
+      <div class="warn hide" id="persistWarn">คำเตือน: เซิร์ฟเวอร์นี้ยังไม่ได้ต่อ Volume ข้อมูลทั้งหมด (บัญชี บอท ไลบรารี โพสต์ แชท) จะหายทุกครั้งที่อัปเดตเว็บ ผู้ดูแลต้องต่อ Volume ที่ Railway แล้วตั้ง Mount path เป็น /data</div>
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
         <h1>ALEXA HUB</h1>
@@ -313,8 +331,8 @@ textarea.code:focus{border-color:var(--line2)}
         <div>
           <h3>ความเป็นส่วนตัวและความปลอดภัย</h3>
           <ul>
-            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช) โค้ดและโทเคนบอทของคุณ โพสต์ และข้อความแชท</li>
-            <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ลงข้อมูลของเว็บ</li>
+            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช อ่านย้อนกลับไม่ได้) โค้ดและโทเคนบอทของคุณ โพสต์ที่คุณอัปโหลด และข้อความแชท</li>
+            <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ของคุณลงข้อมูลของเว็บ</li>
             <li>ไม่ขายและไม่แชร์ข้อมูลให้บุคคลภายนอก</li>
             <li>บอทและโทเคนของคุณคนอื่นมองไม่เห็น แชทเห็นได้เฉพาะสองฝ่ายที่คุยกัน</li>
           </ul>
@@ -328,6 +346,7 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </section>
 
+    <!-- ===== รันบอท 24 ชั่วโมง ===== -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์ แม้ปิดหน้าเว็บหรือรีเว็บ</p></div>
       <div id="tabs"></div>
@@ -354,44 +373,34 @@ textarea.code:focus{border-color:var(--line2)}
             <button class="btn" id="stopBtn"><svg class="ic f"><use href="#i-stop"/></svg><span>หยุด</span></button>
           </div>
         </div>
-
-        <div id="errbox" class="errbox">
-          <span class="errtxt" id="errtxt"></span>
-          <button class="btn iconbtn2" id="copyErr" title="คัดลอกข้อความ error"><svg class="ic"><use href="#i-copy"/></svg></button>
-          <button class="btn" id="toLog">ดูล็อก</button>
-        </div>
-
+        <div id="errbox" class="errbox"><span id="errtxt"></span><button class="btn" id="toLog">ดูล็อก</button></div>
         <div class="sub">
           <div class="seg" id="viewSeg">
             <button data-v="code" class="on"><svg class="ic"><use href="#i-code"/></svg><span>โค้ด</span></button>
             <button data-v="log"><svg class="ic"><use href="#i-log"/></svg><span>ล็อก</span></button>
-            <button data-v="libs"><svg class="ic"><use href="#i-box"/></svg><span>ไลบรารี</span></button>
+            <button data-v="lib"><svg class="ic"><use href="#i-pkg"/></svg><span>ไลบรารี</span></button>
             <button data-v="set"><svg class="ic"><use href="#i-set"/></svg><span>ตั้งค่า</span></button>
           </div>
         </div>
-
         <div class="pane" id="p-code">
           <textarea class="code" id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
           <div class="foot">โทเคนที่ตั้งในแท็บตั้งค่า จะส่งให้โค้ดผ่านตัวแปร DISCORD_TOKEN</div>
         </div>
-
         <div class="pane hide" id="p-log"><div class="logs" id="logs"></div></div>
 
-        <div class="pane hide" id="p-libs">
-          <label class="l" style="margin-top:0">ติดตั้งไลบรารีเพิ่มเติม</label>
-          <div class="row">
-            <input class="inp" id="libInp" placeholder="discord.py aiohttp Pillow numpy matplotlib librosa" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
-            <button class="btn solid" id="libAdd"><svg class="ic"><use href="#i-plus"/></svg><span>ติดตั้ง</span></button>
+        <div class="pane hide" id="p-lib">
+          <div class="mut" id="libHelp"></div>
+          <label class="l" for="libIn" style="margin-top:12px">ไลบรารีที่ต้องการติดตั้ง (บรรทัดละ 1 ตัว หรือเว้นวรรค)</label>
+          <textarea class="libin" id="libIn" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+          <div class="chips" id="chips"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn solid" id="libGo"><svg class="ic"><use href="#i-pkg"/></svg><span>ติดตั้ง</span></button>
+            <button class="btn" id="libRe"><svg class="ic"><use href="#i-restart"/></svg><span>ติดตั้งใหม่ทั้งหมด</span></button>
           </div>
-          <div class="foot" id="libHint"></div>
-          <div class="foot" style="margin-top:6px">
-            ✅ พิมพ์แค่ชื่อไลบรารี ไม่ต้องใส่ <code>pip install</code> นำหน้า — ระบบตัดให้อัตโนมัติ<br>
-            ✅ รองรับหลายตัวพร้อมกัน คั่นด้วยช่องว่าง หรือ comma — เช่น <code>discord.py aiohttp Pillow</code><br>
-            ✅ รองรับเวอร์ชัน เช่น <code>pandas&gt;=2.0</code> และ npm scope เช่น <code>@discordjs/voice</code>
-          </div>
-          <div id="libProgress" class="foot hide" style="color:#fff"></div>
-          <div style="margin-top:14px" id="libList"></div>
-          <div class="foot" style="margin-top:14px">หลังติดตั้งแล้ว ต้องกด "บันทึก + รันใหม่" เพื่อให้บอทโหลดไลบรารีใหม่</div>
+          <div class="busy hide" id="libBusy">กำลังติดตั้ง ดูความคืบหน้าในแท็บล็อก</div>
+          <label class="l">ติดตั้งแล้ว</label>
+          <div id="libList"></div>
+          <div class="foot" id="libFoot"></div>
         </div>
 
         <div class="pane hide" id="p-set">
@@ -408,6 +417,7 @@ textarea.code:focus{border-color:var(--line2)}
       </section>
     </section>
 
+    <!-- ===== แจก/ซื้อขายโค้ดบอท ===== -->
     <section id="pg-market" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
@@ -423,6 +433,7 @@ textarea.code:focus{border-color:var(--line2)}
       <div class="grid" id="posts"></div>
     </section>
 
+    <!-- ===== อัปโหลดโค้ดบอท ===== -->
     <section id="pg-upload" class="page hide">
       <div class="ph"><h2>อัปโหลดโค้ดบอท</h2><p>โพสต์จะขึ้นในหน้าแจก/ซื้อขายโค้ดบอท ให้ทุกคนเห็น</p></div>
       <div class="panel pad">
@@ -462,6 +473,7 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </section>
 
+    <!-- ===== แชท ===== -->
     <section id="pg-chat" class="page hide">
       <div class="ph"><h2>แชท</h2><p>คุยกับคนขายหรือผู้ซื้อ ส่งข้อความ รูป และวิดีโอได้</p></div>
       <div class="chatwrap" id="chatwrap">
@@ -553,11 +565,19 @@ const TPL = {
   ].join('\n')
 };
 
+const CHIPS = {
+  py: ['requests', 'aiohttp', 'PyNaCl', 'yt-dlp', 'pillow', 'python-dotenv', 'beautifulsoup4', 'numpy'],
+  js: ['@discordjs/voice', '@discordjs/opus', 'axios', 'dotenv', 'ffmpeg-static', 'play-dl', 'moment', 'node-fetch@2']
+};
+
+/* ---------- สถานะรวม ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
-let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', view = 'code';
+// รันบอท
+let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', lastLibKey = '', view = 'code';
+// ตลาด / อัปโหลด
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
+// แชท
 let chats = [], curChat = null, thrTotal = 0, thrBusy = false, attach = null, sending = false, lastChatsKey = '';
-let installing = false;
 
 async function api(method, url, body) {
   const r = await fetch(url, {
@@ -598,7 +618,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.remove('hide');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.add('hide'), 3500);
+  toastT = setTimeout(() => t.classList.add('hide'), 2800);
 }
 function openModal(html) {
   $('#mbody').innerHTML = html;
@@ -620,6 +640,7 @@ async function copyText(t) {
   }
 }
 
+/* ---------- เข้าสู่ระบบ ---------- */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
@@ -647,7 +668,7 @@ async function authGo() {
 }
 function toAuth() {
   clearInterval(timer); timer = null;
-  me = null; bots = []; cur = null; shownId = null; lastTabsKey = '';
+  me = null; bots = []; cur = null; shownId = null; lastTabsKey = ''; lastLibKey = '';
   chats = []; curChat = null; thrTotal = 0; attach = null; lastChatsKey = ''; lastPostsKey = '';
   setDirty(false);
   closeModal();
@@ -665,7 +686,7 @@ function enter(user) {
   $('#chatwrap').classList.remove('open');
   showThread(false);
   cur = localStorage.getItem('cur:' + me) || null;
-  shownId = null; lastLogKey = ''; lastTabsKey = ''; curChat = null; thrTotal = 0; lastChatsKey = '';
+  shownId = null; lastLogKey = ''; lastTabsKey = ''; lastLibKey = ''; curChat = null; thrTotal = 0; lastChatsKey = '';
   clearInterval(timer);
   tc = 0;
   setPage(localStorage.getItem('pg:' + me) || 'home');
@@ -677,6 +698,7 @@ async function logout() {
   toAuth();
 }
 
+/* ---------- เมนูสามจุด / หน้า ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   page = p;
@@ -689,7 +711,7 @@ async function setPage(p) {
     else if (p === 'run') await tickRun();
     else if (p === 'market') await loadPosts();
     else if (p === 'chat') await loadChatList();
-  } catch (e) {}
+  } catch (e) { /* รอรอบหน้า */ }
 }
 async function tick() {
   if (busy || !me) return;
@@ -701,10 +723,11 @@ async function tick() {
     else if (page === 'market') { if (tc % 5 === 0) await loadPosts(); }
     else if (page === 'chat') { await loadChatList(); await loadThread(); }
     if (page !== 'chat' && tc % 3 === 0) await loadChatList();
-  } catch (e) {}
+  } catch (e) { /* รอรอบหน้า */ }
   busy = false;
 }
 
+/* ---------- หน้าหลัก ---------- */
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
@@ -712,8 +735,10 @@ async function loadStats() {
   set('#sBots', d.runningBots);
   set('#sMembers', d.users);
   set('#sPosts', d.posts);
+  $('#persistWarn').classList.toggle('hide', !!d.persistent);
 }
 
+/* ---------- รันบอท ---------- */
 function renderTabs() {
   const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang).join(',');
   if (key === lastTabsKey) return;
@@ -729,10 +754,9 @@ function setView(v) {
   $$('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
   $('#p-code').classList.toggle('hide', v !== 'code');
   $('#p-log').classList.toggle('hide', v !== 'log');
-  $('#p-libs').classList.toggle('hide', v !== 'libs');
+  $('#p-lib').classList.toggle('hide', v !== 'lib');
   $('#p-set').classList.toggle('hide', v !== 'set');
   if (v === 'log') { const box = $('#logs'); box.scrollTop = box.scrollHeight; }
-  if (v === 'libs') loadLibs();
 }
 function showNewPanel() {
   shownId = null;
@@ -743,6 +767,28 @@ function fmtUp(ms) {
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
   return h ? h + ' ชม. ' + m + ' นาที' : m ? m + ' นาที' : s + ' วิ';
+}
+function renderLibs(b) {
+  const key = b.id + '|' + b.lang + '|' + (b.libs || []).join(',') + '|' + b.installing;
+  if (key === lastLibKey) return;
+  lastLibKey = key;
+  const py = b.lang === 'py';
+  $('#libHelp').textContent = py
+    ? 'ติดตั้งด้วย pip ใส่เวอร์ชันได้ เช่น numpy==1.26.4 หรือ requests>=2.31,<3 (ห้ามเว้นวรรคในเวอร์ชัน) ใส่ลิงก์ git ได้ เช่น git+https://github.com/user/repo ชื่อที่ติดตั้งอาจไม่ตรงกับชื่อที่ import เช่น import PIL ต้องติดตั้ง pillow'
+    : 'ติดตั้งด้วย npm ใส่เวอร์ชันได้ เช่น moment@2 แพ็กเกจ scope เช่น @discordjs/voice และลิงก์ github เช่น github:user/repo';
+  $('#libIn').placeholder = py
+    ? 'requests\nnumpy==1.26.4\nyt-dlp\ngit+https://github.com/user/repo'
+    : 'axios\nmoment@2\n@discordjs/voice\ngithub:user/repo';
+  $('#chips').innerHTML = CHIPS[b.lang].map((c) => '<button class="pk" data-s="' + esc(c) + '">' + esc(c) + '</button>').join('');
+  const libs = b.libs || [];
+  $('#libList').innerHTML = libs.map((s) =>
+    '<div class="lib"><code>' + esc(s) + '</code><button class="btn" data-rm="' + esc(s) + '" aria-label="ลบ">' + ic('x') + '</button></div>'
+  ).join('') || '<div class="mut">ยังไม่ได้ติดตั้งไลบรารีเพิ่ม</div>';
+  $('#libBusy').classList.toggle('hide', !b.installing);
+  $('#libGo').disabled = !!b.installing;
+  $('#libRe').disabled = !!b.installing;
+  $$('#libList .btn').forEach((x) => (x.disabled = !!b.installing));
+  $('#libFoot').textContent = 'ไลบรารีถูกเก็บแยกในโฟลเดอร์ของบอทแต่ละตัว ไม่ปนกัน และอยู่ใน Volume จึงไม่หายตอนอัปเดตเว็บ (เมื่อต่อ Volume แล้ว) ติดตั้งเสร็จแล้วต้องกดรันบอทใหม่เพื่อใช้ไลบรารีที่เปลี่ยน';
 }
 function updateStatus() {
   const b = bots.find((x) => x.id === cur);
@@ -764,6 +810,7 @@ function updateStatus() {
     run.innerHTML = want === 'r' ? ic('restart') + '<span>บันทึก + รันใหม่</span>' : ic('play', 1) + '<span>รันบอท</span>';
   }
   $('#token').placeholder = b.hasToken ? 'ตั้งไว้แล้ว (เว้นว่าง = ใช้ของเดิม)' : 'ใส่โทเคนที่นี่ หรือเขียนในโค้ดเองก็ได้';
+  renderLibs(b);
 }
 async function openBot(id) {
   const d = await api('GET', '/api/bots/' + id);
@@ -773,12 +820,13 @@ async function openBot(id) {
   $('#name').value = d.name;
   $('#code').value = d.code;
   $('#token').value = '';
+  $('#libIn').value = '';
   $('#langInfo').textContent = (d.lang === 'py' ? 'ภาษา Python (ไฟล์ bot.py)' : 'ภาษา JavaScript (ไฟล์ bot.js)') + ' - เปลี่ยนภาษาไม่ได้หลังสร้าง';
   setDirty(false);
   lastLogKey = '';
+  lastLibKey = '';
   updateStatus();
   await loadLogs();
-  if (view === 'libs') await loadLibs();
 }
 async function loadLogs() {
   if (!cur || cur === 'new') return;
@@ -832,28 +880,40 @@ async function saveBot() {
   return d;
 }
 
-function renderLibs(libs, lang) {
-  $('#libHint').textContent = lang === 'py'
-    ? 'Python: ติดตั้งใน venv ของบอท แล้ว import ได้เลย'
-    : 'JavaScript: ติดตั้งใน node_modules/ ของบอท แล้ว require() ได้เลย';
-  if (!libs || !libs.length) {
-    $('#libList').innerHTML = '<div class="empty">ยังไม่มีไลบรารีที่ติดตั้งเพิ่มเติม</div>';
-    return;
-  }
-  $('#libList').innerHTML = libs.map((n) =>
-    '<div class="libitem"><code>' + esc(n) + '</code>' +
-    '<button class="btn danger" data-lib="' + esc(n) + '">' + ic('trash') + '</button></div>'
-  ).join('');
-}
-async function loadLibs() {
-  if (!cur || cur === 'new') return;
-  const b = bots.find((x) => x.id === cur);
+/* ---------- ติดตั้งไลบรารี ---------- */
+async function installLibs() {
+  const txt = $('#libIn').value.split('\n').filter((l) => !l.trim().startsWith('#')).join(' ');
+  const add = txt.split(/\s+/).filter(Boolean);
+  if (!add.length) return toast('ใส่ชื่อไลบรารีก่อน');
   try {
-    const d = await api('GET', '/api/bots/' + cur + '/libs');
-    renderLibs(d.libs, b ? b.lang : 'py');
+    await api('POST', '/api/bots/' + cur + '/libs', { add });
+    $('#libIn').value = '';
+    lastLibKey = '';
+    setView('log');
+    await tickRun();
+    toast('เริ่มติดตั้งแล้ว ดูความคืบหน้าในล็อก');
+  } catch (e) { toast(e.message); }
+}
+async function removeLib(spec) {
+  if (!confirm('ลบ ' + spec + ' ? ระบบจะติดตั้งตัวที่เหลือใหม่ทั้งหมด')) return;
+  try {
+    await api('POST', '/api/bots/' + cur + '/libs', { remove: spec });
+    lastLibKey = '';
+    setView('log');
+    await tickRun();
+  } catch (e) { toast(e.message); }
+}
+async function reinstallLibs() {
+  if (!confirm('ล้างแล้วติดตั้งไลบรารีทั้งหมดใหม่?')) return;
+  try {
+    await api('POST', '/api/bots/' + cur + '/libs', { reinstall: true });
+    lastLibKey = '';
+    setView('log');
+    await tickRun();
   } catch (e) { toast(e.message); }
 }
 
+/* ---------- ตลาดโค้ด ---------- */
 function cardHtml(p) {
   const cover = p.cover
     ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>'
@@ -932,6 +992,7 @@ async function contactSeller(postId) {
   } catch (e) { toast(e.message); }
 }
 
+/* ---------- อัปโหลดโค้ดบอท ---------- */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -983,6 +1044,7 @@ async function doPublish() {
   $('#upGo').disabled = false;
 }
 
+/* ---------- แชท ---------- */
 function setUnread(n) {
   $('#pip').classList.toggle('hide', !n);
   const m = $('#mcnt');
@@ -1112,6 +1174,7 @@ async function sendPostCode() {
   } catch (e) { toast(e.message); }
 }
 
+/* ---------- ผูกปุ่มต่างๆ ---------- */
 $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
 $('#aGo').onclick = authGo;
 $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
@@ -1137,10 +1200,6 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMod
 $('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
 $('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
 $('#toLog').onclick = () => setView('log');
-
-// ปุ่มคัดลอก error
-$('#copyErr').onclick = () => copyText($('#errtxt').textContent || '');
-
 $('#addBtn').onclick = async () => {
   const lang = $('#newLang').value;
   try {
@@ -1189,53 +1248,18 @@ $('#code').addEventListener('keydown', (e) => {
 window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
 // ไลบรารี
-$('#libAdd').onclick = async () => {
-  if (installing) return;
-  const raw = $('#libInp').value.trim();
-  if (!raw) return;
-  const count = raw.split(/[\s,]+/).filter(Boolean).length;
-  installing = true;
-  $('#libAdd').disabled = true;
-  $('#libProgress').classList.remove('hide');
-  $('#libProgress').textContent = 'กำลังติดตั้ง ' + count + ' ไลบรารี ... รอสักครู่ (อาจใช้เวลาเป็นนาที)';
-  try {
-    const d = await api('POST', '/api/bots/' + cur + '/libs', { name: raw });
-    $('#libInp').value = '';
-    renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
-    const ok = d.installed || [];
-    const fail = d.failed || [];
-    const skip = d.skipped || [];
-    let msg = '';
-    if (ok.length) msg += 'สำเร็จ ' + ok.length + ' ตัว';
-    if (skip.length) msg += (msg ? ' · ' : '') + 'ข้าม ' + skip.length + ' ตัว (มีอยู่แล้ว)';
-    if (fail.length) msg += (msg ? ' · ' : '') + 'ล้มเหลว ' + fail.length + ' ตัว';
-    toast(msg || 'เสร็จแล้ว');
-    if (fail.length) {
-      $('#libProgress').textContent = 'ล้มเหลว: ' + fail.join(' | ');
-      setTimeout(() => $('#libProgress').classList.add('hide'), 8000);
-    } else {
-      $('#libProgress').classList.add('hide');
-    }
-  } catch (e) {
-    toast(e.message);
-    $('#libProgress').textContent = e.message;
-    setTimeout(() => $('#libProgress').classList.add('hide'), 8000);
-  }
-  installing = false;
-  $('#libAdd').disabled = false;
-  if (!$('#libProgress').textContent.startsWith('ล้มเหลว')) $('#libProgress').classList.add('hide');
-};
-$('#libInp').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#libAdd').click(); });
-$('#libList').addEventListener('click', async (e) => {
-  const btn = e.target.closest('button[data-lib]');
-  if (!btn) return;
-  const name = btn.dataset.lib;
-  if (!confirm('เอา "' + name + '" ออกจากรายการ?')) return;
-  try {
-    const d = await api('DELETE', '/api/bots/' + cur + '/libs/' + encodeURIComponent(name));
-    renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
-    toast('ลบออกจากรายการแล้ว');
-  } catch (e) { toast(e.message); }
+$('#libGo').onclick = installLibs;
+$('#libRe').onclick = reinstallLibs;
+$('#chips').addEventListener('click', (e) => {
+  const c = e.target.closest('.pk');
+  if (!c) return;
+  const ta = $('#libIn');
+  const cur2 = ta.value.split(/\s+/).filter(Boolean);
+  if (!cur2.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
+});
+$('#libList').addEventListener('click', (e) => {
+  const x = e.target.closest('[data-rm]');
+  if (x) removeLib(x.dataset.rm);
 });
 
 // ตลาด
@@ -1294,6 +1318,7 @@ $('#cin').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); }
 });
 
+/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
 setMode('login');
 api('GET', '/api/me').then((d) => enter(d.user)).catch(() => toAuth());
 </script>
