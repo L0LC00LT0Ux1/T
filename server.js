@@ -14,7 +14,7 @@ const SIGNUP_OPEN = process.env.SIGNUP !== 'off';
 const MAX_IMG = parseInt(process.env.MAX_IMAGE_MB || '10', 10) * 1024 * 1024;
 const MAX_VID = parseInt(process.env.MAX_VIDEO_MB || '30', 10) * 1024 * 1024;
 const QUOTA = parseInt(process.env.QUOTA_MB || '300', 10) * 1024 * 1024;
-const MAX_LIB = parseInt(process.env.MAX_LIB_MB || '300', 10) * 1024 * 1024;
+const MAX_LIB = parseInt(process.env.MAX_LIB_MB || '1000', 10) * 1024 * 1024;
 const MAX_INSTALLS = 2;
 
 // ที่เก็บข้อมูล: DATA_DIR > จุดเมานต์ Volume ของ Railway > ./data
@@ -302,6 +302,65 @@ function keyOf(lang, spec) {
   const m = /^(@[^/@]+\/[^@]+|[^@]+)/.exec(spec);
   return m ? m[1].toLowerCase() : spec;
 }
+
+// คำสั่งที่ตัดทิ้งได้ถ้าอยู่หน้าสุดของบรรทัด (เผื่อผู้ใช้วางคำสั่งเต็ม)
+const CMD_WORDS = {
+  py: new Set(['sudo', 'python', 'python3', 'py', 'pip', 'pip3', '-m', 'install']),
+  js: new Set(['sudo', 'npm', 'npx', 'yarn', 'pnpm', 'bun', 'install', 'i', 'add'])
+};
+// ออปชันที่ตามด้วยค่า (ต้องข้ามค่าด้วย)
+const FLAG_WITH_ARG = new Set([
+  '-r', '--requirement', '-c', '--constraint', '-i', '--index-url', '--extra-index-url',
+  '-f', '--find-links', '-t', '--target', '--prefix', '--registry', '--cache', '--root', '--proxy'
+]);
+// แยกคอมมาเฉพาะตอนที่ตามด้วยชื่อแพ็กเกจใหม่ (ไม่แยกในเวอร์ชัน เช่น >=2,<3 หรือใน [extras,ย่อย])
+function splitCommas(tok) {
+  const out = [];
+  let depth = 0, curTok = '';
+  for (let i = 0; i < tok.length; i++) {
+    const ch = tok[i];
+    if (ch === '[') depth++;
+    else if (ch === ']') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0 && (i === tok.length - 1 || /[A-Za-z@]/.test(tok[i + 1]))) {
+      if (curTok) out.push(curTok);
+      curTok = '';
+      continue;
+    }
+    curTok += ch;
+  }
+  if (curTok) out.push(curTok);
+  return out;
+}
+// แปลงข้อความที่ผู้ใช้พิมพ์/วาง ให้เป็นรายการแพ็กเกจ
+function parseSpecs(lang, text) {
+  const cmds = CMD_WORDS[lang] || CMD_WORDS.py;
+  const found = [], ignored = [], bad = [];
+  const lines = String(text || '').replace(/&&|\|\|/g, '\n').split(/\r?\n/);
+  for (let line of lines) {
+    line = line.replace(/(^|\s)#.*$/, '').trim();
+    if (!line) continue;
+    const toks = (line.match(/"[^"]*"|'[^']*'|\S+/g) || []).map((t) => t.replace(/^["']|["']$/g, ''));
+    let i = 0;
+    while (i < toks.length && cmds.has(toks[i].toLowerCase())) i++;
+    for (; i < toks.length; i++) {
+      const t = toks[i];
+      if (!t) continue;
+      if (t.startsWith('-')) {
+        ignored.push(t);
+        if (FLAG_WITH_ARG.has(t) && i + 1 < toks.length) { ignored.push(toks[i + 1]); i++; }
+        continue;
+      }
+      for (const piece of splitCommas(t)) {
+        if (validSpec(piece)) found.push(piece);
+        else bad.push(piece);
+      }
+    }
+  }
+  const map = new Map();
+  for (const s of found) map.set(keyOf(lang, s), s);
+  return { specs: Array.from(map.values()), ignored, bad };
+}
+
 const libDir = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'pylibs' : 'node_modules');
 function wipeLibs(b) {
   const dir = path.join(BOTS_DIR, b.id);
@@ -382,16 +441,26 @@ async function libJob(id, o) {
       addLog(id, 'sys', o.remove ? 'ลบ ' + o.remove + ' แล้วติดตั้งที่เหลือใหม่' : 'ติดตั้งไลบรารีทั้งหมดใหม่');
     } else {
       specs = o.add;
-      addLog(id, 'sys', 'ติดตั้งไลบรารี: ' + specs.join(' '));
+      addLog(id, 'sys', 'ติดตั้งไลบรารี ' + specs.length + ' ตัว: ' + specs.join(' '));
     }
 
     let r = { ok: true, msg: '' };
     if (specs.length) r = await runInstall(id, specs);
 
+    // เกินเพดานขนาด: ยกเลิกรอบนี้ แล้วคืนไลบรารีเดิม (ไม่ลบของเดิมทิ้ง)
     if (r.ok && specs.length && dirSize(libDir(b)) > MAX_LIB) {
+      const prev = (b.libs || []).slice();
       wipeLibs(b);
-      b.libs = [];
-      r = { ok: false, msg: 'ไลบรารีรวมกันใหญ่เกิน ' + Math.round(MAX_LIB / 1048576) + ' MB จึงลบทิ้งทั้งหมด' };
+      if (o.add && prev.length) {
+        addLog(id, 'sys', 'ใหญ่เกินเพดาน กำลังคืนไลบรารีเดิม');
+        await runInstall(id, prev);
+      } else {
+        b.libs = [];
+      }
+      r = {
+        ok: false,
+        msg: 'ไลบรารีรวมกันใหญ่เกิน ' + Math.round(MAX_LIB / 1048576) + ' MB จึงยกเลิกการติดตั้งรอบนี้ (ปรับเพดานด้วยตัวแปร MAX_LIB_MB หรือเลือกติดตั้งเฉพาะที่จำเป็น)'
+      };
     }
     for (const c of ['.npm-cache', '.cache', '.npm']) {
       try { fs.rmSync(path.join(dir, c), { recursive: true, force: true }); } catch {}
@@ -863,21 +932,31 @@ const server = http.createServer(async (req, res) => {
       if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่แล้ว รอให้เสร็จก่อน' });
       if (activeInstalls >= MAX_INSTALLS) return json(res, 429, { error: 'เซิร์ฟเวอร์กำลังติดตั้งให้คนอื่นอยู่ รอสักครู่แล้วลองใหม่' });
       const o = {};
+      let parsed = [], ignored = [];
       if (d.reinstall) {
         o.reinstall = true;
       } else if (typeof d.remove === 'string') {
         if (!(b.libs || []).includes(d.remove)) return json(res, 404, { error: 'ไม่เจอไลบรารีนี้ในรายการ' });
         o.remove = d.remove;
       } else {
-        const add = Array.isArray(d.add) ? d.add.map(String) : [];
-        if (!add.length) return json(res, 400, { error: 'ใส่ชื่อไลบรารีอย่างน้อย 1 ตัว' });
-        if (add.length > 30) return json(res, 400, { error: 'ติดตั้งครั้งละไม่เกิน 30 ตัว' });
-        for (const a of add) if (!validSpec(a)) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + a.slice(0, 60) });
-        o.add = Array.from(new Set(add));
-        if ((b.libs || []).length + o.add.length > 80) return json(res, 400, { error: 'มีไลบรารีมากเกินไป (สูงสุด 80 รายการ)' });
+        // รับได้ทั้งข้อความดิบ (text) และรายการ (add)
+        const raw = typeof d.text === 'string' ? d.text : (Array.isArray(d.add) ? d.add.map(String).join(' ') : '');
+        const ps = parseSpecs(b.lang, raw);
+        if (ps.bad.length) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + ps.bad.slice(0, 5).join(', ') + (ps.bad.length > 5 ? ' ...' : '') });
+        if (!ps.specs.length) {
+          return json(res, 400, {
+            error: 'ไม่พบชื่อไลบรารีในข้อความที่ส่งมา (เซิร์ฟเวอร์ได้รับ ' + raw.length + ' ตัวอักษร)' +
+              (ps.ignored.length ? ' ข้ามออปชัน: ' + ps.ignored.slice(0, 5).join(' ') : '')
+          });
+        }
+        if (ps.specs.length > 40) return json(res, 400, { error: 'ติดตั้งครั้งละไม่เกิน 40 ตัว' });
+        if ((b.libs || []).length + ps.specs.length > 100) return json(res, 400, { error: 'มีไลบรารีมากเกินไป (สูงสุด 100 รายการ)' });
+        o.add = ps.specs;
+        parsed = ps.specs;
+        ignored = ps.ignored;
       }
       libJob(id, o).catch((e) => { console.error(e); addLog(id, 'err', 'ติดตั้งผิดพลาด: ' + e.message); });
-      return json(res, 200, pub(b));
+      return json(res, 200, Object.assign(pub(b), { parsed, ignored }));
     }
 
     return json(res, 405, { error: 'method not allowed' });
