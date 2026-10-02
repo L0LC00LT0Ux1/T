@@ -12,7 +12,6 @@ html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
 
-/* ---------- พื้นหลัง ---------- */
 .bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
 .bg i{position:absolute;border-radius:50%;will-change:transform;
   background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
@@ -36,7 +35,6 @@ body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Seg
 @keyframes sw2{from{transform:rotate(11deg)}to{transform:rotate(-8deg)}}
 @media (prefers-reduced-motion:reduce){.bg i,.cone{animation:none}}
 
-/* ---------- พื้นฐาน ---------- */
 .wrap{max-width:960px;margin:0 auto;padding:0 14px 60px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
@@ -74,7 +72,6 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .pad{padding:16px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-/* ---------- สถานะ ---------- */
 .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #777;flex:none;display:inline-block}
 .dot.running{background:#fff;border-color:#fff;box-shadow:0 0 10px #fff}
 .dot.error{background:var(--red);border-color:var(--red);box-shadow:0 0 8px var(--red)}
@@ -83,14 +80,12 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .badge.running .dot{background:#000;border-color:#000;box-shadow:none}
 .badge.error{border-color:var(--red);color:#ff7a7c}
 
-/* ---------- เข้าสู่ระบบ ---------- */
 .authbox{width:min(390px,92vw);margin:13vh auto 0;padding:24px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.24em;cursor:pointer;user-select:none}
 .brand .logo{width:26px;height:26px}
 .authbox .brand{justify-content:center;margin-bottom:20px;cursor:default}
 .hint{font-size:13px;color:var(--mut);text-align:center;margin:14px 0 0}
 
-/* ---------- ส่วนหัว + เมนู ---------- */
 .top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 .menuwrap{position:relative}
 .iconbtn{width:42px;padding:0;position:relative}
@@ -105,7 +100,6 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .mi.on .cnt{background:#000;color:#fff}
 .msep{height:1px;background:var(--line);margin:6px 4px}
 
-/* ---------- หน้าหลัก ---------- */
 .hero{padding:26px 20px;text-align:center;margin-bottom:12px}
 .kicker{font-size:11px;letter-spacing:.4em;color:var(--mut)}
 .hero h1{margin:6px 0 4px;font-size:clamp(34px,9vw,56px);letter-spacing:.18em;font-weight:900;text-shadow:0 0 28px rgba(255,255,255,.55)}
@@ -124,7 +118,6 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .quick{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:620px){.quick{grid-template-columns:repeat(3,1fr)}}
 
-/* ---------- รันบอท ---------- */
 #tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
 .tab{flex:none;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;
@@ -141,9 +134,15 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .acts{display:flex;gap:8px;flex-wrap:wrap}
 .sub{padding:12px 14px 0}
 .pane{padding:14px}
-.errbox{display:none;align-items:center;justify-content:space-between;gap:10px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
+
+/* ---------- error box (มีปุ่มคัดลอก) ---------- */
+.errbox{display:none;align-items:center;gap:8px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
   background:rgba(255,77,79,.1);color:#ffb3b5;border-radius:10px;font-size:14px}
-.errbox .btn{min-height:32px;padding:0 10px;font-size:13px}
+.errbox .errtxt{flex:1;min-width:0;word-break:break-word;line-height:1.4}
+.errbox .btn{min-height:32px;padding:0 10px;font-size:13px;flex:none}
+.errbox .iconbtn2{width:34px;min-height:32px;padding:0;justify-content:center}
+.errbox .iconbtn2 .ic{width:15px;height:15px}
+
 textarea.code{display:block;width:100%;min-height:52vh;padding:12px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
   font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;resize:vertical;outline:none;tab-size:4}
 textarea.code:focus{border-color:var(--line2)}
@@ -155,12 +154,10 @@ textarea.code:focus{border-color:var(--line2)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
 .foot code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:11px}
 
-/* ---------- ไลบรารี ---------- */
 .libitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
 .libitem code{flex:1;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;font-size:13px}
 .libitem .btn{min-height:32px;padding:0 10px}
 
-/* ---------- ตลาดโค้ด ---------- */
 .notice{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);font-size:13px;color:#bdbdbd}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
 @media(max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}}
@@ -176,12 +173,10 @@ textarea.code:focus{border-color:var(--line2)}
 .cb b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb small{color:var(--mut)}
 
-/* ---------- อัปโหลด ---------- */
 .prev{aspect-ratio:16/10;max-width:380px;border:1px dashed var(--line2);border-radius:12px;background:#0a0a0a center/cover no-repeat;
   display:flex;align-items:center;justify-content:center;color:var(--mut);margin-top:8px}
 .prev .ic{width:34px;height:34px}
 
-/* ---------- โมดัล / ทอสต์ ---------- */
 .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal{align-items:center}}
 .mback{position:absolute;inset:0;background:rgba(0,0,0,.74)}
@@ -196,7 +191,6 @@ textarea.code:focus{border-color:var(--line2)}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:99px;background:#fff;color:#000;font-weight:700;box-shadow:0 8px 40px rgba(255,255,255,.25)}
 
-/* ---------- แชท ---------- */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:760px){.chatwrap{grid-template-columns:300px 1fr}#cBack{display:none}}
 @media(max-width:759px){.chatwrap.open #cListBox{display:none}.chatwrap:not(.open) #cBox{display:none}}
@@ -266,7 +260,6 @@ textarea.code:focus{border-color:var(--line2)}
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
 
-<!-- ===== เข้าสู่ระบบ ===== -->
 <div id="auth" class="hide">
   <div class="authbox panel">
     <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>ALEXA HUB</span></div>
@@ -284,7 +277,6 @@ textarea.code:focus{border-color:var(--line2)}
   </div>
 </div>
 
-<!-- ===== แอปหลัก ===== -->
 <div id="app" class="hide">
   <div class="wrap">
     <div class="top">
@@ -304,7 +296,6 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </div>
 
-    <!-- ===== หน้าหลัก ===== -->
     <section id="pg-home" class="page">
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
@@ -337,7 +328,6 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </section>
 
-    <!-- ===== รันบอท ===== -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์ แม้ปิดหน้าเว็บหรือรีเว็บ</p></div>
       <div id="tabs"></div>
@@ -364,7 +354,13 @@ textarea.code:focus{border-color:var(--line2)}
             <button class="btn" id="stopBtn"><svg class="ic f"><use href="#i-stop"/></svg><span>หยุด</span></button>
           </div>
         </div>
-        <div id="errbox" class="errbox"><span id="errtxt"></span><button class="btn" id="toLog">ดูล็อก</button></div>
+
+        <div id="errbox" class="errbox">
+          <span class="errtxt" id="errtxt"></span>
+          <button class="btn iconbtn2" id="copyErr" title="คัดลอกข้อความ error"><svg class="ic"><use href="#i-copy"/></svg></button>
+          <button class="btn" id="toLog">ดูล็อก</button>
+        </div>
+
         <div class="sub">
           <div class="seg" id="viewSeg">
             <button data-v="code" class="on"><svg class="ic"><use href="#i-code"/></svg><span>โค้ด</span></button>
@@ -388,7 +384,11 @@ textarea.code:focus{border-color:var(--line2)}
             <button class="btn solid" id="libAdd"><svg class="ic"><use href="#i-plus"/></svg><span>ติดตั้ง</span></button>
           </div>
           <div class="foot" id="libHint"></div>
-          <div class="foot" style="margin-top:6px">พิมพ์ได้หลายตัวพร้อมกัน คั่นด้วยช่องว่าง หรือ comma — เช่น <code>discord.py aiohttp Pillow</code> หรือ <code>requests, pandas&gt;=2.0</code> รองรับเวอร์ชัน (เช่น <code>pandas&gt;=2.0</code>) และ npm scope (เช่น <code>@discordjs/voice</code>)</div>
+          <div class="foot" style="margin-top:6px">
+            ✅ พิมพ์แค่ชื่อไลบรารี ไม่ต้องใส่ <code>pip install</code> นำหน้า — ระบบตัดให้อัตโนมัติ<br>
+            ✅ รองรับหลายตัวพร้อมกัน คั่นด้วยช่องว่าง หรือ comma — เช่น <code>discord.py aiohttp Pillow</code><br>
+            ✅ รองรับเวอร์ชัน เช่น <code>pandas&gt;=2.0</code> และ npm scope เช่น <code>@discordjs/voice</code>
+          </div>
           <div id="libProgress" class="foot hide" style="color:#fff"></div>
           <div style="margin-top:14px" id="libList"></div>
           <div class="foot" style="margin-top:14px">หลังติดตั้งแล้ว ต้องกด "บันทึก + รันใหม่" เพื่อให้บอทโหลดไลบรารีใหม่</div>
@@ -408,7 +408,6 @@ textarea.code:focus{border-color:var(--line2)}
       </section>
     </section>
 
-    <!-- ===== ตลาด ===== -->
     <section id="pg-market" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
@@ -424,7 +423,6 @@ textarea.code:focus{border-color:var(--line2)}
       <div class="grid" id="posts"></div>
     </section>
 
-    <!-- ===== อัปโหลด ===== -->
     <section id="pg-upload" class="page hide">
       <div class="ph"><h2>อัปโหลดโค้ดบอท</h2><p>โพสต์จะขึ้นในหน้าแจก/ซื้อขายโค้ดบอท ให้ทุกคนเห็น</p></div>
       <div class="panel pad">
@@ -464,7 +462,6 @@ textarea.code:focus{border-color:var(--line2)}
       </div>
     </section>
 
-    <!-- ===== แชท ===== -->
     <section id="pg-chat" class="page hide">
       <div class="ph"><h2>แชท</h2><p>คุยกับคนขายหรือผู้ซื้อ ส่งข้อความ รูป และวิดีโอได้</p></div>
       <div class="chatwrap" id="chatwrap">
@@ -556,7 +553,6 @@ const TPL = {
   ].join('\n')
 };
 
-/* ---------- สถานะรวม ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
 let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', view = 'code';
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
@@ -624,7 +620,6 @@ async function copyText(t) {
   }
 }
 
-/* ---------- เข้าสู่ระบบ ---------- */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
@@ -682,7 +677,6 @@ async function logout() {
   toAuth();
 }
 
-/* ---------- เมนู / หน้า ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   page = p;
@@ -711,7 +705,6 @@ async function tick() {
   busy = false;
 }
 
-/* ---------- หน้าหลัก ---------- */
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
@@ -721,7 +714,6 @@ async function loadStats() {
   set('#sPosts', d.posts);
 }
 
-/* ---------- รันบอท ---------- */
 function renderTabs() {
   const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang).join(',');
   if (key === lastTabsKey) return;
@@ -840,7 +832,6 @@ async function saveBot() {
   return d;
 }
 
-/* ---------- ไลบรารี ---------- */
 function renderLibs(libs, lang) {
   $('#libHint').textContent = lang === 'py'
     ? 'Python: ติดตั้งใน venv ของบอท แล้ว import ได้เลย'
@@ -863,7 +854,6 @@ async function loadLibs() {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- ตลาด ---------- */
 function cardHtml(p) {
   const cover = p.cover
     ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>'
@@ -942,7 +932,6 @@ async function contactSeller(postId) {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- อัปโหลด ---------- */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -994,7 +983,6 @@ async function doPublish() {
   $('#upGo').disabled = false;
 }
 
-/* ---------- แชท ---------- */
 function setUnread(n) {
   $('#pip').classList.toggle('hide', !n);
   const m = $('#mcnt');
@@ -1124,7 +1112,6 @@ async function sendPostCode() {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- ผูกปุ่ม ---------- */
 $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
 $('#aGo').onclick = authGo;
 $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
@@ -1150,6 +1137,10 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMod
 $('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
 $('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
 $('#toLog').onclick = () => setView('log');
+
+// ปุ่มคัดลอก error
+$('#copyErr').onclick = () => copyText($('#errtxt').textContent || '');
+
 $('#addBtn').onclick = async () => {
   const lang = $('#newLang').value;
   try {
@@ -1303,7 +1294,6 @@ $('#cin').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); }
 });
 
-/* ---------- เริ่มต้น ---------- */
 setMode('login');
 api('GET', '/api/me').then((d) => enter(d.user)).catch(() => toAuth());
 </script>
