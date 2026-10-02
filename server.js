@@ -718,20 +718,57 @@ const server = http.createServer(async (req, res) => {
 
       if (!pkg && M === 'POST') {
         const d = await readBody(req);
-        const name = String(d.name || '').trim();
-        if (!validLibName(name)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง (ห้ามมีช่องว่างหรืออักขระพิเศษ)' });
-        if (b.libs.includes(name)) return json(res, 400, { error: 'มีไลบรารีนี้อยู่แล้ว' });
-        if (b.libs.length >= MAX_LIBS) return json(res, 400, { error: 'ติดตั้งได้สูงสุด ' + MAX_LIBS + ' ไลบรารีต่อบอท' });
-        try {
-          const log = await installLib(id, name);
-          b.libs.push(name);
-          save();
-          addLog(id, 'sys', 'ติดตั้งไลบรารี "' + name + '" สำเร็จ');
-          return json(res, 200, { libs: b.libs, log: log.replace(ANSI, '').slice(-800) });
-        } catch (e) {
-          addLog(id, 'err', 'ติดตั้งไลบรารี "' + name + '" ไม่สำเร็จ: ' + e.message);
-          return json(res, 500, { error: e.message });
+        const raw = String(d.name || '').trim();
+        if (!raw) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
+
+        // แยกด้วยช่องว่าง, comma, newline
+        const names = raw.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+
+        if (!names.length) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
+        if (names.length > 20) return json(res, 400, { error: 'ติดตั้งได้สูงสุด 20 ไลบรารีต่อครั้ง' });
+
+        for (const n of names) {
+          if (!validLibName(n)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง: "' + n + '"' });
         }
+
+        const todo = names.filter((n) => !b.libs.includes(n));
+        const skipped = names.filter((n) => b.libs.includes(n));
+        if (!todo.length) {
+          return json(res, 400, { error: 'มีทุกไลบรารีที่พิมพ์อยู่แล้ว: ' + skipped.join(', ') });
+        }
+        if (b.libs.length + todo.length > MAX_LIBS) {
+          return json(res, 400, { error: 'เกินขีดจำกัด ' + MAX_LIBS + ' ไลบรารีต่อบอท' });
+        }
+
+        const okList = [], failList = [], allLogs = [];
+        for (const n of todo) {
+          try {
+            const log = await installLib(id, n);
+            b.libs.push(n);
+            okList.push(n);
+            allLogs.push('=== ' + n + ' ===\n' + log.replace(ANSI, '').slice(-400));
+            addLog(id, 'sys', 'ติดตั้งไลบรารี "' + n + '" สำเร็จ');
+          } catch (e) {
+            failList.push(n + ': ' + e.message);
+            addLog(id, 'err', 'ติดตั้งไลบรารี "' + n + '" ไม่สำเร็จ: ' + e.message);
+          }
+          save();
+        }
+
+        const summary =
+          (okList.length ? 'สำเร็จ: ' + okList.join(', ') : '') +
+          (skipped.length ? '\nข้าม (มีอยู่แล้ว): ' + skipped.join(', ') : '') +
+          (failList.length ? '\nไม่สำเร็จ: ' + failList.join('\n') : '');
+
+        const status = failList.length && !okList.length ? 500 : 200;
+        return json(res, status, {
+          libs: b.libs,
+          installed: okList,
+          failed: failList,
+          skipped,
+          log: allLogs.join('\n\n').slice(-1500),
+          message: summary
+        });
       }
 
       if (pkg && M === 'DELETE') {
