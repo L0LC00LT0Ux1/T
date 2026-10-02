@@ -126,59 +126,83 @@ function createBot(owner, name, lang, code) {
 const botCount = (u) => Object.values(bots).filter((b) => b.owner === u).length;
 
 // ---------- install library ----------
-const LIB_NAME_RE = /^(?:@[a-zA-Z0-9_.\-]+\/)?[a-zA-Z0-9_][a-zA-Z0-9_.\-]*(\[[a-zA-Z0-9_,\-]+\])?$/;
+function validLibName(name) {
+  if (!name || name.length > 200) return false;
+  if (/\s/.test(name)) return false;
+  if (/[;'"|`$&(){}<>\n\r\t]/.test(name)) return false;
+  return /^[@a-zA-Z0-9]/.test(name);
+}
 
-function installLib(botId, name) {
+function runCmd(cmd, args, opts, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const b = bots[botId];
-    if (!b) return reject(new Error('ไม่เจอบอท'));
-    const dir = path.join(BOTS_DIR, botId);
-    fs.mkdirSync(dir, { recursive: true });
-    const owner = getUser(b.owner);
-
-    const env = {
-      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
-      HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
-      PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
-    };
-    const opts = { cwd: dir, env };
-    if (ISOLATE && owner) { opts.uid = owner.uid; opts.gid = owner.uid; }
-
-    let cmd, args;
-    if (b.lang === 'py') {
-      const libsDir = path.join(dir, 'libs');
-      fs.mkdirSync(libsDir, { recursive: true });
-      if (ISOLATE && owner) { try { fs.chownSync(libsDir, owner.uid, owner.uid); } catch {} }
-      cmd = 'pip3';
-      args = ['install', '--target', libsDir, '--no-cache-dir',
-              '--disable-pip-version-check', '--upgrade', name];
-    } else {
-      cmd = 'npm';
-      args = ['install', '--prefix', dir, '--no-audit', '--no-fund',
-              '--loglevel=error', name];
-    }
-
     let child;
     try { child = spawn(cmd, args, opts); }
-    catch (e) { return reject(new Error('สตาร์ทตัวติดตั้งไม่ได้: ' + e.message)); }
+    catch (e) { return reject(new Error('เรียก ' + cmd + ' ไม่ได้: ' + e.message)); }
 
     let out = '', done = false;
     const finish = (err) => { if (done) return; done = true; err ? reject(err) : resolve(out); };
     const killer = setTimeout(() => {
       try { child.kill('SIGKILL'); } catch {}
-      finish(new Error('ติดตั้งนานเกินไป (เกิน 3 นาที)'));
-    }, 180000);
+      finish(new Error('ใช้เวลานานเกิน ' + Math.round(timeoutMs / 60000) + ' นาที'));
+    }, timeoutMs);
 
     child.stdout.on('data', (d) => { out += d.toString(); });
     child.stderr.on('data', (d) => { out += d.toString(); });
-    child.on('error', (e) => { clearTimeout(killer); finish(new Error('ติดตั้งไม่สำเร็จ: ' + e.message)); });
+    child.on('error', (e) => { clearTimeout(killer); finish(new Error(e.message)); });
     child.on('exit', (code) => {
       clearTimeout(killer);
       if (code === 0) return finish();
-      const tail = out.replace(ANSI, '').split('\n').filter(Boolean).slice(-8).join('\n');
-      finish(new Error('ติดตั้งไม่สำเร็จ (exit ' + code + ')\n' + tail));
+      const tail = out.replace(ANSI, '').split('\n').filter(Boolean).slice(-20).join('\n');
+      finish(new Error('exit ' + code + '\n' + tail));
     });
   });
+}
+
+function installLib(botId, name) {
+  return (async () => {
+    const b = bots[botId];
+    if (!b) throw new Error('ไม่เจอบอท');
+    const dir = path.join(BOTS_DIR, botId);
+    fs.mkdirSync(dir, { recursive: true });
+    const owner = getUser(b.owner);
+
+    const env = Object.assign({}, process.env, {
+      HOME: dir,
+      TMPDIR: dir,
+      LANG: 'C.UTF-8',
+      LC_ALL: 'C.UTF-8',
+      PIP_DISABLE_PIP_VERSION_CHECK: '1',
+      PIP_NO_INPUT: '1',
+      PIP_NO_CACHE_DIR: '1'
+    });
+
+    const opts = { cwd: dir, env };
+    if (ISOLATE && owner && typeof process.getuid === 'function' && process.getuid() === 0) {
+      opts.uid = owner.uid;
+      opts.gid = owner.uid;
+    }
+
+    if (b.lang === 'py') {
+      const venvDir = path.join(dir, 'venv');
+      const venvPython = path.join(venvDir, 'bin', 'python3');
+
+      if (!fs.existsSync(venvPython)) {
+        console.log('[installLib] สร้าง venv ที่', venvDir);
+        await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
+      }
+
+      const pip = path.join(venvDir, 'bin', 'pip');
+      console.log('[installLib] py', pip, 'install', name);
+      return await runCmd(pip, ['install', '--upgrade', name], opts, 600000);
+    } else {
+      console.log('[installLib] npm install', name, 'ใน', dir);
+      return await runCmd('npm', [
+        'install', '--prefix', dir,
+        '--no-audit', '--no-fund', '--loglevel=error',
+        name
+      ], opts, 600000);
+    }
+  })();
 }
 
 // ---------- start / stop ----------
@@ -204,16 +228,24 @@ function startBot(id) {
     DISCORD_TOKEN: b.token || '',
     PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
   };
-  if (py) {
-    const libsDir = path.join(dir, 'libs');
-    if (fs.existsSync(libsDir)) env.PYTHONPATH = libsDir;
-  }
   const opts = { cwd: dir, env };
   if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
 
+  // ถ้ามี venv ให้ใช้ python ของ venv (มีไลบรารีที่ติดตั้งเพิ่ม)
+  let pythonExe = 'python3';
+  if (py) {
+    const venvPython = path.join(dir, 'venv', 'bin', 'python3');
+    if (fs.existsSync(venvPython)) {
+      pythonExe = venvPython;
+    } else {
+      const libsDir = path.join(dir, 'libs');
+      if (fs.existsSync(libsDir)) env.PYTHONPATH = libsDir;
+    }
+  }
+
   let child;
   try {
-    child = spawn(py ? 'python3' : 'node', py ? ['-u', file] : [file], opts);
+    child = spawn(py ? pythonExe : 'node', py ? ['-u', file] : [file], opts);
   } catch (e) {
     b.status = 'error'; b.desired = false; b.lastExit = 'สตาร์ทไม่ได้: ' + e.message; save();
     addLog(id, 'err', b.lastExit);
@@ -687,7 +719,7 @@ const server = http.createServer(async (req, res) => {
       if (!pkg && M === 'POST') {
         const d = await readBody(req);
         const name = String(d.name || '').trim();
-        if (!LIB_NAME_RE.test(name) || name.length > 80) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง' });
+        if (!validLibName(name)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง (ห้ามมีช่องว่างหรืออักขระพิเศษ)' });
         if (b.libs.includes(name)) return json(res, 400, { error: 'มีไลบรารีนี้อยู่แล้ว' });
         if (b.libs.length >= MAX_LIBS) return json(res, 400, { error: 'ติดตั้งได้สูงสุด ' + MAX_LIBS + ' ไลบรารีต่อบอท' });
         try {
