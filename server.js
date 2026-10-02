@@ -193,12 +193,10 @@ function installLib(botId, name) {
       if (!fs.existsSync(venvPython)) {
         console.log('[installLib] สร้าง venv ที่', venvDir);
         await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
-        // baseline: ติดตั้ง discord.py เวอร์ชันที่รองรับ description_localizations
         const pipBase = path.join(venvDir, 'bin', 'pip');
         try {
           await runCmd(pipBase, ['install', '--upgrade', '--ignore-installed', 'discord.py>=2.4.0'], opts, 300000);
         } catch (e) { console.log('[installLib] baseline discord.py ไม่สำเร็จ:', e.message); }
-        try { fs.writeFileSync(path.join(venvDir, '.discord-ready'), new Date().toISOString()); } catch {}
       }
 
       const pip = path.join(venvDir, 'bin', 'pip');
@@ -222,6 +220,40 @@ function installLib(botId, name) {
 
 // ---------- start / stop ----------
 const starting = new Set();
+
+// ตรวจสอบเวอร์ชัน discord.py ที่ Python ตัวนี้จะใช้ + แสดงพาธจริง
+// คืนค่า true ถ้าพร้อมใช้ (>=2.4) / false ถ้ายังไม่พร้อม
+async function ensureDiscord(id, pythonExe, opts) {
+  const probe = [
+    '-c',
+    'import sys, discord;' +
+    'print("PY=" + sys.executable);' +
+    'print("FILE=" + (discord.__file__ or ""));' +
+    'print("VER=" + discord.__version__)'
+  ].join('');
+
+  let out = '';
+  try {
+    out = await runCmd(pythonExe, probe, opts, 30000);
+  } catch (e) {
+    addLog(id, 'err', 'ตรวจสอบ discord.py ไม่ได้: ' + e.message);
+    return false;
+  }
+
+  const lines = out.replace(ANSI, '').split('\n').map((x) => x.trim()).filter(Boolean);
+  const py = (lines.find((l) => l.startsWith('PY=')) || '').slice(3);
+  const file = (lines.find((l) => l.startsWith('FILE=')) || '').slice(5);
+  const ver = (lines.find((l) => l.startsWith('VER=')) || '').slice(4);
+
+  addLog(id, 'sys', 'Python: ' + py);
+  addLog(id, 'sys', 'discord.py path: ' + file);
+  addLog(id, 'sys', 'discord.py version: ' + ver);
+
+  const parts = ver.split('.').map((x) => parseInt(x, 10) || 0);
+  const maj = parts[0] || 0, minr = parts[1] || 0;
+  if (maj > 2 || (maj === 2 && minr >= 4)) return true;
+  return false;
+}
 
 async function startBot(id) {
   const b = bots[id];
@@ -251,8 +283,6 @@ async function startBot(id) {
     const opts = { cwd: dir, env };
     if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
 
-    // ตั้งสถานะ running ล่วงหน้า เพื่อให้ UI เห็นทันที
-    // (จริง ๆ อาจกำลังอัปเดต discord.py อยู่เบื้องหลัง ดูข้อความในล็อก)
     b.status = 'running';
     b.desired = true;
     b.startedAt = Date.now();
@@ -263,30 +293,44 @@ async function startBot(id) {
     if (py) {
       const venvDir = path.join(dir, 'venv');
       const venvPython = path.join(venvDir, 'bin', 'python3');
-      if (fs.existsSync(venvPython)) {
-        // ตรวจว่าอัปเดต discord.py แล้วหรือยัง (venv เก่าจะไม่มี marker นี้)
-        const readyMark = path.join(venvDir, '.discord-ready');
-        if (!fs.existsSync(readyMark)) {
-          addLog(id, 'sys', 'กำลังอัปเดต discord.py (ครั้งแรกหลังแพตช์, รอ 10-30 วิ)');
-          try {
-            await runCmd(venvPython, [
-              '-m', 'pip', 'install', '--upgrade', '--ignore-installed',
-              'discord.py>=2.4.0'
-            ], opts, 300000);
-            fs.writeFileSync(readyMark, new Date().toISOString());
-            addLog(id, 'sys', 'อัปเดต discord.py สำเร็จ');
-          } catch (e) {
-            addLog(id, 'err', 'อัปเดต discord.py ล้มเหลว: ' + e.message);
-          }
+
+      if (!fs.existsSync(venvPython)) {
+        addLog(id, 'sys', 'สร้าง venv สำหรับบอท (ครั้งแรก ใช้เวลาสักครู่)');
+        try {
+          await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
+        } catch (e) {
+          addLog(id, 'err', 'สร้าง venv ล้มเหลว: ' + e.message);
         }
+      }
+
+      if (fs.existsSync(venvPython)) {
         pythonExe = venvPython;
       } else {
-        const libsDir = path.join(dir, 'libs');
-        if (fs.existsSync(libsDir)) env.PYTHONPATH = libsDir;
+        addLog(id, 'err', 'venv ใช้งานไม่ได้ → ใช้ python3 ระบบ');
+      }
+
+      // ตรวจสอบเวอร์ชัน — ถ้าเก่าไป ให้ติดตั้งใหม่
+      let ok = await ensureDiscord(id, pythonExe, opts);
+      if (!ok) {
+        addLog(id, 'sys', 'กำลังติดตั้ง discord.py ใหม่ (รอ 10-60 วิ) ...');
+        try {
+          await runCmd(pythonExe, [
+            '-m', 'pip', 'install',
+            '--upgrade', '--ignore-installed',
+            'discord.py>=2.4.0'
+          ], opts, 300000);
+          addLog(id, 'sys', 'ติดตั้ง discord.py เสร็จ — ตรวจสอบซ้ำ');
+          ok = await ensureDiscord(id, pythonExe, opts);
+        } catch (e) {
+          addLog(id, 'err', 'ติดตั้ง discord.py ล้มเหลว: ' + e.message);
+        }
+      }
+
+      if (!ok) {
+        addLog(id, 'err', 'discord.py ยังไม่ใช่ >= 2.4 → บอทอาจ error เรื่อง description_localizations');
       }
     }
 
-    // เช็คว่าผู้ใช้กดหยุดระหว่างที่อัปเดต discord.py หรือเปล่า
     if (!b.desired) {
       b.status = 'stopped';
       save();
@@ -855,7 +899,6 @@ const server = http.createServer(async (req, res) => {
 
     if (sub === 'start' && M === 'POST') {
       await stopBot(id);
-      // ไม่ await — ให้ startBot ทำงานเบื้องหลัง (อาจมีการ pip install ที่ใช้เวลา)
       startBot(id).catch((e) => console.error('startBot:', e));
       return json(res, 200, pub(b));
     }
@@ -885,7 +928,6 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
-// ---------- boot ----------
 for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
 for (const b of Object.values(bots)) { if (!Array.isArray(b.libs)) b.libs = []; fixPerm(b); }
 
