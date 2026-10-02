@@ -6,11 +6,6 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN = process.env.ADMIN_PASSWORD;
-if (!ADMIN) {
-  console.error('❌ ยังไม่ได้ตั้ง ADMIN_PASSWORD ใน Variables ของ Railway');
-  process.exit(1);
-}
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
@@ -64,7 +59,6 @@ function startBot(id) {
   if (!fs.existsSync(file)) fs.writeFileSync(file, '');
 
   const env = Object.assign({}, process.env, { DISCORD_TOKEN: b.token || '', PYTHONUNBUFFERED: '1' });
-  delete env.ADMIN_PASSWORD;
 
   const py = b.lang === 'py';
   const child = spawn(py ? 'python3' : 'node', py ? ['-u', file] : [file], { cwd: path.dirname(file), env });
@@ -115,22 +109,6 @@ function stopBot(id) {
   });
 }
 
-// ---------- auth ----------
-function authed(req) {
-  const p = String(req.headers['x-pass'] || '');
-  const a = crypto.createHash('sha256').update(p).digest();
-  const b = crypto.createHash('sha256').update(ADMIN).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-const fails = new Map();
-const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-function blocked(ip) { const f = fails.get(ip); return f && f.n >= 10 && Date.now() - f.t < 600000; }
-function addFail(ip) {
-  const f = fails.get(ip);
-  if (!f || Date.now() - f.t > 600000) fails.set(ip, { n: 1, t: Date.now() });
-  else { f.n++; f.t = Date.now(); }
-}
-
 // ---------- http ----------
 function json(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -159,13 +137,6 @@ const server = http.createServer(async (req, res) => {
       return res.end(fs.readFileSync(path.join(__dirname, 'public', 'index.html')));
     }
     if (!p.startsWith('/api/')) return json(res, 404, { error: 'not found' });
-
-    const ip = ipOf(req);
-    if (blocked(ip)) return json(res, 429, { error: 'ลองรหัสผิดบ่อยเกินไป รอ 10 นาทีนะ' });
-    if (!authed(req)) { addFail(ip); return json(res, 401, { error: 'unauthorized' }); }
-    fails.delete(ip);
-
-    if (p === '/api/ping') return json(res, 200, { ok: true });
 
     if (p === '/api/bots') {
       if (M === 'GET') {
