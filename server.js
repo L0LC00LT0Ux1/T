@@ -130,7 +130,6 @@ function validLibName(name) {
   return /^[@a-zA-Z0-9]/.test(name);
 }
 
-// ตัดคำสั่งนำหน้าออก: "pip install X" → "X", "npm install X" → "X", "python -m pip install X" → "X"
 function cleanLibInput(raw) {
   return String(raw || '')
     .replace(/^\s*(?:sudo\s+)?(?:python3?(?:\.\d+)?\s+-m\s+)?pip3?\s+install\s+/i, '')
@@ -194,12 +193,16 @@ function installLib(botId, name) {
       if (!fs.existsSync(venvPython)) {
         console.log('[installLib] สร้าง venv ที่', venvDir);
         await runCmd('python3', ['-m', 'venv', '--system-site-packages', venvDir], opts, 120000);
+        // baseline: ติดตั้ง discord.py เวอร์ชันที่รองรับ description_localizations
+        const pipBase = path.join(venvDir, 'bin', 'pip');
+        try {
+          await runCmd(pipBase, ['install', '--upgrade', '--ignore-installed', 'discord.py>=2.4.0'], opts, 300000);
+        } catch (e) { console.log('[installLib] baseline discord.py ไม่สำเร็จ:', e.message); }
+        try { fs.writeFileSync(path.join(venvDir, '.discord-ready'), new Date().toISOString()); } catch {}
       }
 
       const pip = path.join(venvDir, 'bin', 'pip');
       console.log('[installLib] py', pip, 'install', name);
-      // --ignore-installed: บังคับติดตั้งลง venv เสมอ
-      // ถ้าไม่ใส่ pip จะเห็น discord.py เวอร์ชันเก่าในระบบ แล้วข้ามการติดตั้งทับ
       return await runCmd(pip, [
         'install',
         '--upgrade',
@@ -218,83 +221,119 @@ function installLib(botId, name) {
 }
 
 // ---------- start / stop ----------
-function startBot(id) {
+const starting = new Set();
+
+async function startBot(id) {
   const b = bots[id];
-  if (!b || procs[id]) return;
-  const owner = getUser(b.owner);
-  if (!owner) {
-    b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save();
-    addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ จึงไม่รันให้');
-    return;
-  }
-  const file = codeFile(b);
-  const dir = path.dirname(file);
-  fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(file)) fs.writeFileSync(file, '');
-  fixPerm(b);
-
-  const py = b.lang === 'py';
-  const env = {
-    PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
-    HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
-    DISCORD_TOKEN: b.token || '',
-    PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
-  };
-  const opts = { cwd: dir, env };
-  if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
-
-  let pythonExe = 'python3';
-  if (py) {
-    const venvPython = path.join(dir, 'venv', 'bin', 'python3');
-    if (fs.existsSync(venvPython)) {
-      pythonExe = venvPython;
-    } else {
-      const libsDir = path.join(dir, 'libs');
-      if (fs.existsSync(libsDir)) env.PYTHONPATH = libsDir;
-    }
-  }
-
-  let child;
+  if (!b || procs[id] || starting.has(id)) return;
+  starting.add(id);
   try {
-    child = spawn(py ? pythonExe : 'node', py ? ['-u', file] : [file], opts);
-  } catch (e) {
-    b.status = 'error'; b.desired = false; b.lastExit = 'สตาร์ทไม่ได้: ' + e.message; save();
-    addLog(id, 'err', b.lastExit);
-    return;
-  }
-  procs[id] = child;
-  b.status = 'running';
-  b.desired = true;
-  b.startedAt = Date.now();
-  b.lastExit = '';
-  save();
-  addLog(id, 'sys', 'เริ่มรันบอท (' + (py ? 'Python' : 'JavaScript') + ')');
+    const owner = getUser(b.owner);
+    if (!owner) {
+      b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save();
+      addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ จึงไม่รันให้');
+      return;
+    }
 
-  child.stdout.on('data', (d) => addLog(id, 'out', d));
-  child.stderr.on('data', (d) => addLog(id, 'err', d));
+    const file = codeFile(b);
+    const dir = path.dirname(file);
+    fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(file)) fs.writeFileSync(file, '');
+    fixPerm(b);
 
-  const done = (status, msg) => {
-    if (procs[id] !== child) return;
-    delete procs[id];
-    if (shuttingDown) return;
-    const cur = bots[id];
-    if (!cur) return;
-    cur.status = status;
-    cur.desired = false;
-    cur.lastExit = msg;
+    const py = b.lang === 'py';
+    const env = {
+      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+      HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
+      DISCORD_TOKEN: b.token || '',
+      PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
+    };
+    const opts = { cwd: dir, env };
+    if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
+
+    // ตั้งสถานะ running ล่วงหน้า เพื่อให้ UI เห็นทันที
+    // (จริง ๆ อาจกำลังอัปเดต discord.py อยู่เบื้องหลัง ดูข้อความในล็อก)
+    b.status = 'running';
+    b.desired = true;
+    b.startedAt = Date.now();
+    b.lastExit = '';
     save();
-    addLog(id, status === 'error' ? 'err' : 'sys', msg);
-  };
-  child.on('error', (e) => {
-    let msg = 'สตาร์ทไม่ได้: ' + e.message;
-    if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้บนโฮสต์นี้ ดูตัวแปร ISOLATION)';
-    done('error', msg);
-  });
-  child.on('exit', (code, sig) => {
-    if (child.stopRequested) return done('stopped', 'หยุดบอทแล้ว');
-    if (code === 0) return done('stopped', 'โค้ดทำงานจบเอง (exit 0)');
-    done('error', 'บอทหยุดเพราะ error (' + (sig ? 'signal ' + sig : 'exit code ' + code) + ')');
-  });
+
+    let pythonExe = 'python3';
+    if (py) {
+      const venvDir = path.join(dir, 'venv');
+      const venvPython = path.join(venvDir, 'bin', 'python3');
+      if (fs.existsSync(venvPython)) {
+        // ตรวจว่าอัปเดต discord.py แล้วหรือยัง (venv เก่าจะไม่มี marker นี้)
+        const readyMark = path.join(venvDir, '.discord-ready');
+        if (!fs.existsSync(readyMark)) {
+          addLog(id, 'sys', 'กำลังอัปเดต discord.py (ครั้งแรกหลังแพตช์, รอ 10-30 วิ)');
+          try {
+            await runCmd(venvPython, [
+              '-m', 'pip', 'install', '--upgrade', '--ignore-installed',
+              'discord.py>=2.4.0'
+            ], opts, 300000);
+            fs.writeFileSync(readyMark, new Date().toISOString());
+            addLog(id, 'sys', 'อัปเดต discord.py สำเร็จ');
+          } catch (e) {
+            addLog(id, 'err', 'อัปเดต discord.py ล้มเหลว: ' + e.message);
+          }
+        }
+        pythonExe = venvPython;
+      } else {
+        const libsDir = path.join(dir, 'libs');
+        if (fs.existsSync(libsDir)) env.PYTHONPATH = libsDir;
+      }
+    }
+
+    // เช็คว่าผู้ใช้กดหยุดระหว่างที่อัปเดต discord.py หรือเปล่า
+    if (!b.desired) {
+      b.status = 'stopped';
+      save();
+      addLog(id, 'sys', 'ถูกยกเลิกก่อนเริ่ม');
+      return;
+    }
+
+    let child;
+    try {
+      child = spawn(py ? pythonExe : 'node', py ? ['-u', file] : [file], opts);
+    } catch (e) {
+      b.status = 'error'; b.desired = false; b.lastExit = 'สตาร์ทไม่ได้: ' + e.message; save();
+      addLog(id, 'err', b.lastExit);
+      return;
+    }
+
+    procs[id] = child;
+    addLog(id, 'sys', 'เริ่มรันบอท (' + (py ? 'Python' : 'JavaScript') + ')');
+
+    child.stdout.on('data', (d) => addLog(id, 'out', d));
+    child.stderr.on('data', (d) => addLog(id, 'err', d));
+
+    const done = (status, msg) => {
+      if (procs[id] !== child) return;
+      delete procs[id];
+      if (shuttingDown) return;
+      const cur = bots[id];
+      if (!cur) return;
+      cur.status = status;
+      cur.desired = false;
+      cur.lastExit = msg;
+      save();
+      addLog(id, status === 'error' ? 'err' : 'sys', msg);
+    };
+    child.on('error', (e) => {
+      let msg = 'สตาร์ทไม่ได้: ' + e.message;
+      if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้บนโฮสต์นี้ ดูตัวแปร ISOLATION)';
+      done('error', msg);
+    });
+    child.on('exit', (code, sig) => {
+      if (child.stopRequested) return done('stopped', 'หยุดบอทแล้ว');
+      if (code === 0) return done('stopped', 'โค้ดทำงานจบเอง (exit 0)');
+      done('error', 'บอทหยุดเพราะ error (' + (sig ? 'signal ' + sig : 'exit code ' + code) + ')');
+    });
+  } finally {
+    starting.delete(id);
+  }
 }
 
 function stopBot(id) {
@@ -722,7 +761,6 @@ const server = http.createServer(async (req, res) => {
         const raw = String(d.name || '').trim();
         if (!raw) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
 
-        // ตัด "pip install" / "pip3 install" / "python -m pip install" / "npm install" ออกอัตโนมัติ
         const cleaned = cleanLibInput(raw);
         if (!cleaned) {
           return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
@@ -732,7 +770,7 @@ const server = http.createServer(async (req, res) => {
           .split(/[\s,]+/)
           .map((x) => x.trim())
           .filter(Boolean)
-          .filter((x) => !x.startsWith('-')); // กรอง option เช่น -r, --upgrade
+          .filter((x) => !x.startsWith('-'));
 
         if (!names.length) {
           return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
@@ -817,7 +855,8 @@ const server = http.createServer(async (req, res) => {
 
     if (sub === 'start' && M === 'POST') {
       await stopBot(id);
-      startBot(id);
+      // ไม่ await — ให้ startBot ทำงานเบื้องหลัง (อาจมีการ pip install ที่ใช้เวลา)
+      startBot(id).catch((e) => console.error('startBot:', e));
       return json(res, 200, pub(b));
     }
     if (sub === 'stop' && M === 'POST') {
@@ -846,6 +885,7 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
+// ---------- boot ----------
 for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
 for (const b of Object.values(bots)) { if (!Array.isArray(b.libs)) b.libs = []; fixPerm(b); }
 
@@ -854,7 +894,7 @@ for (const b of Object.values(bots)) {
   if (b.desired) {
     setTimeout(() => {
       addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทให้อัตโนมัติ');
-      startBot(b.id);
+      startBot(b.id).catch((e) => console.error('startBot:', e));
     }, 800 + i++ * 1500);
   } else if (b.status === 'running') {
     b.status = 'stopped';
