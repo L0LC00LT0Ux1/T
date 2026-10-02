@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bot Host 🤖</title>
+<style>
+:root{--bg:#0f1117;--card:#181b24;--line:#2a2f3d;--tx:#e6e8ee;--mut:#8b93a7;--g:#2ecc71;--r:#ff4d4f;--b:#5865f2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:6px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+input,select,textarea,button{font:inherit;color:var(--tx);background:#0d0f15;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+input,select{min-width:0}
+textarea{width:100%;min-height:300px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;resize:vertical;white-space:pre;overflow:auto;tab-size:4}
+button{cursor:pointer;background:#222735}
+button:active{transform:scale(.97)}
+button.pri{background:var(--b);border-color:var(--b)}
+button.ok{background:#1f8f4d;border-color:#1f8f4d}
+button.bad{background:#7a2230;border-color:#7a2230}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>input{flex:1}
+.list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.item{display:flex;gap:7px;align-items:center;white-space:nowrap;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#0d0f15;cursor:pointer}
+.item.on{border-color:var(--b);background:#1b2040}
+.dot{width:10px;height:10px;border-radius:50%;background:#555;flex:none}
+.dot.running{background:var(--g);box-shadow:0 0 8px var(--g)}
+.dot.error{background:var(--r);box-shadow:0 0 8px var(--r)}
+.mut{color:var(--mut)}
+.st{font-weight:700}
+.st.running{color:var(--g)}.st.error{color:var(--r)}
+.errbox{border:1px solid var(--r);background:#2a1216;color:#ffb3b5;border-radius:10px;padding:9px 12px;margin:10px 0;display:none}
+#logs{background:#07080c;border:1px solid var(--line);border-radius:10px;height:260px;overflow:auto;padding:8px 10px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.l.err{color:#ff8a8c}.l.sys{color:#8ab4ff}.l.out{color:#d5d9e4}.l .t{color:#5d657a;margin-right:6px}
+#login{max-width:340px;margin:18vh auto 0}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="card">
+    <h1>🔐 Bot Host</h1>
+    <div class="row"><input id="pw" type="password" placeholder="รหัสผ่านผู้ดูแล"><button class="pri" id="loginBtn">เข้าสู่ระบบ</button></div>
+    <div id="lerr" style="color:var(--r);margin-top:8px"></div>
+  </div>
+
+  <div id="app" class="hide">
+    <div class="row" style="justify-content:space-between">
+      <h1>🤖 Bot Host</h1>
+      <button id="logoutBtn">ออกจากระบบ</button>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input id="newName" placeholder="ชื่อบอทใหม่" maxlength="40">
+        <select id="newLang"><option value="py">🐍 Python</option><option value="js">🟨 JavaScript</option></select>
+        <button class="pri" id="addBtn">➕ เพิ่มบอท</button>
+      </div>
+    </div>
+
+    <div class="card"><div id="list" class="list"></div></div>
+
+    <div id="editor" class="card hide">
+      <div class="row" style="justify-content:space-between">
+        <input id="name" maxlength="40" style="font-weight:700">
+        <span id="lang" class="mut"></span>
+      </div>
+      <div style="margin:8px 0">
+        สถานะ: <span id="st" class="st">-</span>
+        <span id="info" class="mut"></span>
+        <span id="dirtyTag" class="mut hide"> • ✏️ ยังไม่ได้บันทึก</span>
+      </div>
+      <div id="errbox" class="errbox"></div>
+
+      <div class="mut" style="margin-bottom:4px">🔑 โทเคนบอท (ส่งให้โค้ดผ่าน DISCORD_TOKEN) — หรือจะเขียนโทเคนในโค้ดเองก็ได้</div>
+      <input id="token" type="password" style="width:100%;margin-bottom:10px" placeholder="ใส่โทเคนที่นี่ (เว้นว่าง = ใช้ของเดิม)" autocomplete="off">
+
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+
+      <div class="row" style="margin-top:10px">
+        <button id="saveBtn">💾 บันทึก</button>
+        <button id="runBtn" class="ok">▶ รันบอท</button>
+        <button id="stopBtn" class="bad">⏹ หยุด</button>
+        <button id="delBtn">🗑 ลบ</button>
+      </div>
+
+      <div class="mut" style="margin:14px 0 4px">📜 ล็อก</div>
+      <div id="logs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const TPL = {
+  py: [
+    'import os',
+    'import discord',
+    '',
+    'intents = discord.Intents.default()',
+    'intents.message_content = True',
+    'client = discord.Client(intents=intents)',
+    '',
+    '@client.event',
+    'async def on_ready():',
+    '    print(f"✅ ล็อกอินแล้ว: {client.user}")',
+    '',
+    '@client.event',
+    'async def on_message(message):',
+    '    if message.author.bot:',
+    '        return',
+    '    if message.content == "!ping":',
+    '        await message.channel.send("pong 🏓")',
+    '',
+    'client.run(os.environ["DISCORD_TOKEN"])'
+  ].join('\n'),
+  js: [
+    'const { Client, GatewayIntentBits } = require("discord.js");',
+    '',
+    'const client = new Client({',
+    '  intents: [',
+    '    GatewayIntentBits.Guilds,',
+    '    GatewayIntentBits.GuildMessages,',
+    '    GatewayIntentBits.MessageContent,',
+    '  ],',
+    '});',
+    '',
+    'client.once("clientReady", () => {',
+    '  console.log("✅ ล็อกอินแล้ว: " + client.user.tag);',
+    '});',
+    '',
+    'client.on("messageCreate", (msg) => {',
+    '  if (msg.author.bot) return;',
+    '  if (msg.content === "!ping") msg.reply("pong 🏓");',
+    '});',
+    '',
+    'client.login(process.env.DISCORD_TOKEN);'
+  ].join('\n')
+};
+
+let pass = localStorage.getItem('pass') || '';
+let bots = [], cur = localStorage.getItem('cur') || null, dirty = false;
+let timer = null, busy = false, lastLogKey = '';
+
+async function api(method, url, body) {
+  const r = await fetch(url, {
+    method,
+    headers: { 'x-pass': pass, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (r.status === 401) { logout(); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+function showLogin(msg) {
+  $('#login').classList.remove('hide');
+  $('#app').classList.add('hide');
+  $('#lerr').textContent = msg || '';
+}
+function logout() {
+  clearInterval(timer); timer = null;
+  localStorage.removeItem('pass');
+  pass = '';
+  showLogin();
+}
+async function login() {
+  pass = $('#pw').value;
+  try {
+    await api('GET', '/api/ping');
+    localStorage.setItem('pass', pass);
+    enter();
+  } catch (e) {
+    if (e.message !== 'unauthorized') $('#lerr').textContent = e.message;
+    else $('#lerr').textContent = 'รหัสผ่านไม่ถูก ❌';
+  }
+}
+function enter() {
+  $('#login').classList.add('hide');
+  $('#app').classList.remove('hide');
+  clearInterval(timer);
+  tick();
+  timer = setInterval(tick, 2000);
+}
+
+async function tick() {
+  if (busy) return;
+  busy = true;
+  try {
+    bots = (await api('GET', '/api/bots')).bots;
+    if (cur && !bots.find((b) => b.id === cur)) { cur = null; localStorage.removeItem('cur'); $('#editor').classList.add('hide'); }
+    renderList();
+    if (cur) {
+      if ($('#editor').classList.contains('hide')) await openBot(cur);
+      updateStatus();
+      await loadLogs();
+    }
+  } catch (e) { /* รอรอบหน้า */ }
+  busy = false;
+}
+
+function renderList() {
+  $('#list').innerHTML = bots.map((b) =>
+    '<div class="item ' + (b.id === cur ? 'on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><b>' +
+    esc(b.name) + '</b><span>' + (b.lang === 'py' ? '🐍' : '🟨') + '</span></div>'
+  ).join('') || '<div class="mut">ยังไม่มีบอท กดเพิ่มด้านบนได้เลย ✨</div>';
+}
+
+function fmtUp(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h ? h + ' ชม. ' + m + ' นาที' : m ? m + ' นาที' : s + ' วิ';
+}
+
+function updateStatus() {
+  const b = bots.find((x) => x.id === cur);
+  if (!b) return;
+  const st = $('#st');
+  st.className = 'st ' + b.status;
+  st.textContent = b.status === 'running' ? '🟢 กำลังรัน' : b.status === 'error' ? '🔴 Error' : '⚪ หยุดอยู่';
+  $('#info').textContent = b.status === 'running' && b.startedAt ? ' • รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
+  const eb = $('#errbox');
+  if (b.status === 'error') { eb.style.display = 'block'; eb.textContent = (b.lastExit || 'บอทหยุดเพราะ error') + ' — ดูรายละเอียดในล็อกด้านล่าง 👇'; }
+  else eb.style.display = 'none';
+  $('#runBtn').textContent = b.status === 'running' ? '🔄 บันทึก + รันใหม่' : '▶ รันบอท';
+  $('#token').placeholder = b.hasToken ? '•••••• (ตั้งไว้แล้ว — เว้นว่าง = ใช้ของเดิม)' : 'ใส่โทเคนที่นี่ (หรือเขียนในโค้ดเองก็ได้)';
+}
+
+async function openBot(id) {
+  const d = await api('GET', '/api/bots/' + id);
+  cur = id;
+  localStorage.setItem('cur', id);
+  $('#editor').classList.remove('hide');
+  $('#name').value = d.name;
+  $('#lang').textContent = d.lang === 'py' ? '🐍 Python' : '🟨 JavaScript';
+  $('#code').value = d.code;
+  $('#token').value = '';
+  setDirty(false);
+  lastLogKey = '';
+  renderList();
+  updateStatus();
+  await loadLogs();
+}
+
+async function loadLogs() {
+  if (!cur) return;
+  const { logs } = await api('GET', '/api/bots/' + cur + '/logs');
+  const key = cur + ':' + logs.length + ':' + (logs.length ? logs[logs.length - 1].t : 0);
+  if (key === lastLogKey) return;
+  lastLogKey = key;
+  const box = $('#logs');
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  box.innerHTML = logs.map((l) => {
+    const t = new Date(l.t).toLocaleTimeString('th-TH', { hour12: false });
+    return '<div class="l ' + l.k + '"><span class="t">' + t + '</span>' + esc(l.m) + '</div>';
+  }).join('') || '<span class="mut">ยังไม่มีล็อก</span>';
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function setDirty(v) { dirty = v; $('#dirtyTag').classList.toggle('hide', !v); }
+
+async function saveBot() {
+  const d = await api('PUT', '/api/bots/' + cur, {
+    name: $('#name').value,
+    code: $('#code').value,
+    token: $('#token').value
+  });
+  $('#token').value = '';
+  setDirty(false);
+  return d;
+}
+
+$('#loginBtn').onclick = login;
+$('#pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+$('#logoutBtn').onclick = logout;
+
+$('#list').addEventListener('click', (e) => {
+  const it = e.target.closest('.item');
+  if (!it || it.dataset.id === cur) return;
+  if (dirty && !confirm('มีโค้ดที่ยังไม่ได้บันทึก จะทิ้งไหม?')) return;
+  openBot(it.dataset.id);
+});
+
+$('#addBtn').onclick = async () => {
+  const lang = $('#newLang').value;
+  try {
+    const d = await api('POST', '/api/bots', { name: $('#newName').value || 'บอทใหม่', lang, code: TPL[lang] });
+    $('#newName').value = '';
+    await tick();
+    await openBot(d.id);
+  } catch (e) { alert('❌ ' + e.message); }
+};
+
+$('#saveBtn').onclick = async () => {
+  try { await saveBot(); await tick(); } catch (e) { alert('❌ ' + e.message); }
+};
+$('#runBtn').onclick = async () => {
+  try {
+    await saveBot();
+    await api('POST', '/api/bots/' + cur + '/start');
+    await tick();
+  } catch (e) { alert('❌ ' + e.message); }
+};
+$('#stopBtn').onclick = async () => {
+  try { await api('POST', '/api/bots/' + cur + '/stop'); await tick(); } catch (e) { alert('❌ ' + e.message); }
+};
+$('#delBtn').onclick = async () => {
+  if (!confirm('ลบบอทนี้ถาวร?')) return;
+  try {
+    await api('DELETE', '/api/bots/' + cur);
+    cur = null; localStorage.removeItem('cur');
+    $('#editor').classList.add('hide');
+    setDirty(false);
+    await tick();
+  } catch (e) { alert('❌ ' + e.message); }
+};
+
+['#code', '#name', '#token'].forEach((s) => $(s).addEventListener('input', () => setDirty(true)));
+$('#code').addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const t = e.target, s = t.selectionStart;
+    t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd);
+    t.selectionStart = t.selectionEnd = s + 4;
+    setDirty(true);
+  }
+});
+window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+(async () => {
+  if (pass) {
+    try { await api('GET', '/api/ping'); enter(); return; } catch {}
+  }
+  showLogin();
+})();
+</script>
+</body>
+</html>
