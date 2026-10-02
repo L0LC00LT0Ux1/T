@@ -12,8 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip3 install --no-cache-dir --break-system-packages --upgrade pip setuptools wheel
 
-RUN pip3 install --no-cache-dir --break-system-packages \
-    discord.py aiohttp requests Pillow numpy matplotlib librosa
+# ติดตั้งไลบรารีพื้นฐาน — บังคับ discord.py เวอร์ชันใหม่ที่รองรับ description_localizations
+RUN pip3 install --no-cache-dir --break-system-packages --upgrade \
+    "discord.py>=2.4.0" aiohttp requests Pillow numpy matplotlib librosa
 
 WORKDIR /app
 COPY package.json ./
