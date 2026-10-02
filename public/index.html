@@ -157,7 +157,7 @@ textarea.code:focus{border-color:var(--line2)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
 
 /* ---------- ไลบรารี ---------- */
-.libin{display:block;width:100%;min-height:96px;padding:10px 12px;resize:vertical;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
+.libin{display:block;width:100%;min-height:110px;padding:10px 12px;resize:vertical;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
   font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;outline:none}
 .libin:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -202,7 +202,7 @@ textarea.code:focus{border-color:var(--line2)}
 .codebox{margin:12px 0;padding:12px;max-height:260px;overflow:auto;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;
   font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#eaeaea}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:99px;background:#fff;color:#000;font-weight:700;box-shadow:0 8px 40px rgba(255,255,255,.25)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:18px;background:#fff;color:#000;font-weight:700;text-align:center;box-shadow:0 8px 40px rgba(255,255,255,.25)}
 
 /* ---------- แชท ---------- */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
@@ -390,7 +390,7 @@ textarea.code:focus{border-color:var(--line2)}
 
         <div class="pane hide" id="p-lib">
           <div class="mut" id="libHelp"></div>
-          <label class="l" for="libIn" style="margin-top:12px">ไลบรารีที่ต้องการติดตั้ง (บรรทัดละ 1 ตัว หรือเว้นวรรค)</label>
+          <label class="l" for="libIn" style="margin-top:12px">ไลบรารีที่ต้องการติดตั้ง</label>
           <textarea class="libin" id="libIn" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
           <div class="chips" id="chips"></div>
           <div class="row" style="margin-top:12px">
@@ -618,7 +618,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.remove('hide');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.add('hide'), 2800);
+  toastT = setTimeout(() => t.classList.add('hide'), Math.min(9000, 2800 + String(msg).length * 45));
 }
 function openModal(html) {
   $('#mbody').innerHTML = html;
@@ -774,11 +774,11 @@ function renderLibs(b) {
   lastLibKey = key;
   const py = b.lang === 'py';
   $('#libHelp').textContent = py
-    ? 'ติดตั้งด้วย pip ใส่เวอร์ชันได้ เช่น numpy==1.26.4 หรือ requests>=2.31,<3 (ห้ามเว้นวรรคในเวอร์ชัน) ใส่ลิงก์ git ได้ เช่น git+https://github.com/user/repo ชื่อที่ติดตั้งอาจไม่ตรงกับชื่อที่ import เช่น import PIL ต้องติดตั้ง pillow'
-    : 'ติดตั้งด้วย npm ใส่เวอร์ชันได้ เช่น moment@2 แพ็กเกจ scope เช่น @discordjs/voice และลิงก์ github เช่น github:user/repo';
+    ? 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง pip install requests numpy pillow ก็ได้ (ระบบตัดคำสั่งและออปชันออกให้) ใส่เวอร์ชันได้ เช่น numpy==1.26.4 (ห้ามเว้นวรรคในเวอร์ชัน) ใส่ลิงก์ git ได้ เช่น git+https://github.com/user/repo ตัว discord.py aiohttp requests ติดตั้งมาให้แล้ว ไม่ต้องลงซ้ำ ชื่อที่ติดตั้งอาจไม่ตรงกับชื่อที่ import เช่น import PIL ต้องติดตั้ง pillow'
+    : 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง npm install axios dotenv ก็ได้ (ระบบตัดคำสั่งและออปชันออกให้) ใส่เวอร์ชันได้ เช่น moment@2 แพ็กเกจ scope เช่น @discordjs/voice และลิงก์ github เช่น github:user/repo ตัว discord.js ติดตั้งมาให้แล้ว';
   $('#libIn').placeholder = py
-    ? 'requests\nnumpy==1.26.4\nyt-dlp\ngit+https://github.com/user/repo'
-    : 'axios\nmoment@2\n@discordjs/voice\ngithub:user/repo';
+    ? 'pip install Pillow numpy matplotlib librosa\nหรือบรรทัดละตัว เช่น\nyt-dlp\nnumpy==1.26.4'
+    : 'npm install axios dotenv moment\nหรือบรรทัดละตัว เช่น\n@discordjs/voice\ngithub:user/repo';
   $('#chips').innerHTML = CHIPS[b.lang].map((c) => '<button class="pk" data-s="' + esc(c) + '">' + esc(c) + '</button>').join('');
   const libs = b.libs || [];
   $('#libList').innerHTML = libs.map((s) =>
@@ -788,7 +788,7 @@ function renderLibs(b) {
   $('#libGo').disabled = !!b.installing;
   $('#libRe').disabled = !!b.installing;
   $$('#libList .btn').forEach((x) => (x.disabled = !!b.installing));
-  $('#libFoot').textContent = 'ไลบรารีถูกเก็บแยกในโฟลเดอร์ของบอทแต่ละตัว ไม่ปนกัน และอยู่ใน Volume จึงไม่หายตอนอัปเดตเว็บ (เมื่อต่อ Volume แล้ว) ติดตั้งเสร็จแล้วต้องกดรันบอทใหม่เพื่อใช้ไลบรารีที่เปลี่ยน';
+  $('#libFoot').textContent = 'ไลบรารีถูกเก็บแยกในโฟลเดอร์ของบอทแต่ละตัว ไม่ปนกัน และอยู่ใน Volume จึงไม่หายตอนอัปเดตเว็บ (เมื่อต่อ Volume แล้ว) ชุดใหญ่ เช่น librosa อาจใช้เวลาหลายนาที ดูความคืบหน้าในแท็บล็อก ติดตั้งเสร็จแล้วต้องกดรันบอทใหม่เพื่อใช้ไลบรารีที่เปลี่ยน';
 }
 function updateStatus() {
   const b = bots.find((x) => x.id === cur);
@@ -882,16 +882,18 @@ async function saveBot() {
 
 /* ---------- ติดตั้งไลบรารี ---------- */
 async function installLibs() {
-  const txt = $('#libIn').value.split('\n').filter((l) => !l.trim().startsWith('#')).join(' ');
-  const add = txt.split(/\s+/).filter(Boolean);
-  if (!add.length) return toast('ใส่ชื่อไลบรารีก่อน');
+  const text = $('#libIn').value;
+  if (!text.trim()) return toast('ใส่ชื่อไลบรารีก่อน');
   try {
-    await api('POST', '/api/bots/' + cur + '/libs', { add });
+    // ส่งข้อความดิบ ให้เซิร์ฟเวอร์แยกชื่อ/ตัดคำสั่งให้เอง
+    const d = await api('POST', '/api/bots/' + cur + '/libs', { text });
     $('#libIn').value = '';
     lastLibKey = '';
     setView('log');
     await tickRun();
-    toast('เริ่มติดตั้งแล้ว ดูความคืบหน้าในล็อก');
+    let msg = 'เริ่มติดตั้ง ' + d.parsed.length + ' ตัว: ' + d.parsed.join(', ');
+    if (d.ignored && d.ignored.length) msg += ' (ข้าม: ' + d.ignored.join(' ') + ')';
+    toast(msg);
   } catch (e) { toast(e.message); }
 }
 async function removeLib(spec) {
@@ -1254,8 +1256,8 @@ $('#chips').addEventListener('click', (e) => {
   const c = e.target.closest('.pk');
   if (!c) return;
   const ta = $('#libIn');
-  const cur2 = ta.value.split(/\s+/).filter(Boolean);
-  if (!cur2.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
+  const have = ta.value.split(/\s+/).filter(Boolean);
+  if (!have.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
 });
 $('#libList').addEventListener('click', (e) => {
   const x = e.target.closest('[data-rm]');
