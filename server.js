@@ -33,7 +33,6 @@ if (ISOLATE) {
   } catch (e) { console.error('chmod:', e.message); }
 }
 
-// ให้บอท JS หา discord.js ใน /app/node_modules เจอ
 try {
   const link = path.join(BOTS_DIR, 'node_modules');
   try { fs.unlinkSync(link); } catch {}
@@ -42,7 +41,6 @@ try {
   console.error('symlink node_modules ไม่สำเร็จ:', e.message);
 }
 
-// ---------- state ----------
 let state = { users: {}, sessions: {}, bots: {}, nextUid: 20000 };
 try {
   const raw = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
@@ -58,7 +56,6 @@ function save() {
   try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
 }
 
-// ---------- hub ----------
 let hub = { posts: {}, chats: {}, media: {} };
 try { hub = Object.assign(hub, JSON.parse(fs.readFileSync(HUB_FILE, 'utf8'))); } catch {}
 let hubTimer = null;
@@ -131,6 +128,14 @@ function validLibName(name) {
   if (/\s/.test(name)) return false;
   if (/[;'"|`$&(){}<>\n\r\t]/.test(name)) return false;
   return /^[@a-zA-Z0-9]/.test(name);
+}
+
+// ตัดคำสั่งนำหน้าออก: "pip install X" → "X", "npm install X" → "X", "python -m pip install X" → "X"
+function cleanLibInput(raw) {
+  return String(raw || '')
+    .replace(/^\s*(?:sudo\s+)?(?:python3?(?:\.\d+)?\s+-m\s+)?pip3?\s+install\s+/i, '')
+    .replace(/^\s*npm\s+(?:install|i|add)\s+/i, '')
+    .trim();
 }
 
 function runCmd(cmd, args, opts, timeoutMs) {
@@ -238,7 +243,6 @@ function startBot(id) {
   const opts = { cwd: dir, env };
   if (ISOLATE) { opts.uid = owner.uid; opts.gid = owner.uid; }
 
-  // ถ้ามี venv ให้ใช้ python ของ venv (มีไลบรารีที่ติดตั้งเพิ่ม)
   let pythonExe = 'python3';
   if (py) {
     const venvPython = path.join(dir, 'venv', 'bin', 'python3');
@@ -471,7 +475,6 @@ const server = http.createServer(async (req, res) => {
 
     const ip = ipOf(req);
 
-    // ----- สมัครสมาชิก -----
     if (p === '/api/register' && M === 'POST') {
       if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัครอยู่' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป ลองใหม่ภายหลัง' });
@@ -493,7 +496,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ----- เข้าสู่ระบบ -----
     if (p === '/api/login' && M === 'POST') {
       if (tooMany(loginFails, ip, 10, 600000)) return json(res, 429, { error: 'ลองผิดบ่อยเกินไป รอ 10 นาทีนะ' });
       const d = await readBody(req);
@@ -508,24 +510,20 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ----- ออกจากระบบ -----
     if (p === '/api/logout' && M === 'POST') {
       const tok = getCookie(req, 'sid');
       if (tok) { delete state.sessions[sha(tok)]; save(); }
       return json(res, 200, { ok: true }, { 'Set-Cookie': sessCookie(req, '', 0) });
     }
 
-    // ----- ต้องล็อกอิน -----
     const me = userOf(req);
     if (!me) return json(res, 401, { error: 'unauthorized' });
     if (p === '/api/me') return json(res, 200, { user: me });
 
-    // ----- ไฟล์ -----
     const mm = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mm && M === 'GET') return serveMedia(req, res, mm[1], me);
     if (p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
 
-    // ----- สถิติ -----
     if (p === '/api/stats' && M === 'GET') {
       const run = Object.values(bots).filter((b) => b.status === 'running');
       return json(res, 200, {
@@ -536,7 +534,6 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // ----- อัปโหลด -----
     if (p === '/api/upload' && M === 'POST') {
       const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
       const ext = own(MIME, ct);
@@ -563,7 +560,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { id, kind });
     }
 
-    // ----- ตลาด -----
     if (p === '/api/posts') {
       if (M === 'GET') {
         const list = Object.values(hub.posts).sort((a, b) => b.created - a.created).slice(0, 200);
@@ -626,7 +622,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ----- แชท -----
     if (p === '/api/chats') {
       if (M === 'GET') {
         const list = Object.values(hub.chats).filter((c) => c.members.includes(me))
@@ -697,7 +692,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ----- บอท -----
     if (p === '/api/bots') {
       if (M === 'GET') {
         const list = Object.values(bots).filter((b) => b.owner === me).sort((a, b) => (a.created || 0) - (b.created || 0));
@@ -728,13 +722,25 @@ const server = http.createServer(async (req, res) => {
         const raw = String(d.name || '').trim();
         if (!raw) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
 
-        const names = raw.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+        // ตัด "pip install" / "pip3 install" / "python -m pip install" / "npm install" ออกอัตโนมัติ
+        const cleaned = cleanLibInput(raw);
+        if (!cleaned) {
+          return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
+        }
 
-        if (!names.length) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
+        const names = cleaned
+          .split(/[\s,]+/)
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .filter((x) => !x.startsWith('-')); // กรอง option เช่น -r, --upgrade
+
+        if (!names.length) {
+          return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย (ไม่ต้องพิมพ์ pip install นำหน้า)' });
+        }
         if (names.length > 20) return json(res, 400, { error: 'ติดตั้งได้สูงสุด 20 ไลบรารีต่อครั้ง' });
 
         for (const n of names) {
-          if (!validLibName(n)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง: "' + n + '"' });
+          if (!validLibName(n)) return json(res, 400, { error: 'ชื่อไลบรารีไม่ถูกต้อง: "' + n + '" (ห้ามมีช่องว่างหรืออักขระพิเศษ)' });
         }
 
         const todo = names.filter((n) => !b.libs.includes(n));
@@ -828,7 +834,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-// ---------- shutdown ----------
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -841,7 +846,6 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
-// ---------- boot ----------
 for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
 for (const b of Object.values(bots)) { if (!Array.isArray(b.libs)) b.libs = []; fixPerm(b); }
 
