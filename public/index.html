@@ -3,92 +3,229 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bot Host 🤖</title>
+<meta name="theme-color" content="#000000">
+<title>BOT HOST</title>
 <style>
-:root{--bg:#0f1117;--card:#181b24;--line:#2a2f3d;--tx:#e6e8ee;--mut:#8b93a7;--g:#2ecc71;--r:#ff4d4f;--b:#5865f2}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.wrap{max-width:900px;margin:0 auto;padding:14px}
-h1{font-size:20px;margin:6px 0 12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-input,select,textarea,button{font:inherit;color:var(--tx);background:#0d0f15;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
-input,select{min-width:0}
-textarea{width:100%;min-height:300px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;resize:vertical;white-space:pre;overflow:auto;tab-size:4}
-button{cursor:pointer;background:#222735}
-button:active{transform:scale(.97)}
-button.pri{background:var(--b);border-color:var(--b)}
-button.ok{background:#1f8f4d;border-color:#1f8f4d}
-button.bad{background:#7a2230;border-color:#7a2230}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.row>input{flex:1}
-#tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:6px}
-.tab{display:flex;gap:7px;align-items:center;white-space:nowrap;padding:9px 14px;border:1px solid var(--line);border-radius:12px 12px 0 0;background:#0d0f15;cursor:pointer;flex:none}
-.tab.on{border-color:var(--b);background:#1b2040}
-.tab.add{color:var(--b);border-style:dashed}
-.tab.add.on{background:#1b2040;color:#fff}
-.dot{width:10px;height:10px;border-radius:50%;background:#555;flex:none}
-.dot.running{background:var(--g);box-shadow:0 0 8px var(--g)}
-.dot.error{background:var(--r);box-shadow:0 0 8px var(--r)}
-.mut{color:var(--mut)}
-.st{font-weight:700}
-.st.running{color:var(--g)}.st.error{color:var(--r)}
-.errbox{border:1px solid var(--r);background:#2a1216;color:#ffb3b5;border-radius:10px;padding:9px 12px;margin:10px 0;display:none}
-#logs{background:#07080c;border:1px solid var(--line);border-radius:10px;height:260px;overflow:auto;padding:8px 10px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
-.l.err{color:#ff8a8c}.l.sys{color:#8ab4ff}.l.out{color:#d5d9e4}.l .t{color:#5d657a;margin-right:6px}
+:root{--tx:#f2f2f2;--mut:#8a8a8a;--line:rgba(255,255,255,.16);--line2:rgba(255,255,255,.34);--panel:rgba(12,12,12,.78);--red:#ff4d4f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
+
+/* ---------- พื้นหลัง: ไฟขาว ---------- */
+.bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
+.bg i{position:absolute;border-radius:50%;will-change:transform;
+  background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
+.bg i:nth-child(1){width:80vmax;height:80vmax;left:-30vmax;top:-42vmax;animation:d1 19s ease-in-out infinite alternate}
+.bg i:nth-child(2){width:70vmax;height:70vmax;right:-34vmax;bottom:-40vmax;animation:d2 23s ease-in-out infinite alternate}
+.bg i:nth-child(3){width:34vmax;height:34vmax;left:40%;top:46%;opacity:.55;animation:d3 15s ease-in-out infinite alternate}
+.cone{position:absolute;top:-6vh;width:130vw;height:112vh;left:50%;margin-left:-65vw;transform-origin:50% 0;
+  background:conic-gradient(from 180deg at 50% 0%,transparent 163deg,rgba(255,255,255,.17) 180deg,transparent 197deg)}
+.cone.a{animation:sw1 11s ease-in-out infinite alternate}
+.cone.b{opacity:.7;animation:sw2 14s ease-in-out infinite alternate}
+.bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%)}
+.bg::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.75) 100%)}
+@keyframes d1{to{transform:translate(14vmax,10vmax) scale(1.12)}}
+@keyframes d2{to{transform:translate(-12vmax,-9vmax) scale(1.1)}}
+@keyframes d3{to{transform:translate(-14vmax,8vmax) scale(1.4)}}
+@keyframes sw1{from{transform:rotate(-13deg)}to{transform:rotate(9deg)}}
+@keyframes sw2{from{transform:rotate(11deg)}to{transform:rotate(-8deg)}}
+@media (prefers-reduced-motion:reduce){.bg i,.cone{animation:none}}
+
+/* ---------- พื้นฐาน ---------- */
+.wrap{max-width:920px;margin:0 auto;padding:0 14px 40px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 24px 70px rgba(0,0,0,.65)}
+.ic{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic.f{fill:currentColor;stroke:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 15px;border-radius:10px;
+  border:1px solid var(--line2);background:transparent;color:var(--tx);font:inherit;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+.btn:hover{background:rgba(255,255,255,.09)}
+.btn:active{transform:scale(.97)}
+.btn.solid{background:#fff;color:#000;border-color:#fff}
+.btn.solid:hover{background:#d9d9d9}
+.btn.danger{border-color:rgba(255,77,79,.55);color:#ff7a7c}
+.btn.danger:hover{background:rgba(255,77,79,.12)}
+.btn.wide{width:100%}
+.inp{width:100%;min-height:42px;padding:0 12px;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
+.inp:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margin:16px 0 6px;text-transform:uppercase}
+.seg{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.5)}
+.seg button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--mut);font:inherit;font-weight:600;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.seg button.on{background:#fff;color:#000}
+.mut{color:var(--mut)}
+.err{color:#ff7a7c;min-height:22px;margin-top:10px;font-size:14px}
+
+/* ---------- สถานะ ---------- */
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #777;flex:none;display:inline-block}
+.dot.running{background:#fff;border-color:#fff;box-shadow:0 0 10px #fff}
+.dot.error{background:var(--red);border-color:var(--red);box-shadow:0 0 8px var(--red)}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:99px;border:1px solid var(--line2);font-size:13px;font-weight:600;color:#bdbdbd}
+.badge.running{background:#fff;color:#000;border-color:#fff}
+.badge.running .dot{background:#000;border-color:#000;box-shadow:none}
+.badge.error{border-color:var(--red);color:#ff7a7c}
+
+/* ---------- หน้าเข้าสู่ระบบ ---------- */
+.authbox{width:min(390px,92vw);margin:13vh auto 0;padding:24px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.24em}
+.brand .logo{width:26px;height:26px}
+.authbox .brand{justify-content:center;margin-bottom:20px}
+.hint{font-size:13px;color:var(--mut);text-align:center;margin:14px 0 0}
+
+/* ---------- ส่วนหัว + เมนู ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.who{display:flex;align-items:center;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:rgba(0,0,0,.5);font-size:14px}
+#tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(0,0,0,.55);color:var(--mut);cursor:pointer;font-weight:600;user-select:none}
+.tab small{font-size:10px;letter-spacing:.1em;opacity:.7}
+.tab:hover{border-color:var(--line2);color:var(--tx)}
+.tab.on{background:#fff;color:#000;border-color:#fff}
+.tab.on .dot{border-color:#000}
+.tab.on .dot.running{background:#000;box-shadow:none}
+.tab.add{border-style:dashed}
+
+/* ---------- แผงบอท ---------- */
+.bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+.title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.title h2{margin:0;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.sub{padding:12px 14px 0}
+.pane{padding:14px}
+.errbox{display:none;align-items:center;justify-content:space-between;gap:10px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
+  background:rgba(255,77,79,.1);color:#ffb3b5;border-radius:10px;font-size:14px}
+.errbox .btn{min-height:32px;padding:0 10px;font-size:13px}
+textarea.code{display:block;width:100%;min-height:52vh;padding:12px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
+  font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;resize:vertical;outline:none;tab-size:4}
+textarea.code:focus{border-color:var(--line2)}
+.logs{height:52vh;overflow:auto;padding:10px 12px;background:rgba(0,0,0,.75);border:1px solid var(--line);border-radius:10px;
+  font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.lg.out{color:#cfcfcf}.lg.sys{color:#fff;font-weight:700}.lg.err{color:#ff8a8c}
+.lg .t{color:#666;margin-right:8px}
+.setrow{margin-bottom:6px}
+.danger-zone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.foot{margin-top:10px;font-size:12px;color:var(--mut)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🤖 Bot Host</h1>
 
-  <div id="tabs"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 21v-7h8v7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h9"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z" style="fill:currentColor;stroke:none"/></symbol>
+</svg>
 
-  <div id="newPanel" class="card hide">
-    <div style="font-weight:700;margin-bottom:8px">➕ เพิ่มบอทตัวใหม่</div>
-    <div class="row">
-      <input id="newName" placeholder="ชื่อบอท เช่น บอทดนตรี" maxlength="40">
-      <select id="newLang">
-        <option value="py">🐍 Python</option>
-        <option value="js">🟨 JavaScript</option>
-      </select>
-      <button class="pri" id="addBtn">✨ สร้างเลย</button>
+<div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
+
+<!-- ===== เข้าสู่ระบบ / สมัครสมาชิก ===== -->
+<div id="auth" class="hide">
+  <div class="authbox panel">
+    <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>BOT HOST</span></div>
+    <div class="seg" id="authSeg">
+      <button data-m="login" class="on">เข้าสู่ระบบ</button>
+      <button data-m="register">สมัครสมาชิก</button>
     </div>
-    <div class="mut" style="margin-top:8px">สร้างแล้วจะได้โค้ดตัวอย่างให้ แก้ได้เลย บอทแต่ละตัวรันแยกกัน ไม่กวนกัน</div>
+    <label class="l" for="au">ชื่อผู้ใช้</label>
+    <input class="inp" id="au" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <label class="l" for="ap">รหัสผ่าน</label>
+    <input class="inp" id="ap" type="password" autocomplete="current-password" maxlength="100">
+    <div id="aerr" class="err"></div>
+    <button class="btn solid wide" id="aGo">เข้าสู่ระบบ</button>
+    <p class="hint" id="aHint"></p>
   </div>
+</div>
 
-  <div id="editor" class="card hide">
-    <div class="row" style="justify-content:space-between">
-      <input id="name" maxlength="40" style="font-weight:700">
-      <span id="lang" class="mut"></span>
-    </div>
-    <div style="margin:8px 0">
-      สถานะ: <span id="st" class="st">-</span>
-      <span id="info" class="mut"></span>
-      <span id="dirtyTag" class="mut hide"> • ✏️ ยังไม่ได้บันทึก</span>
-    </div>
-    <div id="errbox" class="errbox"></div>
-
-    <div class="mut" style="margin-bottom:4px">🔑 โทเคนบอท (ส่งให้โค้ดผ่าน DISCORD_TOKEN) — หรือจะเขียนโทเคนในโค้ดเองก็ได้</div>
-    <input id="token" type="password" style="width:100%;margin-bottom:10px" placeholder="ใส่โทเคนที่นี่ (เว้นว่าง = ใช้ของเดิม)" autocomplete="off">
-
-    <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
-
-    <div class="row" style="margin-top:10px">
-      <button id="saveBtn">💾 บันทึก</button>
-      <button id="runBtn" class="ok">▶ รันบอท</button>
-      <button id="stopBtn" class="bad">⏹ หยุด</button>
-      <button id="delBtn">🗑 ลบ</button>
+<!-- ===== แอปหลัก ===== -->
+<div id="app" class="hide">
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>BOT HOST</span></div>
+      <div class="who">
+        <span class="chip"><svg class="ic"><use href="#i-user"/></svg><span id="who"></span></span>
+        <button class="btn" id="outBtn" title="ออกจากระบบ"><svg class="ic"><use href="#i-out"/></svg><span>ออก</span></button>
+      </div>
     </div>
 
-    <div class="mut" style="margin:14px 0 4px">📜 ล็อก</div>
-    <div id="logs"></div>
+    <div id="tabs"></div>
+
+    <section id="newPanel" class="panel pane hide">
+      <div style="font-weight:700;font-size:17px;margin-bottom:2px">เพิ่มบอทตัวใหม่</div>
+      <div class="mut">บอทแต่ละตัวรันแยกกัน ไม่กวนกัน</div>
+      <label class="l" for="newName">ชื่อบอท</label>
+      <input class="inp" id="newName" maxlength="40" placeholder="เช่น บอทดนตรี">
+      <label class="l" for="newLang">ภาษา</label>
+      <select class="inp" id="newLang">
+        <option value="py">Python</option>
+        <option value="js">JavaScript</option>
+      </select>
+      <div style="margin-top:16px"><button class="btn solid" id="addBtn"><svg class="ic"><use href="#i-plus"/></svg><span>สร้างบอท</span></button></div>
+    </section>
+
+    <section id="editor" class="panel hide">
+      <div class="bar">
+        <div class="title"><h2 id="title"></h2><span id="badge" class="badge stopped"></span><span id="info" class="mut"></span><span id="dirtyTag" class="mut hide">ยังไม่ได้บันทึก</span></div>
+        <div class="acts">
+          <button class="btn" id="saveBtn"><svg class="ic"><use href="#i-save"/></svg><span>บันทึก</span></button>
+          <button class="btn solid" id="runBtn"></button>
+          <button class="btn" id="stopBtn"><svg class="ic f"><use href="#i-stop"/></svg><span>หยุด</span></button>
+        </div>
+      </div>
+
+      <div id="errbox" class="errbox"><span id="errtxt"></span><button class="btn" id="toLog">ดูล็อก</button></div>
+
+      <div class="sub">
+        <div class="seg" id="viewSeg">
+          <button data-v="code" class="on"><svg class="ic"><use href="#i-code"/></svg><span>โค้ด</span></button>
+          <button data-v="log"><svg class="ic"><use href="#i-log"/></svg><span>ล็อก</span></button>
+          <button data-v="set"><svg class="ic"><use href="#i-set"/></svg><span>ตั้งค่า</span></button>
+        </div>
+      </div>
+
+      <div class="pane" id="p-code">
+        <textarea class="code" id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+        <div class="foot">โทเคนที่ตั้งในแท็บตั้งค่า จะส่งให้โค้ดผ่านตัวแปร DISCORD_TOKEN</div>
+      </div>
+
+      <div class="pane hide" id="p-log"><div class="logs" id="logs"></div></div>
+
+      <div class="pane hide" id="p-set">
+        <div class="setrow">
+          <label class="l" for="name" style="margin-top:0">ชื่อบอท</label>
+          <input class="inp" id="name" maxlength="40">
+        </div>
+        <label class="l" for="token">โทเคนบอท</label>
+        <input class="inp" id="token" type="password" autocomplete="off">
+        <div class="foot" id="langInfo"></div>
+        <div style="margin-top:14px"><button class="btn" id="saveBtn2"><svg class="ic"><use href="#i-save"/></svg><span>บันทึกการตั้งค่า</span></button></div>
+        <div class="danger-zone">
+          <button class="btn danger" id="delBtn"><svg class="ic"><use href="#i-trash"/></svg><span>ลบบอทนี้</span></button>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ic = (n, f) => '<svg class="ic' + (f ? ' f' : '') + '"><use href="#i-' + n + '"/></svg>';
 
 const TPL = {
   py: [
@@ -101,14 +238,14 @@ const TPL = {
     '',
     '@client.event',
     'async def on_ready():',
-    '    print(f"✅ ล็อกอินแล้ว: {client.user}")',
+    '    print(f"ล็อกอินแล้ว: {client.user}")',
     '',
     '@client.event',
     'async def on_message(message):',
     '    if message.author.bot:',
     '        return',
     '    if message.content == "!ping":',
-    '        await message.channel.send("pong 🏓")',
+    '        await message.channel.send("pong")',
     '',
     'client.run(os.environ["DISCORD_TOKEN"])'
   ].join('\n'),
@@ -124,22 +261,20 @@ const TPL = {
     '});',
     '',
     'client.once("clientReady", () => {',
-    '  console.log("✅ ล็อกอินแล้ว: " + client.user.tag);',
+    '  console.log("ล็อกอินแล้ว: " + client.user.tag);',
     '});',
     '',
     'client.on("messageCreate", (msg) => {',
     '  if (msg.author.bot) return;',
-    '  if (msg.content === "!ping") msg.reply("pong 🏓");',
+    '  if (msg.content === "!ping") msg.reply("pong");',
     '});',
     '',
     'client.login(process.env.DISCORD_TOKEN);'
   ].join('\n')
 };
 
-let bots = [];
-let cur = localStorage.getItem('cur') || null;   // id ของบอท หรือ 'new'
-let shownId = null;                              // บอทที่กำลังโหลดอยู่ในตัวแก้ไข
-let dirty = false, busy = false, lastLogKey = '';
+let me = null, bots = [], cur = null, shownId = null;
+let dirty = false, busy = false, lastLogKey = '', lastTabsKey = '', view = 'code', timer = null, mode = 'login';
 
 async function api(method, url, body) {
   const r = await fetch(url, {
@@ -148,17 +283,81 @@ async function api(method, url, body) {
     body: body ? JSON.stringify(body) : undefined
   });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  if (!r.ok) {
+    if (r.status === 401 && !/^\/api\/(login|register|me)$/.test(url)) toAuth();
+    const e = new Error(d.error || 'HTTP ' + r.status);
+    e.status = r.status;
+    throw e;
+  }
   return d;
 }
 
+/* ---------- เข้าสู่ระบบ ---------- */
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+  $('#aGo').textContent = m === 'login' ? 'เข้าสู่ระบบ' : 'สมัครและเข้าสู่ระบบ';
+  $('#ap').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  $('#aHint').textContent = m === 'login'
+    ? 'ยังไม่มีบัญชี? เลือกแท็บสมัครสมาชิก'
+    : 'ชื่อผู้ใช้ 3-20 ตัว (a-z ตัวเลข _) รหัสผ่านอย่างน้อย 6 ตัว สมัครเสร็จจะเข้าสู่ระบบให้ทันที';
+  $('#aerr').textContent = '';
+}
+async function authGo() {
+  $('#aerr').textContent = '';
+  $('#aGo').disabled = true;
+  try {
+    const d = await api('POST', '/api/' + (mode === 'login' ? 'login' : 'register'), {
+      username: $('#au').value.trim(),
+      password: $('#ap').value
+    });
+    $('#ap').value = '';
+    enter(d.user);
+  } catch (e) {
+    $('#aerr').textContent = e.message;
+  }
+  $('#aGo').disabled = false;
+}
+function toAuth() {
+  clearInterval(timer); timer = null;
+  me = null; bots = []; cur = null; shownId = null; lastTabsKey = '';
+  setDirty(false);
+  $('#app').classList.add('hide');
+  $('#auth').classList.remove('hide');
+}
+function enter(user) {
+  me = user;
+  $('#who').textContent = user;
+  $('#auth').classList.add('hide');
+  $('#app').classList.remove('hide');
+  $('#editor').classList.add('hide');
+  $('#newPanel').classList.add('hide');
+  cur = localStorage.getItem('cur:' + me) || null;
+  shownId = null; lastLogKey = ''; lastTabsKey = '';
+  clearInterval(timer);
+  tick();
+  timer = setInterval(tick, 2000);
+}
+
+/* ---------- เมนู / มุมมอง ---------- */
 function renderTabs() {
+  const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang).join(',');
+  if (key === lastTabsKey) return;
+  lastTabsKey = key;
   $('#tabs').innerHTML = bots.map((b) =>
-    '<div class="tab ' + (b.id === cur ? 'on' : '') + '" data-id="' + b.id + '">' +
-    '<span class="dot ' + b.status + '"></span><b>' + esc(b.name) + '</b>' +
-    '<span>' + (b.lang === 'py' ? '🐍' : '🟨') + '</span></div>'
+    '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' +
+    esc(b.name) + '</span><small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small></div>'
   ).join('') +
-  '<div class="tab add ' + (cur === 'new' ? 'on' : '') + '" data-id="new">➕ เพิ่มบอท</div>';
+  '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
+}
+
+function setView(v) {
+  view = v;
+  document.querySelectorAll('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  $('#p-code').classList.toggle('hide', v !== 'code');
+  $('#p-log').classList.toggle('hide', v !== 'log');
+  $('#p-set').classList.toggle('hide', v !== 'set');
+  if (v === 'log') { const box = $('#logs'); box.scrollTop = box.scrollHeight; }
 }
 
 function showNewPanel() {
@@ -176,19 +375,23 @@ function fmtUp(ms) {
 function updateStatus() {
   const b = bots.find((x) => x.id === cur);
   if (!b) return;
-  const st = $('#st');
-  st.className = 'st ' + b.status;
-  st.textContent = b.status === 'running' ? '🟢 กำลังรัน' : b.status === 'error' ? '🔴 Error' : '⚪ หยุดอยู่';
-  $('#info').textContent = b.status === 'running' && b.startedAt ? ' • รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
+  const label = b.status === 'running' ? 'กำลังรัน' : b.status === 'error' ? 'ผิดพลาด' : 'หยุดอยู่';
+  $('#badge').className = 'badge ' + b.status;
+  $('#badge').innerHTML = '<span class="dot ' + b.status + '"></span>' + label;
+  $('#title').textContent = b.name;
+  $('#info').textContent = b.status === 'running' && b.startedAt ? 'รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
   const eb = $('#errbox');
   if (b.status === 'error') {
-    eb.style.display = 'block';
-    eb.textContent = (b.lastExit || 'บอทหยุดเพราะ error') + ' — ดูรายละเอียดในล็อกด้านล่าง 👇';
+    eb.style.display = 'flex';
+    $('#errtxt').textContent = b.lastExit || 'บอทหยุดเพราะ error';
   } else eb.style.display = 'none';
-  $('#runBtn').textContent = b.status === 'running' ? '🔄 บันทึก + รันใหม่' : '▶ รันบอท';
-  $('#token').placeholder = b.hasToken
-    ? '•••••• (ตั้งไว้แล้ว — เว้นว่าง = ใช้ของเดิม)'
-    : 'ใส่โทเคนที่นี่ (หรือเขียนในโค้ดเองก็ได้)';
+  const run = $('#runBtn');
+  const want = b.status === 'running' ? 'r' : 'p';
+  if (run.dataset.k !== want) {
+    run.dataset.k = want;
+    run.innerHTML = want === 'r' ? ic('restart') + '<span>บันทึก + รันใหม่</span>' : ic('play', 1) + '<span>รันบอท</span>';
+  }
+  $('#token').placeholder = b.hasToken ? 'ตั้งไว้แล้ว (เว้นว่าง = ใช้ของเดิม)' : 'ใส่โทเคนที่นี่ หรือเขียนในโค้ดเองก็ได้';
 }
 
 async function openBot(id) {
@@ -197,9 +400,9 @@ async function openBot(id) {
   $('#newPanel').classList.add('hide');
   $('#editor').classList.remove('hide');
   $('#name').value = d.name;
-  $('#lang').textContent = d.lang === 'py' ? '🐍 Python' : '🟨 JavaScript';
   $('#code').value = d.code;
   $('#token').value = '';
+  $('#langInfo').textContent = (d.lang === 'py' ? 'ภาษา Python (ไฟล์ bot.py)' : 'ภาษา JavaScript (ไฟล์ bot.js)') + ' - เปลี่ยนภาษาไม่ได้หลังสร้าง';
   setDirty(false);
   lastLogKey = '';
   updateStatus();
@@ -216,7 +419,7 @@ async function loadLogs() {
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
   box.innerHTML = logs.map((l) => {
     const t = new Date(l.t).toLocaleTimeString('th-TH', { hour12: false });
-    return '<div class="l ' + l.k + '"><span class="t">' + t + '</span>' + esc(l.m) + '</div>';
+    return '<div class="lg ' + l.k + '"><span class="t">' + t + '</span>' + esc(l.m) + '</div>';
   }).join('') || '<span class="mut">ยังไม่มีล็อก</span>';
   if (atBottom) box.scrollTop = box.scrollHeight;
 }
@@ -227,21 +430,22 @@ async function select(id) {
   if (id === cur && (id === 'new' || shownId === id)) return;
   if (dirty && !confirm('มีโค้ดที่ยังไม่ได้บันทึก จะทิ้งไหม?')) return;
   cur = id;
-  localStorage.setItem('cur', id);
+  localStorage.setItem('cur:' + me, id);
   setDirty(false);
   if (id === 'new') showNewPanel();
   else await openBot(id);
+  lastTabsKey = '';
   renderTabs();
 }
 
 async function tick() {
-  if (busy) return;
+  if (busy || !me) return;
   busy = true;
   try {
     bots = (await api('GET', '/api/bots')).bots;
     if (cur !== 'new' && !bots.find((b) => b.id === cur)) {
       cur = bots.length ? bots[0].id : 'new';
-      localStorage.setItem('cur', cur);
+      localStorage.setItem('cur:' + me, cur);
       shownId = null;
     }
     if (cur === 'new') {
@@ -267,10 +471,21 @@ async function saveBot() {
   return d;
 }
 
-$('#tabs').addEventListener('click', (e) => {
-  const t = e.target.closest('.tab');
-  if (t) select(t.dataset.id);
-});
+/* ---------- ปุ่มต่างๆ ---------- */
+$('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
+$('#aGo').onclick = authGo;
+$('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
+$('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#ap').focus(); });
+
+$('#outBtn').onclick = async () => {
+  if (dirty && !confirm('มีโค้ดที่ยังไม่ได้บันทึก จะออกเลยไหม?')) return;
+  try { await api('POST', '/api/logout'); } catch {}
+  toAuth();
+};
+
+$('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
+$('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('#toLog').onclick = () => setView('log');
 
 $('#addBtn').onclick = async () => {
   const lang = $('#newLang').value;
@@ -281,30 +496,32 @@ $('#addBtn').onclick = async () => {
     setDirty(false);
     cur = null; shownId = null;
     await select(d.id);
-  } catch (e) { alert('❌ ' + e.message); }
+    setView('code');
+  } catch (e) { alert(e.message); }
 };
 
-$('#saveBtn').onclick = async () => {
-  try { await saveBot(); await tick(); } catch (e) { alert('❌ ' + e.message); }
-};
+const doSave = async () => { try { await saveBot(); await tick(); } catch (e) { alert(e.message); } };
+$('#saveBtn').onclick = doSave;
+$('#saveBtn2').onclick = doSave;
 $('#runBtn').onclick = async () => {
   try {
     await saveBot();
     await api('POST', '/api/bots/' + cur + '/start');
     await tick();
-  } catch (e) { alert('❌ ' + e.message); }
+    setView('log');
+  } catch (e) { alert(e.message); }
 };
 $('#stopBtn').onclick = async () => {
-  try { await api('POST', '/api/bots/' + cur + '/stop'); await tick(); } catch (e) { alert('❌ ' + e.message); }
+  try { await api('POST', '/api/bots/' + cur + '/stop'); await tick(); } catch (e) { alert(e.message); }
 };
 $('#delBtn').onclick = async () => {
   if (!confirm('ลบบอทนี้ถาวร?')) return;
   try {
     await api('DELETE', '/api/bots/' + cur);
     setDirty(false);
-    cur = null; shownId = null;
+    cur = null; shownId = null; lastTabsKey = '';
     await tick();
-  } catch (e) { alert('❌ ' + e.message); }
+  } catch (e) { alert(e.message); }
 };
 
 ['#code', '#name', '#token'].forEach((s) => $(s).addEventListener('input', () => setDirty(true)));
@@ -319,8 +536,9 @@ $('#code').addEventListener('keydown', (e) => {
 });
 window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-tick();
-setInterval(tick, 2000);
+/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
+setMode('login');
+api('GET', '/api/me').then((d) => enter(d.user)).catch(() => toAuth());
 </script>
 </body>
 </html>
