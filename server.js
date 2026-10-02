@@ -193,7 +193,14 @@ function installLib(botId, name) {
 
       const pip = path.join(venvDir, 'bin', 'pip');
       console.log('[installLib] py', pip, 'install', name);
-      return await runCmd(pip, ['install', '--upgrade', name], opts, 600000);
+      // --ignore-installed: บังคับติดตั้งลง venv เสมอ
+      // ถ้าไม่ใส่ pip จะเห็น discord.py เวอร์ชันเก่าในระบบ แล้วข้ามการติดตั้งทับ
+      return await runCmd(pip, [
+        'install',
+        '--upgrade',
+        '--ignore-installed',
+        name
+      ], opts, 600000);
     } else {
       console.log('[installLib] npm install', name, 'ใน', dir);
       return await runCmd('npm', [
@@ -721,7 +728,6 @@ const server = http.createServer(async (req, res) => {
         const raw = String(d.name || '').trim();
         if (!raw) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
 
-        // แยกด้วยช่องว่าง, comma, newline
         const names = raw.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
 
         if (!names.length) return json(res, 400, { error: 'ใส่ชื่อไลบรารีด้วย' });
