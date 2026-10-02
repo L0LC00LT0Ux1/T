@@ -384,11 +384,11 @@ textarea.code:focus{border-color:var(--line2)}
         <div class="pane hide" id="p-libs">
           <label class="l" style="margin-top:0">ติดตั้งไลบรารีเพิ่มเติม</label>
           <div class="row">
-            <input class="inp" id="libInp" placeholder="requests, pandas&gt;=2.0, opencv-python, @discordjs/voice, axios@1.6" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <input class="inp" id="libInp" placeholder="discord.py aiohttp Pillow numpy matplotlib librosa" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
             <button class="btn solid" id="libAdd"><svg class="ic"><use href="#i-plus"/></svg><span>ติดตั้ง</span></button>
           </div>
           <div class="foot" id="libHint"></div>
-          <div class="foot" style="margin-top:6px">พิมพ์ชื่อไลบรารีเดี่ยว ๆ 1 ตัวต่อครั้ง รองรับเวอร์ชัน (เช่น <code>pandas&gt;=2.0</code>) และ npm scope (เช่น <code>@discordjs/voice</code>) — ใช้เวลา 10 วิ ถึง 5 นาที แล้วแต่ขนาด</div>
+          <div class="foot" style="margin-top:6px">พิมพ์ได้หลายตัวพร้อมกัน คั่นด้วยช่องว่าง หรือ comma — เช่น <code>discord.py aiohttp Pillow</code> หรือ <code>requests, pandas&gt;=2.0</code> รองรับเวอร์ชัน (เช่น <code>pandas&gt;=2.0</code>) และ npm scope (เช่น <code>@discordjs/voice</code>)</div>
           <div id="libProgress" class="foot hide" style="color:#fff"></div>
           <div style="margin-top:14px" id="libList"></div>
           <div class="foot" style="margin-top:14px">หลังติดตั้งแล้ว ต้องกด "บันทึก + รันใหม่" เพื่อให้บอทโหลดไลบรารีใหม่</div>
@@ -1200,21 +1200,39 @@ window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault()
 // ไลบรารี
 $('#libAdd').onclick = async () => {
   if (installing) return;
-  const name = $('#libInp').value.trim();
-  if (!name) return;
+  const raw = $('#libInp').value.trim();
+  if (!raw) return;
+  const count = raw.split(/[\s,]+/).filter(Boolean).length;
   installing = true;
   $('#libAdd').disabled = true;
   $('#libProgress').classList.remove('hide');
-  $('#libProgress').textContent = 'กำลังติดตั้ง ' + name + ' ... (อาจใช้เวลาสักครู่)';
+  $('#libProgress').textContent = 'กำลังติดตั้ง ' + count + ' ไลบรารี ... รอสักครู่ (อาจใช้เวลาเป็นนาที)';
   try {
-    const d = await api('POST', '/api/bots/' + cur + '/libs', { name });
+    const d = await api('POST', '/api/bots/' + cur + '/libs', { name: raw });
     $('#libInp').value = '';
     renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
-    toast('ติดตั้ง ' + name + ' สำเร็จ — กดบันทึก + รันใหม่');
-  } catch (e) { toast(e.message); }
+    const ok = d.installed || [];
+    const fail = d.failed || [];
+    const skip = d.skipped || [];
+    let msg = '';
+    if (ok.length) msg += 'สำเร็จ ' + ok.length + ' ตัว';
+    if (skip.length) msg += (msg ? ' · ' : '') + 'ข้าม ' + skip.length + ' ตัว (มีอยู่แล้ว)';
+    if (fail.length) msg += (msg ? ' · ' : '') + 'ล้มเหลว ' + fail.length + ' ตัว';
+    toast(msg || 'เสร็จแล้ว');
+    if (fail.length) {
+      $('#libProgress').textContent = 'ล้มเหลว: ' + fail.join(' | ');
+      setTimeout(() => $('#libProgress').classList.add('hide'), 8000);
+    } else {
+      $('#libProgress').classList.add('hide');
+    }
+  } catch (e) {
+    toast(e.message);
+    $('#libProgress').textContent = e.message;
+    setTimeout(() => $('#libProgress').classList.add('hide'), 8000);
+  }
   installing = false;
   $('#libAdd').disabled = false;
-  $('#libProgress').classList.add('hide');
+  if (!$('#libProgress').textContent.startsWith('ล้มเหลว')) $('#libProgress').classList.add('hide');
 };
 $('#libInp').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#libAdd').click(); });
 $('#libList').addEventListener('click', async (e) => {
