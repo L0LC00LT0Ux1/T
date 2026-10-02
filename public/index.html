@@ -154,6 +154,11 @@ textarea.code:focus{border-color:var(--line2)}
 .danger-zone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
 
+/* ---------- ไลบรารี ---------- */
+.libitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+.libitem code{flex:1;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;font-size:13px}
+.libitem .btn{min-height:32px;padding:0 10px}
+
 /* ---------- ตลาดโค้ด ---------- */
 .notice{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);font-size:13px;color:#bdbdbd}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
@@ -255,6 +260,7 @@ textarea.code:focus{border-color:var(--line2)}
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></symbol>
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
@@ -362,14 +368,30 @@ textarea.code:focus{border-color:var(--line2)}
           <div class="seg" id="viewSeg">
             <button data-v="code" class="on"><svg class="ic"><use href="#i-code"/></svg><span>โค้ด</span></button>
             <button data-v="log"><svg class="ic"><use href="#i-log"/></svg><span>ล็อก</span></button>
+            <button data-v="libs"><svg class="ic"><use href="#i-box"/></svg><span>ไลบรารี</span></button>
             <button data-v="set"><svg class="ic"><use href="#i-set"/></svg><span>ตั้งค่า</span></button>
           </div>
         </div>
+
         <div class="pane" id="p-code">
           <textarea class="code" id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
           <div class="foot">โทเคนที่ตั้งในแท็บตั้งค่า จะส่งให้โค้ดผ่านตัวแปร DISCORD_TOKEN</div>
         </div>
+
         <div class="pane hide" id="p-log"><div class="logs" id="logs"></div></div>
+
+        <div class="pane hide" id="p-libs">
+          <label class="l" style="margin-top:0">ติดตั้งไลบรารีเพิ่มเติม</label>
+          <div class="row">
+            <input class="inp" id="libInp" placeholder="เช่น requests, numpy, axios, @discordjs/voice" style="flex:1;min-width:200px" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <button class="btn solid" id="libAdd"><svg class="ic"><use href="#i-plus"/></svg><span>ติดตั้ง</span></button>
+          </div>
+          <div class="foot" id="libHint"></div>
+          <div id="libProgress" class="foot hide" style="color:#fff"></div>
+          <div style="margin-top:14px" id="libList"></div>
+          <div class="foot" style="margin-top:14px">หลังติดตั้งแล้ว ต้องกด "บันทึก + รันใหม่" เพื่อให้บอทโหลดไลบรารีใหม่</div>
+        </div>
+
         <div class="pane hide" id="p-set">
           <label class="l" for="name" style="margin-top:0">ชื่อบอท</label>
           <input class="inp" id="name" maxlength="40">
@@ -534,12 +556,10 @@ const TPL = {
 
 /* ---------- สถานะรวม ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
-// รันบอท
 let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', view = 'code';
-// ตลาด / อัปโหลด
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
-// แชท
 let chats = [], curChat = null, thrTotal = 0, thrBusy = false, attach = null, sending = false, lastChatsKey = '';
+let installing = false;
 
 async function api(method, url, body) {
   const r = await fetch(url, {
@@ -715,8 +735,10 @@ function setView(v) {
   $$('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
   $('#p-code').classList.toggle('hide', v !== 'code');
   $('#p-log').classList.toggle('hide', v !== 'log');
+  $('#p-libs').classList.toggle('hide', v !== 'libs');
   $('#p-set').classList.toggle('hide', v !== 'set');
   if (v === 'log') { const box = $('#logs'); box.scrollTop = box.scrollHeight; }
+  if (v === 'libs') loadLibs();
 }
 function showNewPanel() {
   shownId = null;
@@ -762,6 +784,7 @@ async function openBot(id) {
   lastLogKey = '';
   updateStatus();
   await loadLogs();
+  if (view === 'libs') await loadLibs();
 }
 async function loadLogs() {
   if (!cur || cur === 'new') return;
@@ -813,6 +836,29 @@ async function saveBot() {
   $('#token').value = '';
   setDirty(false);
   return d;
+}
+
+/* ---------- ไลบรารี ---------- */
+function renderLibs(libs, lang) {
+  $('#libHint').textContent = lang === 'py'
+    ? 'Python: ติดตั้งด้วย pip ลงโฟลเดอร์ libs/ ของบอท แล้ว import ได้เลย'
+    : 'JavaScript: ติดตั้งด้วย npm ลง node_modules/ ของบอท แล้ว require() ได้เลย';
+  if (!libs || !libs.length) {
+    $('#libList').innerHTML = '<div class="empty">ยังไม่มีไลบรารีที่ติดตั้งเพิ่มเติม</div>';
+    return;
+  }
+  $('#libList').innerHTML = libs.map((n) =>
+    '<div class="libitem"><code>' + esc(n) + '</code>' +
+    '<button class="btn danger" data-lib="' + esc(n) + '">' + ic('trash') + '</button></div>'
+  ).join('');
+}
+async function loadLibs() {
+  if (!cur || cur === 'new') return;
+  const b = bots.find((x) => x.id === cur);
+  try {
+    const d = await api('GET', '/api/bots/' + cur + '/libs');
+    renderLibs(d.libs, b ? b.lang : 'py');
+  } catch (e) { toast(e.message); }
 }
 
 /* ---------- ตลาดโค้ด ---------- */
@@ -1149,6 +1195,38 @@ $('#code').addEventListener('keydown', (e) => {
 });
 window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
+// ไลบรารี
+$('#libAdd').onclick = async () => {
+  if (installing) return;
+  const name = $('#libInp').value.trim();
+  if (!name) return;
+  installing = true;
+  $('#libAdd').disabled = true;
+  $('#libProgress').classList.remove('hide');
+  $('#libProgress').textContent = 'กำลังติดตั้ง ' + name + ' ... (อาจใช้เวลาสักครู่)';
+  try {
+    const d = await api('POST', '/api/bots/' + cur + '/libs', { name });
+    $('#libInp').value = '';
+    renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
+    toast('ติดตั้ง ' + name + ' สำเร็จ — กดบันทึก + รันใหม่');
+  } catch (e) { toast(e.message); }
+  installing = false;
+  $('#libAdd').disabled = false;
+  $('#libProgress').classList.add('hide');
+};
+$('#libInp').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#libAdd').click(); });
+$('#libList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-lib]');
+  if (!btn) return;
+  const name = btn.dataset.lib;
+  if (!confirm('เอา "' + name + '" ออกจากรายการ?')) return;
+  try {
+    const d = await api('DELETE', '/api/bots/' + cur + '/libs/' + encodeURIComponent(name));
+    renderLibs(d.libs, (bots.find((x) => x.id === cur) || {}).lang);
+    toast('ลบออกจากรายการแล้ว (ไฟล์ยังอยู่จนกว่าจะสร้างใหม่)');
+  } catch (e) { toast(e.message); }
+});
+
 // ตลาด
 $('#fSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button');
@@ -1205,7 +1283,7 @@ $('#cin').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); }
 });
 
-/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
+/* ---------- เริ่มต้น ---------- */
 setMode('login');
 api('GET', '/api/me').then((d) => enter(d.user)).catch(() => toAuth());
 </script>
