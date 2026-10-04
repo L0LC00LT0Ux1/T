@@ -10,12 +10,14 @@ const scrypt = util.promisify(crypto.scrypt);
 const PORT = process.env.PORT || 3000;
 const MAX_BOTS = parseInt(process.env.MAX_BOTS_PER_USER || '3', 10);
 const MAX_POSTS = parseInt(process.env.MAX_POSTS_PER_USER || '20', 10);
+const MAX_SITES = parseInt(process.env.MAX_SITES_PER_USER || '5', 10);
 const SIGNUP_OPEN = process.env.SIGNUP !== 'off';
 const MAX_IMG = parseInt(process.env.MAX_IMAGE_MB || '10', 10) * 1024 * 1024;
 const MAX_VID = parseInt(process.env.MAX_VIDEO_MB || '30', 10) * 1024 * 1024;
 const QUOTA = parseInt(process.env.QUOTA_MB || '300', 10) * 1024 * 1024;
 const MAX_LIB = parseInt(process.env.MAX_LIB_MB || '1000', 10) * 1024 * 1024;
 const MAX_INSTALLS = 2;
+const SITE_FIELD_MAX = 200000;
 
 // ที่เก็บข้อมูล: DATA_DIR > จุดเมานต์ Volume ของ Railway > ./data
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
@@ -125,8 +127,8 @@ function save() {
   try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
 }
 
-// ---------- hub: โพสต์ตลาด / แชท / ไฟล์สื่อ ----------
-let hub = { posts: {}, chats: {}, media: {} };
+// ---------- hub: โพสต์ตลาด / แชท / ไฟล์สื่อ / เว็บสาธารณะ ----------
+let hub = { posts: {}, chats: {}, media: {}, sites: {} };
 {
   const r = loadJson(HUB_FILE);
   if (r) {
@@ -611,9 +613,88 @@ function serveMedia(req, res, id, me) {
   s.pipe(res);
 }
 
+// ---------- เว็บสาธารณะ ----------
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{2,29}$/;
+const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const pubSite = (x, me) => ({
+  slug: x.slug, owner: x.owner, title: x.title, mode: x.mode, public: !!x.public,
+  views: x.views || 0, created: x.created, updated: x.updated, mine: x.owner === me
+});
+
+// ประกอบหน้าเว็บจาก HTML + CSS + JS (โหมด full = ใช้ HTML เต็มหน้าตามที่เขียน)
+function buildSitePage(s) {
+  if (s.mode === 'full') return s.html;
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + escHtml(s.title) + '</title><style>\n' + s.css + '\n</style></head><body>\n' +
+    s.html + '\n<script>\n' + s.js + '\n</script></body></html>';
+}
+
+function validateSite(d) {
+  const title = String(d.title || '').trim().slice(0, 60);
+  const mode = d.mode === 'full' ? 'full' : 'split';
+  const html = typeof d.html === 'string' ? d.html : '';
+  const css = mode === 'full' ? '' : (typeof d.css === 'string' ? d.css : '');
+  const js = mode === 'full' ? '' : (typeof d.js === 'string' ? d.js : '');
+  if (!title) return { error: 'ใส่ชื่อเว็บด้วย' };
+  if (html.length > SITE_FIELD_MAX || css.length > SITE_FIELD_MAX || js.length > SITE_FIELD_MAX) {
+    return { error: 'โค้ดยาวเกินไป (แต่ละช่องไม่เกิน ' + SITE_FIELD_MAX.toLocaleString('en-US') + ' ตัวอักษร)' };
+  }
+  if (mode === 'full' ? !html.trim() : !(html.trim() || css.trim() || js.trim())) return { error: 'ใส่โค้ดอย่างน้อย 1 ช่อง' };
+  return { title, mode, html, css, js, public: d.public !== false };
+}
+
+function serveSite(req, res, slug, raw) {
+  const site = own(hub.sites, slug);
+  const viewer = userOf(req);
+  const noRobots = 'noindex, nofollow';
+  if (!site || (!site.public && viewer !== site.owner)) {
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-store' });
+    return res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ไม่พบเว็บ</title>' +
+      '<body style="background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:20vh 20px">' +
+      '<h2>ไม่พบเว็บนี้</h2><p><a style="color:#fff" href="/">ALEXA HUB</a></p></body>');
+  }
+  if (raw) {
+    // ตัวเว็บจริง: sandbox ไม่มี allow-same-origin จึงอ่านคุกกี้/เรียก API ของแอปหลักไม่ได้
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': 'sandbox allow-scripts allow-forms allow-popups allow-modals allow-downloads',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': noRobots,
+      'Cache-Control': 'no-cache'
+    });
+    return res.end(buildSitePage(site));
+  }
+  if (viewer !== site.owner) { site.views = (site.views || 0) + 1; saveHub(); }
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-src 'self'; base-uri 'none'",
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-Robots-Tag': noRobots,
+    'Cache-Control': 'no-store'
+  });
+  res.end('<!doctype html><html lang="th"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + escHtml(site.title) + ' - Alexa Hub</title><style>' +
+    'html,body{margin:0;height:100%;background:#000;color:#eee;font:13px system-ui,sans-serif}' +
+    'body{display:flex;flex-direction:column}' +
+    '.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:7px 12px;background:#0b0b0b;border-bottom:1px solid #333}' +
+    '.bar a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.2em;white-space:nowrap}' +
+    '.bar span{color:#9a9a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    'iframe{flex:1;border:0;width:100%;background:#fff}' +
+    '</style></head><body><div class="bar"><a href="/">ALEXA HUB</a>' +
+    '<span>เว็บนี้สร้างโดยสมาชิก @' + escHtml(site.owner) + ' - อย่ากรอกรหัสผ่านหรือข้อมูลสำคัญ</span></div>' +
+    '<iframe src="/s/' + site.slug + '/raw" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads" ' +
+    'referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
+}
+
 // ---------- http ----------
 function json(res, code, obj, headers) {
-  res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, headers || {}));
+  res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' }, headers || {}));
   res.end(JSON.stringify(obj));
 }
 function readBody(req) {
@@ -639,9 +720,17 @@ const server = http.createServer(async (req, res) => {
     const M = req.method;
 
     if (M === 'GET' && (p === '/' || p === '/index.html')) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+        'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff'
+      });
       return res.end(fs.readFileSync(path.join(__dirname, 'public', 'index.html')));
     }
+
+    // ----- เว็บสาธารณะ (ไม่ต้องล็อกอินก็เปิดดูได้) -----
+    const sm = p.match(/^\/s\/([a-z0-9][a-z0-9-]{2,29})(\/raw)?$/);
+    if (sm && M === 'GET') return serveSite(req, res, sm[1], !!sm[2]);
+
     if (!p.startsWith('/api/') && !p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
 
     const ip = ipOf(req);
@@ -711,6 +800,56 @@ const server = http.createServer(async (req, res) => {
         posts: Object.keys(hub.posts).length,
         persistent: PERSISTENT
       });
+    }
+
+    // ----- เว็บสาธารณะ: จัดการ -----
+    if (p === '/api/sites') {
+      if (M === 'GET') {
+        const list = Object.values(hub.sites).filter((x) => x.public || x.owner === me)
+          .sort((a, b) => b.updated - a.updated).slice(0, 200);
+        return json(res, 200, { sites: list.map((x) => pubSite(x, me)) });
+      }
+      if (M === 'POST') {
+        const d = await readBody(req);
+        const v = validateSite(d);
+        if (v.error) return json(res, 400, { error: v.error });
+        let slug = String(d.slug || '').trim().toLowerCase();
+        if (!slug) {
+          do { slug = crypto.randomBytes(4).toString('hex'); } while (own(hub.sites, slug));
+        }
+        if (!SLUG_RE.test(slug)) return json(res, 400, { error: 'ลิงก์ใช้ได้เฉพาะ a-z 0-9 และ - ยาว 3-30 ตัว (ขึ้นต้นด้วยตัวอักษรหรือตัวเลข)' });
+        if (own(hub.sites, slug)) return json(res, 409, { error: 'ลิงก์นี้มีคนใช้แล้ว ลองชื่ออื่น' });
+        if (Object.values(hub.sites).filter((x) => x.owner === me).length >= MAX_SITES) {
+          return json(res, 400, { error: 'สร้างเว็บได้สูงสุด ' + MAX_SITES + ' เว็บต่อคน (ลบอันเก่าก่อนได้)' });
+        }
+        const now = Date.now();
+        hub.sites[slug] = Object.assign({ slug, owner: me, views: 0, created: now, updated: now }, v);
+        saveHub();
+        return json(res, 200, pubSite(hub.sites[slug], me));
+      }
+    }
+    const stm = p.match(/^\/api\/sites\/([a-z0-9][a-z0-9-]{2,29})$/);
+    if (stm) {
+      const site = own(hub.sites, stm[1]);
+      if (!site || (!site.public && site.owner !== me)) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+      if (M === 'GET') {
+        return json(res, 200, Object.assign(pubSite(site, me), { html: site.html, css: site.css, js: site.js }));
+      }
+      if (site.owner !== me) return json(res, 403, { error: 'แก้ไขได้เฉพาะเว็บของตัวเอง' });
+      if (M === 'PUT') {
+        const d = await readBody(req);
+        const v = validateSite(d);
+        if (v.error) return json(res, 400, { error: v.error });
+        Object.assign(site, v, { updated: Date.now() });
+        saveHub();
+        return json(res, 200, pubSite(site, me));
+      }
+      if (M === 'DELETE') {
+        delete hub.sites[site.slug];
+        saveHub();
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 405, { error: 'method not allowed' });
     }
 
     // ----- อัปโหลดไฟล์ (ส่งเป็น binary ตรงๆ) -----
