@@ -10,7 +10,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@upstash/blob": "^0.1.0",
+    "@upstash/blob": "latest",
     "discord.js": "^14.16.0"
   }
 }
