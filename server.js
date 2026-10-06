@@ -133,15 +133,18 @@ let state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMIN_
 }
 const bots = state.bots;
 
-// migrate users to new shape
+// migrate users
 for (const u of Object.keys(state.users)) {
   const usr = state.users[u];
   if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
   if (usr.maxSites === undefined) usr.maxSites = DEFAULT_MAX_SITES;
-  if (usr.emailVerified === undefined) usr.emailVerified = true; // existing users considered verified
-  if (usr.trialEnds === undefined) usr.trialEnds = (usr.created || Date.now()) + TRIAL_MS;
-  if (usr.paid === undefined) usr.paid = false;
+  if (usr.emailVerified === undefined) usr.emailVerified = !!usr.email;
   if (usr.email === undefined) usr.email = '';
+  if (usr.displayName === undefined) usr.displayName = '';
+  if (usr.bio === undefined) usr.bio = '';
+  if (usr.paid === undefined) usr.paid = false;
+  // users from old version: อย่าตั้ง trialEnds อัตโนมัติ ให้ผูกอีเมลก่อน
+  if (usr.trialEnds === undefined) usr.trialEnds = 0;
 }
 
 function save() {
@@ -193,13 +196,17 @@ const getUser = (u) => own(state.users, u);
 // ---------- user helpers ----------
 function trialExpired(user) {
   if (!user) return true;
-  if (isAdmin(user) || user.paid) return false;
-  return !!user.trialEnds && Date.now() > user.trialEnds;
+  if (isAdmin(user)) return false;
+  if (user.paid) return false;
+  // ยังไม่เริ่ม trial (trialEnds = 0) = ยังไม่หมด แต่ต้องผูกอีเมลก่อน
+  if (!user.trialEnds) return false;
+  return Date.now() > user.trialEnds;
 }
 function canCreate(user) {
   if (!user) return { ok: false, error: 'ไม่พบผู้ใช้' };
   if (isAdmin(user)) return { ok: true };
-  if (!user.emailVerified) return { ok: false, error: 'กรุณายืนยันอีเมลก่อนใช้งาน', needsVerify: true };
+  if (!user.email) return { ok: false, error: 'กรุณาผูกอีเมลที่หน้าโปรไฟล์ก่อน เพื่อเริ่มทดลองใช้ 3 วัน', needsEmail: true };
+  if (!user.emailVerified) return { ok: false, error: 'กรุณายืนยันอีเมลก่อน เพื่อเริ่มทดลองใช้ 3 วัน', needsVerify: true };
   if (trialExpired(user)) return { ok: false, error: TRIAL_MSG, trial: true };
   return { ok: true };
 }
@@ -211,7 +218,8 @@ function pubMe(u) {
   if (!x) return null;
   return {
     user: u, admin: isAdmin(u),
-    emailVerified: !!x.emailVerified, email: x.email || '',
+    displayName: x.displayName || '', bio: x.bio || '',
+    emailVerified: !!x.emailVerified, email: x.email || '', hasEmail: !!x.email,
     trialEnds: x.trialEnds || 0, trialExpired: trialExpired(x),
     paid: !!x.paid, maxBots: x.maxBots ?? DEFAULT_MAX_BOTS, maxSites: x.maxSites ?? DEFAULT_MAX_SITES
   };
@@ -1007,14 +1015,12 @@ function readBody(req) {
 // ---------- admin: delete user + all their data ----------
 async function deleteUserData(username) {
   const u = String(username).toLowerCase();
-  // 1. Stop & delete bots
   for (const [id, b] of Object.entries(bots)) {
     if (b.owner !== u) continue;
     await stopBot(id);
     try { fs.rmSync(path.join(BOTS_DIR, id), { recursive: true, force: true }); } catch {}
     delete bots[id]; delete logs[id];
   }
-  // 2. Delete posts + their covers
   for (const [id, p] of Object.entries(hub.posts)) {
     if (p.owner !== u) continue;
     if (p.cover) {
@@ -1027,7 +1033,6 @@ async function deleteUserData(username) {
     }
     delete hub.posts[id];
   }
-  // 3. Delete sites + sitedata
   for (const slug of Object.keys(hub.sites)) {
     if (hub.sites[slug].owner === u) {
       closeSiteRooms(slug);
@@ -1035,18 +1040,15 @@ async function deleteUserData(username) {
       delete sdata.sites[slug];
     }
   }
-  // 4. Delete chats containing user
   for (const [id, c] of Object.entries(hub.chats)) {
     if (c.members.includes(u)) delete hub.chats[id];
   }
-  // 5. Delete remaining media owned by user
   for (const [id, m] of Object.entries(hub.media)) {
     if (m.owner !== u) continue;
     if (m.upstashPath && bucket) { try { await bucket.delete(m.upstashPath); } catch (e) { console.error('b2 del:', e.message); } }
     else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
     delete hub.media[id];
   }
-  // 6. Delete user + sessions
   delete state.users[u];
   for (const [k, s] of Object.entries(state.sessions)) if (s.user === u) delete state.sessions[k];
   save(); saveHub(); saveSData();
@@ -1073,7 +1075,7 @@ const server = http.createServer(async (req, res) => {
 
     const ip = ipOf(req);
 
-    // ===== Register (requires email) =====
+    // ===== Register =====
     if (p === '/api/register' && M === 'POST') {
       if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัครอยู่' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป' });
@@ -1083,16 +1085,17 @@ const server = http.createServer(async (req, res) => {
       const em = String(d.email || '').trim().toLowerCase();
       if (!/^[a-z0-9_]{3,20}$/.test(u) || u === '__proto__') return json(res, 400, { error: 'ชื่อผู้ใช้ 3-20 ตัว a-z 0-9 _' });
       if (pw.length < 6 || pw.length > 100) return json(res, 400, { error: 'รหัสผ่าน 6-100 ตัว' });
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return json(res, 400, { error: 'อีเมลไม่ถูกต้อง' });
+      if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return json(res, 400, { error: 'อีเมลไม่ถูกต้อง' });
       if (getUser(u)) return json(res, 409, { error: 'ชื่อนี้มีคนใช้แล้ว' });
-      // check duplicate email
-      for (const x of Object.values(state.users)) if (x.email === em) return json(res, 409, { error: 'อีเมลนี้ถูกใช้แล้ว' });
+      if (em) for (const x of Object.values(state.users)) if (x.email === em) return json(res, 409, { error: 'อีเมลนี้ถูกใช้แล้ว' });
       const salt = crypto.randomBytes(16).toString('hex');
       const hash = (await scrypt(pw, salt, 64)).toString('hex');
       const code = genCode();
       state.users[u] = {
         salt, hash, uid: state.nextUid++, created: Date.now(),
-        email: em, emailVerified: false, emailCode: code, emailCodeExp: Date.now() + 15 * 60 * 1000,
+        email: em || '', emailVerified: false,
+        emailCode: em ? code : '', emailCodeExp: em ? Date.now() + 15 * 60 * 1000 : 0,
+        displayName: '', bio: '',
         maxBots: DEFAULT_MAX_BOTS, maxSites: DEFAULT_MAX_SITES,
         trialEnds: 0, paid: false
       };
@@ -1101,14 +1104,16 @@ const server = http.createServer(async (req, res) => {
       }
       bump(regCount, ip, 3600000);
       save();
-      // send email
-      const sent = await sendEmail(em, 'ALEXA HUB - รหัสยืนยันอีเมล', 
-        '<h2>ยินดีต้อนรับสู่ ALEXA HUB</h2><p>รหัสยืนยันอีเมลของคุณคือ:</p>' +
-        '<h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>' +
-        '<p>รหัสนี้มีอายุ 15 นาที</p>');
+      let sent = { ok: true, dev: true };
+      if (em) {
+        sent = await sendEmail(em, 'ALEXA HUB - รหัสยืนยันอีเมล',
+          '<h2>ยินดีต้อนรับสู่ ALEXA HUB</h2><p>รหัสยืนยันของคุณคือ:</p>' +
+          '<h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>' +
+          '<p>รหัสนี้มีอายุ 15 นาที</p>');
+      }
       const tok = newSession(u);
-      const resp = { user: u, needsVerify: true };
-      if (!sent.ok && !sent.dev) resp.emailError = sent.msg;
+      const resp = { user: u, needsVerify: !!em };
+      if (em && !sent.ok && !sent.dev) resp.emailError = sent.msg;
       return json(res, 200, resp, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
@@ -1118,6 +1123,7 @@ const server = http.createServer(async (req, res) => {
       if (!me) return json(res, 401, { error: 'unauthorized' });
       const user = getUser(me);
       if (!user) return json(res, 401, { error: 'unauthorized' });
+      if (!user.email) return json(res, 400, { error: 'ยังไม่มีอีเมลผูกอยู่' });
       if (user.emailVerified) return json(res, 200, { ok: true, already: true });
       const d = await readBody(req);
       const code = String(d.code || '').trim();
@@ -1127,7 +1133,10 @@ const server = http.createServer(async (req, res) => {
       user.emailVerified = true;
       user.emailCode = '';
       user.emailCodeExp = 0;
-      user.trialEnds = Date.now() + TRIAL_MS;  // start trial from verification
+      // เริ่ม trial ถ้ายังไม่เคยมี
+      if (!user.trialEnds || user.trialEnds < Date.now()) {
+        user.trialEnds = Date.now() + TRIAL_MS;
+      }
       save();
       return json(res, 200, { ok: true, trialEnds: user.trialEnds });
     }
@@ -1137,7 +1146,9 @@ const server = http.createServer(async (req, res) => {
       const me = userOf(req);
       if (!me) return json(res, 401, { error: 'unauthorized' });
       const user = getUser(me);
-      if (!user || user.emailVerified) return json(res, 400, { error: 'ไม่จำเป็นต้องยืนยัน' });
+      if (!user) return json(res, 401, { error: 'unauthorized' });
+      if (!user.email) return json(res, 400, { error: 'ยังไม่มีอีเมลผูกอยู่' });
+      if (user.emailVerified) return json(res, 400, { error: 'ไม่จำเป็นต้องยืนยัน' });
       if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'ขอรหัสบ่อยเกินไป รอ 10 นาที' });
       const code = genCode();
       user.emailCode = code;
@@ -1175,6 +1186,47 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/me' && M === 'GET') return json(res, 200, pubMe(me));
 
+    // ===== Profile API =====
+    if (p === '/api/profile' && M === 'GET') {
+      const x = meUser;
+      return json(res, 200, {
+        username: me, admin: isAdmin(me),
+        displayName: x.displayName || '', bio: x.bio || '',
+        email: x.email || '', emailVerified: !!x.emailVerified, hasEmail: !!x.email,
+        trialEnds: x.trialEnds || 0, trialExpired: trialExpired(x),
+        paid: !!x.paid
+      });
+    }
+    if (p === '/api/profile' && M === 'PUT') {
+      const d = await readBody(req);
+      if (typeof d.displayName === 'string') meUser.displayName = d.displayName.trim().slice(0, 40);
+      if (typeof d.bio === 'string') meUser.bio = d.bio.trim().slice(0, 300);
+      save();
+      return json(res, 200, { ok: true });
+    }
+    // ผูก/เปลี่ยนอีเมล -> ส่งรหัส
+    if (p === '/api/profile/email' && M === 'POST') {
+      if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'ส่งรหัสบ่อยเกินไป รอ 10 นาที' });
+      const d = await readBody(req);
+      const em = String(d.email || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return json(res, 400, { error: 'อีเมลไม่ถูกต้อง' });
+      for (const [k, x] of Object.entries(state.users)) {
+        if (k !== me && x.email === em) return json(res, 409, { error: 'อีเมลนี้ถูกใช้แล้ว' });
+      }
+      const code = genCode();
+      meUser.email = em;
+      meUser.emailVerified = false;
+      meUser.emailCode = code;
+      meUser.emailCodeExp = Date.now() + 15 * 60 * 1000;
+      save();
+      bump(emailSends, ip, 600000);
+      const sent = await sendEmail(em, 'ALEXA HUB - รหัสยืนยันอีเมล',
+        '<h2>ยืนยันอีเมลของคุณ</h2><p>รหัส 6 หลัก:</p>' +
+        '<h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>' +
+        '<p>รหัสนี้มีอายุ 15 นาที</p>');
+      return json(res, 200, { ok: true, dev: !!sent.dev, error: sent.ok ? '' : sent.msg });
+    }
+
     // ===== Admin API =====
     if (p === '/api/admin/state' && M === 'GET') {
       if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
@@ -1193,6 +1245,7 @@ const server = http.createServer(async (req, res) => {
         return {
           username: u, email: x.email || '', emailVerified: !!x.emailVerified,
           admin: isAdmin(u), paid: !!x.paid,
+          displayName: x.displayName || '',
           created: x.created, trialEnds: x.trialEnds || 0,
           trialExpired: trialExpired(x),
           maxBots: x.maxBots ?? DEFAULT_MAX_BOTS, maxSites: x.maxSites ?? DEFAULT_MAX_SITES,
@@ -1259,7 +1312,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (M === 'POST') {
         const chk = canCreate(meUser);
-        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify });
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         const d = await readBody(req);
         const v = validateSite(d);
         if (v.error) return json(res, 400, { error: v.error });
@@ -1308,7 +1361,7 @@ const server = http.createServer(async (req, res) => {
       if (site.owner !== me) return json(res, 403, { error: 'แก้ได้เฉพาะของตัวเอง' });
       if (M === 'PUT') {
         const chk = canCreate(meUser);
-        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         const d = await readBody(req);
         const v = validateSite(d);
         if (v.error) return json(res, 400, { error: v.error });
@@ -1373,7 +1426,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (M === 'POST') {
         const chk = canCreate(meUser);
-        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         const d = await readBody(req);
         const title = String(d.title || '').trim().slice(0, 60);
         const code = typeof d.code === 'string' ? d.code : '';
@@ -1411,7 +1464,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (pm[2] === 'use' && M === 'POST') {
         const chk = canCreate(meUser);
-        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         if (!open) return json(res, 403, { error: 'โค้ดนี้เสียเงิน ติดต่อคนขายก่อน' });
         if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'สร้างบอทได้สูงสุด ' + maxBotsFor(me) + ' ตัว (โควต้าของคุณ)' });
         const b = createBot(me, post.title, post.lang, post.code);
@@ -1485,7 +1538,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (M === 'POST') {
         const chk = canCreate(meUser);
-        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify });
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         const d = await readBody(req);
         if (d.lang !== 'py' && d.lang !== 'js') return json(res, 400, { error: 'lang ต้องเป็น py หรือ js' });
         if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'สร้างบอทได้สูงสุด ' + maxBotsFor(me) + ' ตัว (โควต้าของคุณ)' });
@@ -1499,7 +1552,7 @@ const server = http.createServer(async (req, res) => {
     if (!sub && M === 'GET') return json(res, 200, pub(b, true));
     if (!sub && M === 'PUT') {
       const chk = canCreate(meUser);
-      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       const d = await readBody(req);
       if (typeof d.name === 'string' && d.name.trim()) b.name = d.name.trim().slice(0, 40);
       if (typeof d.code === 'string') { fs.writeFileSync(codeFile(b), d.code); fixPerm(b); }
@@ -1516,7 +1569,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (sub === 'start' && M === 'POST') {
       const chk = canCreate(meUser);
-      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       await stopBot(id);
       startBot(id);
       return json(res, 200, pub(b));
@@ -1529,7 +1582,7 @@ const server = http.createServer(async (req, res) => {
     if (sub === 'logs' && M === 'GET') return json(res, 200, { logs: logs[id] || [] });
     if (sub === 'libs' && M === 'POST') {
       const chk = canCreate(meUser);
-      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial });
+      if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       const d = await readBody(req);
       if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่' });
       if (activeInstalls >= MAX_INSTALLS) return json(res, 429, { error: 'เซิร์ฟเวอร์กำลังติดตั้งให้คนอื่น รอสักครู่' });
@@ -1585,7 +1638,7 @@ setInterval(() => {
   for (const [k, f] of Array.from(loginFails.entries())) if (now - f.t > 3600000) loginFails.delete(k);
   for (const [k, f] of Array.from(msgRate.entries())) if (now - f.t > 120000) msgRate.delete(k);
   for (const [k, f] of Array.from(emailSends.entries())) if (now - f.t > 3600000) emailSends.delete(k);
-  // auto-stop bots of trial-expired users
+  // auto-stop bots ของผู้ใช้ที่ trial หมด
   for (const b of Object.values(bots)) {
     const o = getUser(b.owner);
     if (b.status === 'running' && o && trialExpired(o)) {
