@@ -913,6 +913,14 @@ const SITE_TPL = {
     ].join('\n'),
     js: [
       'var list = document.getElementById("list");',
+      'function showErr(msg) {',
+      '  var d = document.createElement("div");',
+      '  d.className = "e";',
+      '  d.style.borderColor = "#ff4d4f";',
+      '  d.textContent = String(msg);',
+      '  list.insertBefore(d, list.firstChild);',
+      '  setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 4000);',
+      '}',
       'function render(items) {',
       '  items = items.filter(function (it) { return it.value && typeof it.value.text === "string"; });',
       '  items.sort(function (a, b) { return (b.value.t || 0) - (a.value.t || 0); });',
@@ -933,7 +941,7 @@ const SITE_TPL = {
       '  var id = "msg:" + Date.now() + "-" + Math.floor(Math.random() * 1000);',
       '  alexa.db.set(id, { name: document.getElementById("nm").value.trim(), text: text, t: Date.now() })',
       '    .then(function () { document.getElementById("tx").value = ""; load(); })',
-      '    .catch(function (err) { alert(err.message); });',
+      '    .catch(function (err) { showErr(err.message || err); });',
       '};',
       'load();',
       'setInterval(load, 8000);'
@@ -964,7 +972,7 @@ const SITE_TPL = {
       '.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}',
       '.links a:hover{background:#fff;color:#000}'
     ].join('\n'),
-    js: 'document.querySelector("h1").addEventListener("click", function () { alert("สวัสดี!"); });'
+    js: 'document.querySelector("h1").addEventListener("click", function () { var p = document.querySelector("p"); if (p) p.textContent = "สวัสดี!"; });'
   },
   landing: {
     title: 'หน้า Landing',
@@ -1092,6 +1100,36 @@ function closeModal() {
   $('#mbody').innerHTML = '';
   document.body.style.overflow = '';
 }
+
+// ยืนยันแบบโมดัลของแอปเอง แทน confirm() ของเบราว์เซอร์ (ไม่โชว์ชื่อเว็บ/ลิงก์)
+let __confirmFinish = null;
+function askConfirm(msg, okText) {
+  return new Promise(function (resolve) {
+    let done = false;
+    function finish(v) {
+      if (done) return;
+      done = true;
+      __confirmFinish = null;
+      closeModal();
+      $('#mback').onclick = closeModal;
+      $('#mclose').onclick = closeModal;
+      resolve(v);
+    }
+    __confirmFinish = finish;
+    openModal(
+      '<h2 style="margin-top:14px">ยืนยันการทำงาน</h2>' +
+      '<div class="mut" style="margin:8px 0 18px;white-space:pre-wrap;word-break:break-word">' + esc(msg) + '</div>' +
+      '<div class="row" style="justify-content:flex-end;margin-bottom:4px">' +
+      '<button class="btn" id="cfNo">ยกเลิก</button>' +
+      '<button class="btn solid" id="cfYes">' + esc(okText || 'ยืนยัน') + '</button>' +
+      '</div>'
+    );
+    $('#mback').onclick = function () { finish(false); };
+    $('#mclose').onclick = function () { finish(false); };
+    $('#cfNo').onclick = function () { finish(false); };
+    $('#cfYes').onclick = function () { finish(true); };
+  });
+}
 async function copyText(t) {
   try { await navigator.clipboard.writeText(t); toast('คัดลอกแล้ว'); }
   catch (e) {
@@ -1168,7 +1206,7 @@ async function logout() {
 /* ---------- เมนูสามจุด / หน้า ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
-  if (page === 'site' && p !== 'site' && siteDirty && !confirm('มีการแก้ไขเว็บที่ยังไม่ได้บันทึก จะออกจากหน้านี้ไหม?')) return;
+  if (page === 'site' && p !== 'site' && siteDirty && !(await askConfirm('มีการแก้ไขเว็บที่ยังไม่ได้บันทึก จะออกจากหน้านี้ไหม?'))) return;
   if (page === 'site' && p !== 'site') siteDirty = false;
   page = p;
   localStorage.setItem('pg:' + me, p);
@@ -1315,7 +1353,7 @@ async function loadLogs() {
 function setDirty(v) { dirty = v; $('#dirtyTag').classList.toggle('hide', !v); }
 async function select(id) {
   if (id === cur && (id === 'new' || shownId === id)) return;
-  if (dirty && !confirm('มีโค้ดที่ยังไม่ได้บันทึก จะทิ้งไหม?')) return;
+  if (dirty && !(await askConfirm('มีโค้ดที่ยังไม่ได้บันทึก จะทิ้งไหม?'))) return;
   cur = id;
   localStorage.setItem('cur:' + me, id);
   setDirty(false);
@@ -1368,7 +1406,7 @@ async function installLibs() {
   } catch (e) { toast(e.message); }
 }
 async function removeLib(spec) {
-  if (!confirm('ลบ ' + spec + ' ? ระบบจะติดตั้งตัวที่เหลือใหม่ทั้งหมด')) return;
+  if (!(await askConfirm('ลบ ' + spec + ' ? ระบบจะติดตั้งตัวที่เหลือใหม่ทั้งหมด', 'ลบ'))) return;
   try {
     await api('POST', '/api/bots/' + cur + '/libs', { remove: spec });
     lastLibKey = '';
@@ -1377,7 +1415,7 @@ async function removeLib(spec) {
   } catch (e) { toast(e.message); }
 }
 async function reinstallLibs() {
-  if (!confirm('ล้างแล้วติดตั้งไลบรารีทั้งหมดใหม่?')) return;
+  if (!(await askConfirm('ล้างแล้วติดตั้งไลบรารีทั้งหมดใหม่?', 'ติดตั้งใหม่'))) return;
   try {
     await api('POST', '/api/bots/' + cur + '/libs', { reinstall: true });
     lastLibKey = '';
@@ -1447,7 +1485,7 @@ async function usePost(id) {
   } catch (e) { toast(e.message); }
 }
 async function deletePost(id) {
-  if (!confirm('ลบโพสต์นี้ถาวร?')) return;
+  if (!(await askConfirm('ลบโพสต์นี้ถาวร?', 'ลบโพสต์'))) return;
   try {
     await api('DELETE', '/api/posts/' + id);
     closeModal();
@@ -1599,7 +1637,7 @@ async function editSite(slug) {
   } catch (e) { toast(e.message); }
 }
 async function deleteSite(slug) {
-  if (!confirm('ลบเว็บนี้ถาวร? ลิงก์และข้อมูลของเว็บจะหายทันที')) return;
+  if (!(await askConfirm('ลบเว็บนี้ถาวร? ลิงก์และข้อมูลของเว็บจะหายทันที', 'ลบเว็บ'))) return;
   try {
     await api('DELETE', '/api/sites/' + slug);
     closeModal();
@@ -1715,10 +1753,10 @@ function showSiteLink(slug, isPublic) {
   $('#lkCopy').onclick = () => copyText(url);
   if ($('#lkShare')) $('#lkShare').onclick = () => navigator.share({ title: $('#sTitle').value, url }).catch(() => {});
 }
-function applyTemplate(key) {
+async function applyTemplate(key) {
   const t = SITE_TPL[key];
   if (!t) return;
-  if (siteDirty && !confirm('เปลี่ยนแม่แบบจะแทนที่โค้ดที่เขียนไว้ ต้องการต่อไหม?')) { $('#sTpl').value = 'blank'; return; }
+  if (siteDirty && !(await askConfirm('เปลี่ยนแม่แบบจะแทนที่โค้ดที่เขียนไว้ ต้องการต่อไหม?'))) { $('#sTpl').value = 'blank'; return; }
   siteMode = 'split';
   siteTab = null;
   sHtml = t.html; sCss = t.css; sJs = t.js;
@@ -1726,11 +1764,11 @@ function applyTemplate(key) {
   applyModeUI();
   siteDirty = false;
 }
-function changeSiteMode(m) {
+async function changeSiteMode(m) {
   if (m === siteMode) return;
   saveTabValue();
   if (m === 'full' && (sCss.trim() || sJs.trim())) {
-    if (!confirm('โหมดเต็มหน้าจะรวม CSS และ JavaScript เข้าไปใน HTML ไฟล์เดียว ต้องการต่อไหม?')) return;
+    if (!(await askConfirm('โหมดเต็มหน้าจะรวม CSS และ JavaScript เข้าไปใน HTML ไฟล์เดียว ต้องการต่อไหม?'))) return;
     sHtml = buildSitePage('split', $('#sTitle').value, sHtml, sCss, sJs);
     sCss = ''; sJs = '';
   }
@@ -1784,7 +1822,7 @@ async function deleteSiteKey(key) {
 }
 async function clearSiteData() {
   if (!siteEditing) return;
-  if (!confirm('ล้างข้อมูลทั้งหมดของเว็บนี้ (รวมข้อมูลส่วนตัวของผู้เข้าชมทุกคน) ย้อนกลับไม่ได้ ต้องการต่อไหม?')) return;
+  if (!(await askConfirm('ล้างข้อมูลทั้งหมดของเว็บนี้ (รวมข้อมูลส่วนตัวของผู้เข้าชมทุกคน) ย้อนกลับไม่ได้ ต้องการต่อไหม?', 'ล้างทั้งหมด'))) return;
   try {
     await api('DELETE', '/api/sites/' + siteEditing + '/data', { all: true });
     toast('ล้างข้อมูลแล้ว');
@@ -1913,7 +1951,7 @@ async function sendMsg() {
 }
 async function sendPostCode() {
   if (!curChat) return;
-  if (!confirm('ส่งโค้ดของโพสต์นี้ให้อีกฝ่ายในแชท?')) return;
+  if (!(await askConfirm('ส่งโค้ดของโพสต์นี้ให้อีกฝ่ายในแชท?', 'ส่งโค้ด'))) return;
   try {
     await api('POST', '/api/chats/' + curChat + '/messages', { sendPostCode: true });
     await loadThread();
@@ -1961,7 +1999,12 @@ safe('เมนู', function () {
   $$('[data-go]').forEach((b) => (b.onclick = () => setPage(b.dataset.go)));
   $('#mback').onclick = closeModal;
   $('#mclose').onclick = closeModal;
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); menuOpen(false); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    menuOpen(false);
+    if (__confirmFinish) __confirmFinish(false);
+    else closeModal();
+  });
   window.addEventListener('beforeunload', (e) => { if (dirty || siteDirty) { e.preventDefault(); e.returnValue = ''; } });
 });
 
@@ -1996,7 +2039,7 @@ safe('รันบอท', function () {
     try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); }
   };
   $('#delBtn').onclick = async () => {
-    if (!confirm('ลบบอทนี้ถาวร?')) return;
+    if (!(await askConfirm('ลบบอทนี้ถาวร?', 'ลบบอท'))) return;
     try {
       await api('DELETE', '/api/bots/' + cur);
       setDirty(false);
