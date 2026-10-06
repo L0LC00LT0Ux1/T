@@ -1943,4 +1943,197 @@ function tabInsert(e) {
 safe('เข้าสู่ระบบ', function () {
   $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
   $('#aGo').onclick = authGo;
-  $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); }
+  $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
+  $('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#ap').focus(); });
+});
+
+safe('เมนู', function () {
+  $('#menuBtn').onclick = (e) => { e.stopPropagation(); menuOpen($('#menu').classList.contains('hide')); };
+  document.addEventListener('click', (e) => { if (!e.target.closest('#menu')) menuOpen(false); });
+  $('#menu').addEventListener('click', (e) => {
+    const b = e.target.closest('.mi');
+    if (!b) return;
+    menuOpen(false);
+    if (b.id === 'outBtn') return logout();
+    setPage(b.dataset.pg);
+  });
+  $('#brandBtn').onclick = () => setPage('home');
+  $$('[data-go]').forEach((b) => (b.onclick = () => setPage(b.dataset.go)));
+  $('#mback').onclick = closeModal;
+  $('#mclose').onclick = closeModal;
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); menuOpen(false); } });
+  window.addEventListener('beforeunload', (e) => { if (dirty || siteDirty) { e.preventDefault(); e.returnValue = ''; } });
+});
+
+safe('รันบอท', function () {
+  $('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
+  $('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+  $('#toLog').onclick = () => setView('log');
+  $('#addBtn').onclick = async () => {
+    const lang = $('#newLang').value;
+    try {
+      const d = await api('POST', '/api/bots', { name: $('#newName').value || 'บอทใหม่', lang, code: TPL[lang] });
+      $('#newName').value = '';
+      bots = (await api('GET', '/api/bots')).bots;
+      setDirty(false);
+      cur = null; shownId = null;
+      await select(d.id);
+      setView('code');
+    } catch (e) { toast(e.message); }
+  };
+  const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { toast(e.message); } };
+  $('#saveBtn').onclick = doSave;
+  $('#saveBtn2').onclick = doSave;
+  $('#runBtn').onclick = async () => {
+    try {
+      await saveBot();
+      await api('POST', '/api/bots/' + cur + '/start');
+      await tickRun();
+      setView('log');
+    } catch (e) { toast(e.message); }
+  };
+  $('#stopBtn').onclick = async () => {
+    try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); }
+  };
+  $('#delBtn').onclick = async () => {
+    if (!confirm('ลบบอทนี้ถาวร?')) return;
+    try {
+      await api('DELETE', '/api/bots/' + cur);
+      setDirty(false);
+      cur = null; shownId = null; lastTabsKey = '';
+      await tickRun();
+    } catch (e) { toast(e.message); }
+  };
+  ['#code', '#name', '#token'].forEach((s) => $(s).addEventListener('input', () => setDirty(true)));
+  $('#code').addEventListener('keydown', tabInsert);
+});
+
+safe('ไลบรารี', function () {
+  $('#libGo').onclick = installLibs;
+  $('#libRe').onclick = reinstallLibs;
+  $('#chips').addEventListener('click', (e) => {
+    const c = e.target.closest('.pk');
+    if (!c) return;
+    const ta = $('#libIn');
+    const have = ta.value.split(/\s+/).filter(Boolean);
+    if (!have.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
+  });
+  $('#libList').addEventListener('click', (e) => {
+    const x = e.target.closest('[data-rm]');
+    if (x) removeLib(x.dataset.rm);
+  });
+});
+
+safe('ตลาดโค้ด', function () {
+  $('#fSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    filter = b.dataset.f;
+    $$('#fSeg button').forEach((x) => x.classList.toggle('on', x === b));
+    renderPosts();
+  });
+  $('#posts').addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) openPost(c.dataset.id); });
+  $('#goUpload').onclick = () => setPage('upload');
+});
+
+safe('อัปโหลดโค้ด', function () {
+  $('#coverBtn').onclick = () => $('#coverIn').click();
+  $('#coverX').onclick = () => { $('#coverIn').value = ''; setCover(null); };
+  $('#coverIn').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (!IMG_OK.includes(f.type)) { toast('รูปปกต้องเป็น jpg png gif หรือ webp'); e.target.value = ''; return; }
+    if (f.size > 10 * 1024 * 1024) { toast('รูปปกใหญ่เกิน 10 MB'); e.target.value = ''; return; }
+    setCover(f);
+  });
+  $('#paySeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setPay(b.dataset.p); });
+  $('#upGo').onclick = doPublish;
+});
+
+safe('เว็บสาธารณะ', function () {
+  $('#siteNew').onclick = startNewSite;
+  $('#siteBack').onclick = () => setPage('sites');
+  $('#sfSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    sFilter = b.dataset.f;
+    $$('#sfSeg button').forEach((x) => x.classList.toggle('on', x === b));
+    renderSites();
+  });
+  $('#sitesGrid').addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) openSiteModal(c.dataset.slug); });
+  $('#sModeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) changeSiteMode(b.dataset.m); });
+  $('#sTabSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setSiteTab(b.dataset.t); });
+  $('#sPubSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    sPublic = b.dataset.v === '1';
+    applyPubUI();
+    siteDirty = true;
+  });
+  $('#sTpl').addEventListener('change', (e) => applyTemplate(e.target.value));
+  $('#sSlug').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    siteDirty = true;
+  });
+  ['#sTitle', '#sCode'].forEach((s) => $(s).addEventListener('input', () => { siteDirty = true; }));
+  $('#sCode').addEventListener('keydown', tabInsert);
+  $('#sSave').onclick = saveSite;
+  $('#sDel').onclick = () => { if (siteEditing) deleteSite(siteEditing); };
+  $('#sdRef').onclick = loadSiteData;
+  $('#sdSet').onclick = saveSiteKey;
+  $('#sdClear').onclick = clearSiteData;
+  $('#sdList').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-sdel]');
+    if (del) return deleteSiteKey(del.dataset.sdel);
+    const it = e.target.closest('[data-skey]');
+    if (it) pickSiteKey(it.dataset.skey);
+  });
+});
+
+safe('แชท', function () {
+  $('#cList').addEventListener('click', (e) => { const c = e.target.closest('.ci'); if (c) openChat(c.dataset.id); });
+  $('#cBack').onclick = () => {
+    curChat = null; thrTotal = 0;
+    $('#chatwrap').classList.remove('open');
+    showThread(false);
+    lastChatsKey = '';
+    renderChatList();
+  };
+  $('#attachBtn').onclick = () => $('#fileIn').click();
+  $('#attX').onclick = clearAttach;
+  $('#fileIn').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const okType = IMG_OK.includes(f.type) || ['video/mp4', 'video/webm', 'video/quicktime'].includes(f.type);
+    if (!okType) { toast('รองรับรูป (jpg png gif webp) และวิดีโอ (mp4 webm mov)'); e.target.value = ''; return; }
+    const lim = f.type.startsWith('video/') ? 30 : 10;
+    if (f.size > lim * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน ' + lim + ' MB'); e.target.value = ''; return; }
+    attach = f;
+    $('#attName').textContent = f.name;
+    $('#attBar').classList.remove('hide');
+  });
+  $('#sendBtn').onclick = sendMsg;
+  $('#sendCode').onclick = sendPostCode;
+  $('#cin').addEventListener('input', (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+  });
+  $('#cin').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); }
+  });
+});
+
+/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
+safe('หน้าเข้าสู่ระบบ', function () { setMode('login'); });
+api('GET', '/api/me').then(
+  (d) => enter(d.user),
+  (e) => {
+    if (e && e.status && e.status < 500) toAuth();               // 401 = ยังไม่ล็อกอิน -> หน้าล็อกอิน
+    else bootFail('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ หรือเซิร์ฟเวอร์ตอบผิดปกติ' + (e && e.status ? ' (HTTP ' + e.status + ')' : '') +
+      '\nเช็กสถานะ Deployments บน Railway แล้วลองรีเฟรช');
+  }
+);
+window.__alexaReady = true;
+</script>
+</body>
+</html>
