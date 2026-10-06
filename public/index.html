@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
 <script>
-// ตาข่ายนิรภัย: ถ้าสคริปต์หลักพัง จะโชว์ข้อความผิดพลาดบนจอ แทนหน้าจอดำเปล่าๆ
 (function () {
   var box = null;
   function show(msg) {
@@ -28,7 +27,7 @@
     show('promise: ' + ((e.reason && e.reason.message) || e.reason));
   });
   setTimeout(function () {
-    if (!window.__alexaReady) show('สคริปต์หลักยังไม่ทำงานหลังผ่านไป 6 วินาที\nไฟล์ index.html อาจวางไม่ครบ (ท้ายไฟล์ต้องมีแท็ก html ปิด) หรือโหลดไม่สำเร็จ ลองรีเฟรชหรือล้างแคชของเบราว์เซอร์');
+    if (!window.__alexaReady) show('สคริปต์หลักยังไม่ทำงานหลังผ่านไป 6 วินาที');
   }, 6000);
 })();
 </script>
@@ -39,45 +38,30 @@
 html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
-
-/* ---------- หน้าโหลด ---------- */
 #boot{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9a9a9a;font-size:13px;letter-spacing:.3em}
 .spin{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-
-/* ---------- พื้นหลัง: ไฟขาว ---------- */
 .bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
-.bg i{position:absolute;border-radius:50%;will-change:transform;
-  background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
+.bg i{position:absolute;border-radius:50%;will-change:transform;background:radial-gradient(circle,rgba(255,255,255,.24) 0,rgba(255,255,255,.07) 38%,transparent 66%)}
 .bg i:nth-child(1){width:80vmax;height:80vmax;left:-30vmax;top:-42vmax;animation:d1 19s ease-in-out infinite alternate}
 .bg i:nth-child(2){width:70vmax;height:70vmax;right:-34vmax;bottom:-40vmax;animation:d2 23s ease-in-out infinite alternate}
 .bg i:nth-child(3){width:34vmax;height:34vmax;left:40%;top:46%;opacity:.55;animation:d3 15s ease-in-out infinite alternate}
-.cone{position:absolute;top:-6vh;width:130vw;height:112vh;left:50%;margin-left:-65vw;transform-origin:50% 0;
-  background:conic-gradient(from 180deg at 50% 0%,transparent 163deg,rgba(255,255,255,.17) 180deg,transparent 197deg)}
+.cone{position:absolute;top:-6vh;width:130vw;height:112vh;left:50%;margin-left:-65vw;transform-origin:50% 0;background:conic-gradient(from 180deg at 50% 0%,transparent 163deg,rgba(255,255,255,.17) 180deg,transparent 197deg)}
 .cone.a{animation:sw1 11s ease-in-out infinite alternate}
 .cone.b{opacity:.7;animation:sw2 14s ease-in-out infinite alternate}
-.bg::after{content:"";position:absolute;inset:0;
-  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
-  background-size:46px 46px;
-  -webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%)}
-.bg::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.75) 100%)}
+.bg::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:46px 46px;-webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 30%,#000 10%,transparent 75%)}
+.bg::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.75) 100%)}
 @keyframes d1{to{transform:translate(14vmax,10vmax) scale(1.12)}}
 @keyframes d2{to{transform:translate(-12vmax,-9vmax) scale(1.1)}}
 @keyframes d3{to{transform:translate(-14vmax,8vmax) scale(1.4)}}
 @keyframes sw1{from{transform:rotate(-13deg)}to{transform:rotate(9deg)}}
 @keyframes sw2{from{transform:rotate(11deg)}to{transform:rotate(-8deg)}}
 @media (prefers-reduced-motion:reduce){.bg i,.cone{animation:none}}
-
-/* ---------- พื้นฐาน ---------- */
 .wrap{max-width:960px;margin:0 auto;padding:0 14px 60px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 24px 70px rgba(0,0,0,.65)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 24px 70px rgba(0,0,0,.65)}
 .ic{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ic.f{fill:currentColor;stroke:none}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 15px;border-radius:10px;
-  border:1px solid var(--line2);background:transparent;color:var(--tx);font:inherit;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 15px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--tx);font:inherit;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;text-decoration:none}
 .btn:hover{background:rgba(255,255,255,.09)}
 .btn:active{transform:scale(.97)}
 .btn.solid{background:#fff;color:#000;border-color:#fff}
@@ -88,13 +72,11 @@ body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Seg
 .btn[disabled]{opacity:.45;pointer-events:none}
 .inp{width:100%;min-height:42px;padding:0 12px;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
 .inp:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
-select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#aaa 50%),linear-gradient(135deg,#aaa 50%,transparent 50%);
-  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#aaa 50%),linear-gradient(135deg,#aaa 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
 select.inp option{background:#111;color:#fff}
 label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margin:16px 0 6px;text-transform:uppercase}
 .seg{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.5)}
-.seg button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--mut);font:inherit;font-weight:600;
-  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.seg button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .seg button.on{background:#fff;color:#000}
 .mut{color:var(--mut)}
 .err{color:#ff7a7c;min-height:22px;margin-top:10px;font-size:14px}
@@ -106,8 +88,6 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .ph p{margin:2px 0 0;color:var(--mut)}
 .pad{padding:16px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
-/* ---------- สถานะ ---------- */
 .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #777;flex:none;display:inline-block}
 .dot.running{background:#fff;border-color:#fff;box-shadow:0 0 10px #fff}
 .dot.error{background:var(--red);border-color:var(--red);box-shadow:0 0 8px var(--red)}
@@ -115,15 +95,11 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .badge.running{background:#fff;color:#000;border-color:#fff}
 .badge.running .dot{background:#000;border-color:#000;box-shadow:none}
 .badge.error{border-color:var(--red);color:#ff7a7c}
-
-/* ---------- เข้าสู่ระบบ ---------- */
-.authbox{width:min(390px,92vw);margin:13vh auto 0;padding:24px}
+.authbox{width:min(390px,92vw);margin:10vh auto 0;padding:24px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.24em;cursor:pointer;user-select:none}
 .brand .logo{width:26px;height:26px}
 .authbox .brand{justify-content:center;margin-bottom:20px;cursor:default}
 .hint{font-size:13px;color:var(--mut);text-align:center;margin:14px 0 0}
-
-/* ---------- ส่วนหัว + เมนูสามจุด ---------- */
 .top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 .menuwrap{position:relative}
 .iconbtn{width:42px;padding:0;position:relative}
@@ -137,8 +113,6 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .mi .cnt{margin-left:auto;background:#fff;color:#000;border-radius:99px;padding:0 8px;font-size:12px;min-width:22px;text-align:center}
 .mi.on .cnt{background:#000;color:#fff}
 .msep{height:1px;background:var(--line);margin:6px 4px}
-
-/* ---------- หน้าหลัก ---------- */
 .warn{margin-bottom:12px;padding:12px 14px;border:1px solid var(--red);border-radius:12px;background:rgba(255,77,79,.1);color:#ffb3b5;font-size:14px}
 .hero{padding:26px 20px;text-align:center;margin-bottom:12px}
 .kicker{font-size:11px;letter-spacing:.4em;color:var(--mut)}
@@ -154,15 +128,11 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .privacy h3{margin:0 0 6px;font-size:16px}
 .privacy ul{margin:0;padding-left:18px;color:#cfcfcf}
 .privacy li{margin:3px 0}
-.privacy .note{margin-top:8px;font-size:13px;color:var(--mut)}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:620px){.quick{grid-template-columns:repeat(4,1fr)}}
-
-/* ---------- รันบอท ---------- */
 #tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
-.tab{flex:none;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;
-  background:rgba(0,0,0,.55);color:var(--mut);cursor:pointer;font-weight:600;user-select:none}
+.tab{flex:none;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.55);color:var(--mut);cursor:pointer;font-weight:600;user-select:none}
 .tab small{font-size:10px;letter-spacing:.1em;opacity:.7}
 .tab:hover{border-color:var(--line2);color:var(--tx)}
 .tab.on{background:#fff;color:#000;border-color:#fff}
@@ -176,22 +146,16 @@ label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margi
 .sub{padding:12px 14px 0}
 @media(max-width:440px){#viewSeg button .ic{display:none}}
 .pane{padding:14px}
-.errbox{display:none;align-items:center;justify-content:space-between;gap:10px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);
-  background:rgba(255,77,79,.1);color:#ffb3b5;border-radius:10px;font-size:14px}
+.errbox{display:none;align-items:center;justify-content:space-between;gap:10px;margin:12px 14px 0;padding:9px 12px;border:1px solid var(--red);background:rgba(255,77,79,.1);color:#ffb3b5;border-radius:10px;font-size:14px}
 .errbox .btn{min-height:32px;padding:0 10px;font-size:13px}
-textarea.code{display:block;width:100%;min-height:52vh;padding:12px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
-  font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;resize:vertical;outline:none;tab-size:4}
+textarea.code{display:block;width:100%;min-height:52vh;padding:12px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;resize:vertical;outline:none;tab-size:4}
 textarea.code:focus{border-color:var(--line2)}
-.logs{height:52vh;overflow:auto;padding:10px 12px;background:rgba(0,0,0,.75);border:1px solid var(--line);border-radius:10px;
-  font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.logs{height:52vh;overflow:auto;padding:10px 12px;background:rgba(0,0,0,.75);border:1px solid var(--line);border-radius:10px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 .lg.out{color:#cfcfcf}.lg.sys{color:#fff;font-weight:700}.lg.err{color:#ff8a8c}
 .lg .t{color:#666;margin-right:8px}
 .danger-zone{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .foot{margin-top:10px;font-size:12px;color:var(--mut)}
-
-/* ---------- ไลบรารี ---------- */
-.libin{display:block;width:100%;min-height:110px;padding:10px 12px;resize:vertical;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;
-  font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;outline:none}
+.libin{display:block;width:100%;min-height:110px;padding:10px 12px;resize:vertical;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;color:#eaeaea;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;outline:none}
 .libin:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pk{padding:4px 11px;border:1px solid var(--line2);border-radius:99px;font:12px ui-monospace,Menlo,monospace;color:#cfcfcf;background:transparent;cursor:pointer}
@@ -200,8 +164,6 @@ textarea.code:focus{border-color:var(--line2)}
 .lib code{font:13px ui-monospace,Menlo,monospace;word-break:break-all}
 .lib .btn{min-height:32px;width:36px;padding:0;flex:none}
 .busy{margin-top:12px;padding:10px 14px;border:1px solid var(--line2);border-radius:12px;background:rgba(255,255,255,.07);font-weight:600}
-
-/* ---------- ตลาดโค้ด / เว็บสาธารณะ ---------- */
 .notice{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);font-size:13px;color:#bdbdbd}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
 @media(max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}}
@@ -214,16 +176,12 @@ textarea.code:focus{border-color:var(--line2)}
 .ov{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between}
 .tag{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(0,0,0,.78);border:1px solid var(--line2)}
 .tag.paid{background:#fff;color:#000;border-color:#fff}
+.tag.danger{background:#ff4d4f;color:#fff;border-color:#ff4d4f}
 .cb{padding:10px 12px}
 .cb b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb small{color:var(--mut)}
-
-/* ---------- อัปโหลด ---------- */
-.prev{aspect-ratio:16/10;max-width:380px;border:1px dashed var(--line2);border-radius:12px;background:#0a0a0a center/cover no-repeat;
-  display:flex;align-items:center;justify-content:center;color:var(--mut);margin-top:8px}
+.prev{aspect-ratio:16/10;max-width:380px;border:1px dashed var(--line2);border-radius:12px;background:#0a0a0a center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--mut);margin-top:8px}
 .prev .ic{width:34px;height:34px}
-
-/* ---------- ตัวสร้างเว็บ ---------- */
 .slugrow{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.62);overflow:hidden}
 .slugrow:focus-within{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 .slugrow .pre{display:flex;align-items:center;padding:0 10px;color:var(--mut);font:13px ui-monospace,Menlo,monospace;border-right:1px solid var(--line);white-space:nowrap}
@@ -233,8 +191,6 @@ details.doc{margin-top:16px;border:1px solid var(--line);border-radius:12px;back
 details.doc summary{cursor:pointer;padding:12px 0;font-weight:700}
 details.doc .codebox{margin:8px 0 0;max-height:340px}
 #sDataBox{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
-
-/* ---------- โมดัล / ทอสต์ ---------- */
 .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal{align-items:center}}
 .mback{position:absolute;inset:0;background:rgba(0,0,0,.74)}
@@ -244,12 +200,9 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .mbox h2{margin:12px 0 6px;font-size:20px;padding-right:40px}
 .mcover{aspect-ratio:16/10;border-radius:12px;background:#111 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#4a4a4a}
 .mcover .ic{width:40px;height:40px}
-.codebox{margin:12px 0;padding:12px;max-height:260px;overflow:auto;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;
-  font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#eaeaea}
+.codebox{margin:12px 0;padding:12px;max-height:260px;overflow:auto;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#eaeaea}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:18px;background:#fff;color:#000;font-weight:700;text-align:center;box-shadow:0 8px 40px rgba(255,255,255,.25)}
-
-/* ---------- แชท ---------- */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:760px){.chatwrap{grid-template-columns:300px 1fr}#cBack{display:none}}
 @media(max-width:759px){.chatwrap.open #cListBox{display:none}.chatwrap:not(.open) #cBox{display:none}}
@@ -284,6 +237,13 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .comp textarea{flex:1;min-height:42px;max-height:120px;padding:10px 12px;resize:none;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
 .comp textarea:focus{border-color:#fff}
 .comp .btn{width:44px;padding:0}
+/* admin */
+.adcard{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;background:rgba(0,0,0,.5)}
+.adhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.adbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.adbody label{font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;display:block;margin-bottom:4px}
+.adbody input{padding:0 10px;min-height:38px}
+.adfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 </style>
 </head>
 <body>
@@ -316,11 +276,11 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
 
-<!-- ===== หน้าโหลด (หายไปเองเมื่อแอปพร้อม) ===== -->
 <div id="boot"><div class="spin"></div><div>ALEXA HUB</div></div>
 
 <!-- ===== เข้าสู่ระบบ / สมัครสมาชิก ===== -->
@@ -333,11 +293,30 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
     </div>
     <label class="l" for="au">ชื่อผู้ใช้</label>
     <input class="inp" id="au" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <div id="aeWrap" class="hide">
+      <label class="l" for="ae">อีเมล</label>
+      <input class="inp" id="ae" type="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="120" placeholder="you@example.com">
+      <div class="foot">เราจะส่งรหัส 6 หลักไปที่อีเมลนี้เพื่อยืนยันตัวตน ป้องกันการสร้างบัญชีสแปม</div>
+    </div>
     <label class="l" for="ap">รหัสผ่าน</label>
     <input class="inp" id="ap" type="password" autocomplete="current-password" maxlength="100">
     <div id="aerr" class="err"></div>
     <button class="btn solid wide" id="aGo">เข้าสู่ระบบ</button>
     <p class="hint" id="aHint"></p>
+  </div>
+</div>
+
+<!-- ===== ยืนยันอีเมล ===== -->
+<div id="verify" class="hide">
+  <div class="authbox panel">
+    <div class="brand"><svg class="ic logo"><use href="#i-mail"/></svg><span>ยืนยันอีเมล</span></div>
+    <p class="hint" style="text-align:left;margin-bottom:8px">เราได้ส่งรหัส 6 หลักไปที่อีเมลของคุณแล้ว กรุณากรอกรหัสเพื่อเปิดใช้งานบัญชี</p>
+    <label class="l" for="vCode">รหัสยืนยัน</label>
+    <input class="inp" id="vCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="text-align:center;font-size:24px;letter-spacing:10px;font-weight:700">
+    <div id="verr" class="err"></div>
+    <button class="btn solid wide" id="vGo">ยืนยัน</button>
+    <p class="hint">ไม่ได้รับรหัส? <button class="btn" id="vResend" style="min-height:30px;font-size:13px;padding:0 10px">ส่งอีกครั้ง</button></p>
+    <p class="hint" style="margin-top:8px"><button class="btn" id="vLogout" style="min-height:30px;font-size:12px;padding:0 10px">ออกจากระบบ</button></p>
   </div>
 </div>
 
@@ -356,6 +335,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
           <button class="mi" data-pg="upload"><svg class="ic"><use href="#i-up"/></svg><span>อัปโหลดโค้ดบอท</span></button>
           <button class="mi" data-pg="sites"><svg class="ic"><use href="#i-globe"/></svg><span>เว็บสาธารณะ</span></button>
           <button class="mi" data-pg="chat"><svg class="ic"><use href="#i-chat"/></svg><span>แชท</span><b class="cnt hide" id="mcnt"></b></button>
+          <button class="mi hide" data-pg="admin" id="miAdmin"><svg class="ic"><use href="#i-shield"/></svg><span>แผงแอดมิน</span></button>
           <div class="msep"></div>
           <button class="mi" id="outBtn"><svg class="ic"><use href="#i-out"/></svg><span>ออกจากระบบ</span></button>
         </div>
@@ -380,11 +360,10 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         <div>
           <h3>ความเป็นส่วนตัวและความปลอดภัย</h3>
           <ul>
-            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช อ่านย้อนกลับไม่ได้) โค้ดและโทเคนบอทของคุณ โพสต์ เว็บที่คุณสร้างพร้อมข้อมูลที่ผู้เข้าชมบันทึกไว้ในเว็บนั้น และข้อความแชท</li>
-            <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ของคุณลงข้อมูลของเว็บ</li>
+            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ อีเมล รหัสผ่าน (เก็บเป็นค่าแฮช) โค้ดและโทเคนบอท โพสต์ เว็บที่สร้าง และข้อความแชท</li>
+            <li>ไม่เก็บเบอร์โทรหรือตำแหน่งที่ตั้ง</li>
             <li>ไม่ขายและไม่แชร์ข้อมูลให้บุคคลภายนอก</li>
             <li>บอทและโทเคนของคุณคนอื่นมองไม่เห็น แชทเห็นได้เฉพาะสองฝ่ายที่คุยกัน</li>
-            <li>เว็บที่ตั้งเป็นสาธารณะ ใครก็เปิดดูได้โดยไม่ต้องล็อกอิน (ตั้งเป็นร่างเพื่อซ่อนได้) และเว็บแต่ละแห่งเห็นเพียงรหัสสุ่มของผู้เข้าชม ไม่เห็นชื่อบัญชีหรือข้อมูลอื่นของคุณ</li>
           </ul>
         </div>
       </div>
@@ -396,11 +375,31 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== รันบอท 24 ชั่วโมง ===== -->
+    <!-- ===== หมดเวลาทดลอง ===== -->
+    <section id="pg-trial" class="page hide">
+      <div class="hero panel">
+        <div class="kicker" style="color:#ff7a7c">TRIAL EXPIRED</div>
+        <h1 style="color:#ff7a7c;text-shadow:0 0 28px rgba(255,77,79,.6)">หมดเวลาทดลอง</h1>
+        <p>คุณใช้สิทธิ์ทดลองครบแล้ว บอทและเว็บของคุณถูกหยุดชั่วคราว</p>
+      </div>
+      <div class="panel pad" style="text-align:center">
+        <p style="font-size:16px;font-weight:600;margin:0 0 16px">ต้องการใช้งานต่อ? ติดต่อซื้อสิทธิ์ได้ที่</p>
+        <a class="btn solid" style="font-size:15px;min-height:52px;padding:0 20px" href="https://discord.gg/dTz2njT9fZ" target="_blank" rel="noopener">
+          <svg class="ic"><use href="#i-chat"/></svg>
+          <span>Discord: discord.gg/dTz2njT9fZ</span>
+        </a>
+        <p class="foot" style="margin-top:16px">คุณยังดูโค้ดในตลาดและแชทได้ตามปกติ</p>
+        <div class="row" style="justify-content:center;margin-top:14px">
+          <button class="btn" data-go="market"><svg class="ic"><use href="#i-store"/></svg><span>ไปที่ตลาดโค้ด</span></button>
+          <button class="btn" data-go="home"><svg class="ic"><use href="#i-home"/></svg><span>กลับหน้าหลัก</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== รันบอท ===== -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์ แม้ปิดหน้าเว็บหรือรีเว็บ</p></div>
       <div id="tabs"></div>
-
       <section id="newPanel" class="panel pane hide">
         <div style="font-weight:700;font-size:17px;margin-bottom:2px">เพิ่มบอทตัวใหม่</div>
         <div class="mut">บอทแต่ละตัวรันแยกกัน ไม่กวนกัน</div>
@@ -413,7 +412,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         </select>
         <div style="margin-top:16px"><button class="btn solid" id="addBtn"><svg class="ic"><use href="#i-plus"/></svg><span>สร้างบอท</span></button></div>
       </section>
-
       <section id="editor" class="panel hide">
         <div class="bar">
           <div class="title"><h2 id="title"></h2><span id="badge" class="badge stopped"></span><span id="info" class="mut"></span><span id="dirtyTag" class="mut hide">ยังไม่ได้บันทึก</span></div>
@@ -437,7 +435,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
           <div class="foot">โทเคนที่ตั้งในแท็บตั้งค่า จะส่งให้โค้ดผ่านตัวแปร DISCORD_TOKEN</div>
         </div>
         <div class="pane hide" id="p-log"><div class="logs" id="logs"></div></div>
-
         <div class="pane hide" id="p-lib">
           <div class="mut" id="libHelp"></div>
           <label class="l" for="libIn" style="margin-top:12px">ไลบรารีที่ต้องการติดตั้ง</label>
@@ -452,7 +449,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
           <div id="libList"></div>
           <div class="foot" id="libFoot"></div>
         </div>
-
         <div class="pane hide" id="p-set">
           <label class="l" for="name" style="margin-top:0">ชื่อบอท</label>
           <input class="inp" id="name" maxlength="40">
@@ -473,7 +469,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
         <button class="btn solid" id="goUpload"><svg class="ic"><use href="#i-up"/></svg><span>อัปโหลดโค้ดบอท</span></button>
       </div>
-      <div class="notice">เว็บนี้ไม่รับชำระเงินแทน การซื้อขายตกลงกันเองระหว่างผู้ใช้ ระวังมิจฉาชีพ และตรวจโค้ดจากคนอื่นก่อนรันทุกครั้ง เพราะโค้ดที่ไม่ดีอาจขโมยโทเคนบอทของคุณได้</div>
+      <div class="notice">เว็บนี้ไม่รับชำระเงินแทน การซื้อขายตกลงกันเองระหว่างผู้ใช้ ระวังมิจฉาชีพ และตรวจโค้ดจากคนอื่นก่อนรันทุกครั้ง</div>
       <div class="seg" id="fSeg">
         <button data-f="all" class="on">ทั้งหมด</button>
         <button data-f="free">ฟรี</button>
@@ -489,13 +485,11 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <div class="panel pad">
         <label class="l" for="upTitle" style="margin-top:0">ชื่อโค้ด</label>
         <input class="inp" id="upTitle" maxlength="60" placeholder="เช่น บอทเพลงสุดเจ๋ง">
-
         <label class="l" for="upLang">ภาษา</label>
         <select class="inp" id="upLang">
           <option value="py">Python</option>
           <option value="js">JavaScript</option>
         </select>
-
         <label class="l">รูปปกโค้ด</label>
         <div class="row">
           <button class="btn" id="coverBtn"><svg class="ic"><use href="#i-img"/></svg><span>เลือกรูปปก</span></button>
@@ -503,10 +497,8 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         </div>
         <input type="file" id="coverIn" accept="image/jpeg,image/png,image/gif,image/webp" class="hide">
         <div class="prev" id="coverPrev"><svg class="ic"><use href="#i-img"/></svg></div>
-
         <label class="l" for="upCode">โค้ด</label>
         <textarea class="code" id="upCode" style="min-height:34vh" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="วางโค้ดบอทที่นี่"></textarea>
-
         <label class="l">รูปแบบการแจก</label>
         <div class="seg" id="paySeg">
           <button data-p="free" class="on">แจกฟรี</button>
@@ -517,7 +509,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
           <input class="inp" id="upPrice" type="number" inputmode="numeric" min="1" max="1000000" placeholder="เช่น 99">
           <div class="foot">โพสต์เสียเงินจะซ่อนโค้ดจากสาธารณะ คุณส่งโค้ดให้ผู้ซื้อผ่านแชทได้</div>
         </div>
-
         <div class="err" id="upst"></div>
         <button class="btn solid wide" id="upGo"><svg class="ic"><use href="#i-up"/></svg><span>อัปโหลดโค้ดลงสาธารณะ</span></button>
       </div>
@@ -529,7 +520,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         <div><h2>เว็บสาธารณะ</h2><p>สร้างเว็บ HTML / CSS / JavaScript ออนไลน์ แชร์เป็นลิงก์ให้ใครก็เปิดได้</p></div>
         <button class="btn solid" id="siteNew"><svg class="ic"><use href="#i-plus"/></svg><span>สร้างเว็บ</span></button>
       </div>
-      <div class="notice">เว็บของสมาชิกทำงานในกล่องแยกที่เข้าถึงบัญชีของคุณไม่ได้ แต่ก็ควรระวัง อย่ากรอกรหัสผ่านหรือข้อมูลสำคัญในเว็บของคนอื่น เพราะเว็บเหล่านี้ไม่มีแถบเตือนแยกจากเว็บทั่วไป</div>
+      <div class="notice">เว็บของสมาชิกทำงานในกล่องแยกที่เข้าถึงบัญชีของคุณไม่ได้ แต่ก็ควรระวัง อย่ากรอกรหัสผ่านหรือข้อมูลสำคัญในเว็บของคนอื่น</div>
       <div class="seg" id="sfSeg">
         <button data-f="all" class="on">ทั้งหมด</button>
         <button data-f="mine">ของฉัน</button>
@@ -546,11 +537,9 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <div class="panel pad">
         <label class="l" for="sTitle" style="margin-top:0">ชื่อเว็บ</label>
         <input class="inp" id="sTitle" maxlength="60" placeholder="เช่น เว็บแนะนำตัวของฉัน">
-
         <label class="l" for="sSlug">ลิงก์เว็บ</label>
         <div class="slugrow"><span class="pre">/s/</span><input class="inp" id="sSlug" maxlength="30" placeholder="เว้นว่าง = สุ่มให้" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
         <div class="foot" id="sSlugHint">ใช้ a-z 0-9 และ - ยาว 3-30 ตัว ตั้งแล้วเปลี่ยนไม่ได้</div>
-
         <div id="sTplBox">
           <label class="l" for="sTpl">เริ่มจากแม่แบบ</label>
           <select class="inp" id="sTpl">
@@ -563,13 +552,11 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
             <option value="counter">ตัวนับ (ใช้ JavaScript)</option>
           </select>
         </div>
-
         <label class="l">ภาษาที่ใช้เขียน</label>
         <div class="seg" id="sModeSeg">
           <button data-m="split" class="on">HTML + CSS + JS</button>
           <button data-m="full">HTML เต็มหน้า</button>
         </div>
-
         <div class="seg" id="sTabSeg" style="margin-top:14px">
           <button data-t="html" class="on">HTML</button>
           <button data-t="css">CSS</button>
@@ -579,47 +566,31 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         <textarea class="code" id="sCode" style="margin-top:10px;min-height:46vh" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
         <div id="sPrevBox" class="hide" style="margin-top:10px">
           <iframe id="sPrev" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock" referrerpolicy="no-referrer"></iframe>
-          <div class="foot">ตัวอย่างนี้ทำงานในกล่องแยกแบบออฟไลน์ ห้องออนไลน์และที่เก็บข้อมูลจะทำงานเฉพาะในเครื่องคุณ (จะออนไลน์จริงเมื่อเปิดผ่านลิงก์หลังบันทึก) localStorage และคุกกี้ใช้ไม่ได้เหมือนหน้าเว็บจริง</div>
+          <div class="foot">ตัวอย่างนี้ทำงานในกล่องแยกแบบออฟไลน์ ห้องออนไลน์และที่เก็บข้อมูลจะทำงานเฉพาะในเครื่องคุณ</div>
         </div>
-
         <details class="doc">
-          <summary>คู่มือ alexa API (ทำแชท / เกมออนไลน์ / เก็บข้อมูล)</summary>
-          <p class="foot">ใช้ได้ทันทีในโค้ด JavaScript ของเว็บ ไม่ต้องติดตั้งอะไรเพิ่ม ตัวอย่างที่พร้อมใช้อยู่ในแม่แบบ "แชทออนไลน์", "เกมตัวละคร" และ "สมุดเยี่ยม"</p>
-          <pre class="codebox">// ห้องออนไลน์: ทุกคนที่เปิดเว็บนี้และอยู่ห้องเดียวกันเห็นข้อมูลกันทันที
+          <summary>คู่มือ alexa API</summary>
+          <p class="foot">ใช้ได้ทันทีในโค้ด JavaScript ของเว็บ ไม่ต้องติดตั้งอะไรเพิ่ม</p>
+          <pre class="codebox">// ห้องออนไลน์
 var room = alexa.join("lobby", { name: "ชื่อเล่น" });
-room.on("hello", function (info) { /* info.peers = คนในห้อง, info.history = ข้อความเก่า */ });
-room.on("join", function (p) { /* p.id, p.name */ });
-room.on("leave", function (p) { });
 room.on("message", function (m) { /* m.from, m.name, m.data */ });
-room.send({ text: "สวัสดี" });          // ส่งให้ทุกคนในห้อง (รวมตัวเอง)
-room.send(data, { keep: true });       // เก็บ 50 ข้อความล่าสุดให้คนที่เข้าทีหลัง
-room.send(data, { self: false });      // ไม่ส่งกลับหาตัวเอง
-alexa.id                               // รหัสสุ่มของผู้เข้าชม (ไว้เช็ก m.from)
+room.send({ text: "สวัสดี" });
 
-// ที่เก็บข้อมูล (บันทึกถาวรบนเซิร์ฟเวอร์ ทุกอันคืนค่าเป็น Promise)
-alexa.db.set("note", "hi")             // ข้อมูลร่วม ทุกคนเห็น
-alexa.db.set("score", 10, "mine")      // ข้อมูลส่วนตัว เฉพาะผู้เข้าชมคนนี้ (ผูกกับเบราว์เซอร์)
-alexa.db.get("score", "mine").then(function (v) { })
-alexa.db.incr("visits")                // นับเพิ่ม +1 แล้วได้เลขใหม่
-alexa.db.list("msg:")                  // [{ key, value }]
-alexa.db.del("note")
-
-// ข้อจำกัด: ข้อความละไม่เกิน 8 KB, ข้อมูลต่อคีย์ไม่เกิน 64 KB,
-// ที่เก็บต่อเว็บรวมไม่เกิน 1 MB, ห้องละไม่เกิน 40 คน</pre>
+// ที่เก็บข้อมูล
+alexa.db.set("key", value);
+alexa.db.get("key").then(function (v) { });
+alexa.db.incr("visits");</pre>
         </details>
-
         <label class="l">การเผยแพร่</label>
         <div class="seg" id="sPubSeg">
           <button data-v="1" class="on">เผยแพร่สาธารณะ</button>
           <button data-v="0">ซ่อน (ร่าง)</button>
         </div>
-
         <div class="err" id="sErr"></div>
         <div class="row">
           <button class="btn solid" id="sSave"><svg class="ic"><use href="#i-globe"/></svg><span>บันทึกและเผยแพร่</span></button>
           <button class="btn danger hide" id="sDel"><svg class="ic"><use href="#i-trash"/></svg><span>ลบเว็บ</span></button>
         </div>
-
         <div id="sDataBox" class="hide">
           <div class="row" style="justify-content:space-between">
             <div><b>ที่เก็บข้อมูลของเว็บ</b><div class="foot" id="sdInfo" style="margin-top:2px">-</div></div>
@@ -633,7 +604,6 @@ alexa.db.del("note")
           <input class="inp" id="sdKey" maxlength="64" placeholder="ชื่อคีย์ เช่น title" autocapitalize="off" autocorrect="off" spellcheck="false">
           <textarea class="libin" id="sdVal" style="min-height:70px;margin-top:8px" spellcheck="false" placeholder='ค่า เช่น "สวัสดี" หรือ 123 หรือ {"a":1}'></textarea>
           <div style="margin-top:8px"><button class="btn" id="sdSet"><svg class="ic"><use href="#i-save"/></svg><span>บันทึกคีย์</span></button></div>
-          <div class="foot">กดที่ชื่อคีย์เพื่อดึงค่ามาแก้ ข้อมูลส่วนตัวของผู้เข้าชม (แบบ "mine") ไม่แสดงที่นี่ แต่นับรวมในพื้นที่ ข้อมูลร่วมที่ผู้เข้าชมเขียนได้อาจถูกคนอื่นแก้ทับ ตรวจดูที่นี่เป็นระยะ</div>
         </div>
       </div>
     </section>
@@ -663,6 +633,22 @@ alexa.db.del("note")
         </div>
       </div>
     </section>
+
+    <!-- ===== แผงแอดมิน ===== -->
+    <section id="pg-admin" class="page hide">
+      <div class="ph row" style="justify-content:space-between">
+        <div><h2>แผงแอดมิน</h2><p>จัดการผู้ใช้ โควต้าบอท/เว็บ และเวลาใช้งาน</p></div>
+        <div class="row">
+          <button class="btn" id="adToggle"><svg class="ic"><use href="#i-set"/></svg><span>เปิด/ปิด UI แอดมิน</span></button>
+          <button class="btn" id="adRef"><svg class="ic"><use href="#i-restart"/></svg><span>รีเฟรช</span></button>
+        </div>
+      </div>
+      <div class="notice">เฉพาะแอดมินเท่านั้น — การลบบัญชีจะลบข้อมูลทุกอย่างของผู้ใช้นั้นถาวร (บอท เว็บ โพสต์ แชท ไฟล์มีเดีย)</div>
+      <div class="panel pad">
+        <b>รายชื่อผู้ใช้ <span class="mut" id="adCount"></span></b>
+        <div id="adList" style="margin-top:10px"></div>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -684,7 +670,6 @@ const hhmm = (t) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', m
 const dmy = (t) => new Date(t).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 const baht = (n) => '฿' + Number(n).toLocaleString('th-TH');
 
-// หน้าโหลด + แจ้งความผิดพลาดตอนเริ่มต้น
 const bootEl = document.getElementById('boot');
 function hideBoot() { if (bootEl) bootEl.classList.add('hide'); }
 function bootFail(msg) { hideBoot(); if (window.__alexaFatal) window.__alexaFatal(msg); }
@@ -735,299 +720,35 @@ const TPL = {
   ].join('\n')
 };
 
-// แม่แบบเว็บสาธารณะ (HTML / CSS / JS แยกกัน)
 const SITE_TPL = {
-  blank: {
-    title: 'เว็บของฉัน',
+  blank: { title: 'เว็บของฉัน',
     html: ['<h1>สวัสดีชาวโลก</h1>', '<p>นี่คือเว็บแรกของฉัน แก้ไขตรงนี้ได้เลย</p>'].join('\n'),
     css: ['body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#000;color:#fff;font-family:system-ui,sans-serif}', 'h1{font-size:44px;margin:0 0 8px}'].join('\n'),
-    js: 'console.log("เว็บพร้อมแล้ว");'
-  },
-  chat: {
-    title: 'แชทออนไลน์',
-    html: [
-      '<div id="app">',
-      '  <div id="top"><b>แชทรวมออนไลน์</b><span id="online">กำลังเชื่อมต่อ...</span></div>',
-      '  <div id="log"></div>',
-      '  <form id="f">',
-      '    <input id="nick" placeholder="ชื่อเล่น" maxlength="16">',
-      '    <input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300" autocomplete="off">',
-      '    <button>ส่ง</button>',
-      '  </form>',
-      '</div>'
-    ].join('\n'),
-    css: [
-      '*{box-sizing:border-box}',
-      'body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}',
-      '#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:640px;margin:0 auto}',
-      '#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}',
-      '#online{color:#9a9a9a;font-size:14px}',
-      '#log{flex:1;overflow:auto;padding:14px 16px}',
-      '.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;word-break:break-word}',
-      '.m.me{background:#fff;color:#000;margin-left:30px}',
-      '#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}',
-      '#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}',
-      '#nick{width:28%}',
-      '#msg{flex:1}',
-      '#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}'
-    ].join('\n'),
-    js: [
-      'var nick = document.getElementById("nick");',
-      'nick.value = "ผู้เยี่ยมชม" + Math.floor(Math.random() * 900 + 100);',
-      'var logEl = document.getElementById("log");',
-      'var online = document.getElementById("online");',
-      'var room = alexa.join("lobby", { name: nick.value });',
-      'function add(who, text, mine) {',
-      '  var d = document.createElement("div");',
-      '  d.className = "m" + (mine ? " me" : "");',
-      '  var b = document.createElement("b");',
-      '  b.textContent = who + ": ";',
-      '  var s = document.createElement("span");',
-      '  s.textContent = text;',
-      '  d.appendChild(b); d.appendChild(s);',
-      '  logEl.appendChild(d);',
-      '  logEl.scrollTop = logEl.scrollHeight;',
-      '}',
-      'function show(m) {',
-      '  if (!m.data || typeof m.data.text !== "string") return;',
-      '  add(m.data.name || m.name || "?", m.data.text.slice(0, 300), m.from === alexa.id);',
-      '}',
-      'function count() { online.textContent = "ออนไลน์ " + room.peers.length + " คน"; }',
-      'room.on("hello", function (info) {',
-      '  count();',
-      '  logEl.innerHTML = "";',
-      '  (info.history || []).forEach(show);',
-      '});',
-      'room.on("join", count);',
-      'room.on("leave", count);',
-      'room.on("message", show);',
-      'room.on("error", function (e) { online.textContent = e.error || "เชื่อมต่อไม่ได้"; });',
-      'document.getElementById("f").onsubmit = function (e) {',
-      '  e.preventDefault();',
-      '  var box = document.getElementById("msg");',
-      '  var t = box.value.trim();',
-      '  if (!t) return;',
-      '  room.send({ text: t, name: nick.value.trim() || "?" }, { keep: true });',
-      '  box.value = "";',
-      '};'
-    ].join('\n')
-  },
-  game: {
-    title: 'เกมตัวละครออนไลน์',
-    html: [
-      '<canvas id="c"></canvas>',
-      '<div id="hud">ลากนิ้ว/เมาส์ หรือกดลูกศร/WASD เพื่อเดิน · ออนไลน์ <span id="n">1</span> คน</div>'
-    ].join('\n'),
-    css: [
-      'body{margin:0;overflow:hidden;background:#0a0a0a;touch-action:none}',
-      'canvas{display:block}',
-      '#hud{position:fixed;top:10px;left:10px;color:#bbb;font:13px system-ui,sans-serif;pointer-events:none}'
-    ].join('\n'),
-    js: [
-      'var c = document.getElementById("c"), g = c.getContext("2d");',
-      'function fit() { c.width = innerWidth; c.height = innerHeight; }',
-      'fit(); addEventListener("resize", fit);',
-      'var myName = "P" + Math.floor(Math.random() * 900 + 100);',
-      'var room = alexa.join("arena", { name: myName });',
-      'var me = { x: 150 + Math.random() * 200, y: 150 + Math.random() * 200 };',
-      'var others = {};',
-      'var keys = {}, target = null, down = false;',
-      'addEventListener("keydown", function (e) { keys[e.key.toLowerCase()] = true; });',
-      'addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });',
-      'c.addEventListener("pointerdown", function (e) { down = true; target = { x: e.clientX, y: e.clientY }; });',
-      'c.addEventListener("pointermove", function (e) { if (down) target = { x: e.clientX, y: e.clientY }; });',
-      'addEventListener("pointerup", function () { down = false; target = null; });',
-      'function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360; return "hsl(" + h + ",80%,60%)"; }',
-      'room.on("hello", function () { others = {}; });',
-      'room.on("leave", function (p) { delete others[p.id]; });',
-      'room.on("message", function (m) {',
-      '  if (m.from === alexa.id || !m.data) return;',
-      '  others[m.from] = { x: m.data.x, y: m.data.y, name: m.name || "?", t: Date.now() };',
-      '});',
-      'function dot(x, y, col, name) {',
-      '  g.fillStyle = col; g.beginPath(); g.arc(x, y, 14, 0, 6.283); g.fill();',
-      '  g.fillStyle = "#ddd"; g.font = "12px system-ui"; g.textAlign = "center"; g.fillText(name, x, y - 22);',
-      '}',
-      'var lastSent = 0, sx = -1, sy = -1, prev = 0;',
-      'function loop(now) {',
-      '  var dt = Math.min(0.05, (now - (prev || now)) / 1000); prev = now;',
-      '  var dx = 0, dy = 0;',
-      '  if (keys.arrowleft || keys.a) dx -= 1;',
-      '  if (keys.arrowright || keys.d) dx += 1;',
-      '  if (keys.arrowup || keys.w) dy -= 1;',
-      '  if (keys.arrowdown || keys.s) dy += 1;',
-      '  if (target) {',
-      '    var vx = target.x - me.x, vy = target.y - me.y, d = Math.sqrt(vx * vx + vy * vy);',
-      '    if (d > 6) { dx = vx / d; dy = vy / d; }',
-      '  }',
-      '  me.x = Math.max(16, Math.min(c.width - 16, me.x + dx * 240 * dt));',
-      '  me.y = Math.max(16, Math.min(c.height - 16, me.y + dy * 240 * dt));',
-      '  var rx = Math.round(me.x), ry = Math.round(me.y);',
-      '  if (((rx !== sx || ry !== sy) && now - lastSent > 66) || now - lastSent > 1000) {',
-      '    lastSent = now; sx = rx; sy = ry;',
-      '    room.send({ x: rx, y: ry }, { self: false });',
-      '  }',
-      '  g.clearRect(0, 0, c.width, c.height);',
-      '  var count = 1, t = Date.now();',
-      '  for (var id in others) {',
-      '    var o = others[id];',
-      '    if (t - o.t > 6000) { delete others[id]; continue; }',
-      '    count++;',
-      '    dot(o.x, o.y, colorOf(id), o.name);',
-      '  }',
-      '  dot(me.x, me.y, "#fff", myName + " (คุณ)");',
-      '  document.getElementById("n").textContent = count;',
-      '  requestAnimationFrame(loop);',
-      '}',
-      'requestAnimationFrame(loop);'
-    ].join('\n')
-  },
-  guestbook: {
-    title: 'สมุดเยี่ยม',
-    html: [
-      '<main>',
-      '  <h1>สมุดเยี่ยม</h1>',
-      '  <p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p>',
-      '  <form id="f">',
-      '    <input id="nm" placeholder="ชื่อ" maxlength="20">',
-      '    <textarea id="tx" placeholder="เขียนข้อความถึงเจ้าของเว็บ" maxlength="200"></textarea>',
-      '    <button>ฝากข้อความ</button>',
-      '  </form>',
-      '  <div id="list"></div>',
-      '</main>'
-    ].join('\n'),
-    css: [
-      '*{box-sizing:border-box}',
-      'body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}',
-      'main{max-width:560px;margin:0 auto;padding:28px 16px}',
-      'h1{margin:0 0 4px}',
-      '.sub{color:#9a9a9a;margin:0 0 20px}',
-      '#f{display:grid;gap:8px;margin-bottom:22px}',
-      '#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}',
-      '#f textarea{min-height:80px;resize:vertical}',
-      '#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}',
-      '.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}',
-      '.e p{margin:4px 0 0;color:#ccc;word-break:break-word}'
-    ].join('\n'),
-    js: [
-      'var list = document.getElementById("list");',
-      'function showErr(msg) {',
-      '  var d = document.createElement("div");',
-      '  d.className = "e";',
-      '  d.style.borderColor = "#ff4d4f";',
-      '  d.textContent = String(msg);',
-      '  list.insertBefore(d, list.firstChild);',
-      '  setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 4000);',
-      '}',
-      'function render(items) {',
-      '  items = items.filter(function (it) { return it.value && typeof it.value.text === "string"; });',
-      '  items.sort(function (a, b) { return (b.value.t || 0) - (a.value.t || 0); });',
-      '  list.innerHTML = "";',
-      '  items.slice(0, 50).forEach(function (it) {',
-      '    var d = document.createElement("div"); d.className = "e";',
-      '    var b = document.createElement("b"); b.textContent = it.value.name || "ไม่ระบุชื่อ";',
-      '    var p = document.createElement("p"); p.textContent = it.value.text;',
-      '    d.appendChild(b); d.appendChild(p); list.appendChild(d);',
-      '  });',
-      '}',
-      'function load() { alexa.db.list("msg:").then(render); }',
-      'alexa.db.incr("visits").then(function (n) { document.getElementById("visits").textContent = n; });',
-      'document.getElementById("f").onsubmit = function (e) {',
-      '  e.preventDefault();',
-      '  var text = document.getElementById("tx").value.trim();',
-      '  if (!text) return;',
-      '  var id = "msg:" + Date.now() + "-" + Math.floor(Math.random() * 1000);',
-      '  alexa.db.set(id, { name: document.getElementById("nm").value.trim(), text: text, t: Date.now() })',
-      '    .then(function () { document.getElementById("tx").value = ""; load(); })',
-      '    .catch(function (err) { showErr(err.message || err); });',
-      '};',
-      'load();',
-      'setInterval(load, 8000);'
-    ].join('\n')
-  },
-  profile: {
-    title: 'แนะนำตัว',
-    html: [
-      '<main class="card">',
-      '  <div class="av">A</div>',
-      '  <h1>ชื่อของคุณ</h1>',
-      '  <p>เขียนแนะนำตัวสั้นๆ ตรงนี้</p>',
-      '  <div class="links">',
-      '    <a href="#">Discord</a>',
-      '    <a href="#">YouTube</a>',
-      '    <a href="#">Roblox</a>',
-      '  </div>',
-      '</main>'
-    ].join('\n'),
-    css: [
-      '*{box-sizing:border-box}',
-      'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif}',
-      '.card{width:min(360px,90vw);padding:32px;text-align:center;border:1px solid #333;border-radius:20px;background:#0c0c0c}',
-      '.av{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:36px;font-weight:900}',
-      'h1{margin:0 0 6px}',
-      'p{margin:0;color:#aaa}',
-      '.links{display:grid;gap:10px;margin-top:22px}',
-      '.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}',
-      '.links a:hover{background:#fff;color:#000}'
-    ].join('\n'),
-    js: 'document.querySelector("h1").addEventListener("click", function () { var p = document.querySelector("p"); if (p) p.textContent = "สวัสดี!"; });'
-  },
-  landing: {
-    title: 'หน้า Landing',
-    html: [
-      '<header>',
-      '  <b>ชื่อโปรเจกต์</b>',
-      '  <a class="btn" href="#join">เริ่มเลย</a>',
-      '</header>',
-      '<section class="hero">',
-      '  <h1>คำโปรยที่ดึงดูดใจ</h1>',
-      '  <p>อธิบายสิ่งที่คุณทำสั้นๆ ใน 1-2 บรรทัด</p>',
-      '  <a class="btn solid" id="join" href="#features">ดูรายละเอียด</a>',
-      '</section>',
-      '<section id="features" class="features">',
-      '  <div><h3>จุดเด่นที่ 1</h3><p>คำอธิบายสั้นๆ</p></div>',
-      '  <div><h3>จุดเด่นที่ 2</h3><p>คำอธิบายสั้นๆ</p></div>',
-      '  <div><h3>จุดเด่นที่ 3</h3><p>คำอธิบายสั้นๆ</p></div>',
-      '</section>'
-    ].join('\n'),
-    css: [
-      '*{box-sizing:border-box}',
-      'body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}',
-      'header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}',
-      '.hero{padding:90px 22px;text-align:center}',
-      '.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}',
-      '.hero p{color:#aaa;margin:0 0 26px}',
-      '.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}',
-      '.btn.solid{background:#fff;color:#000;border-color:#fff}',
-      '.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}',
-      '.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}',
-      '.features h3{margin:0 0 6px}',
-      '.features p{margin:0;color:#aaa}'
-    ].join('\n'),
-    js: 'console.log("Landing page พร้อมแล้ว");'
-  },
-  counter: {
-    title: 'ตัวนับ',
-    html: [
-      '<main>',
-      '  <div id="num">0</div>',
-      '  <button id="plus">+1</button>',
-      '  <button id="reset">รีเซ็ต</button>',
-      '</main>'
-    ].join('\n'),
-    css: [
-      'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center}',
-      '#num{font-size:96px;font-weight:900;margin-bottom:16px}',
-      'button{font:inherit;padding:12px 22px;margin:4px;border-radius:12px;border:1px solid #666;background:#111;color:#fff;cursor:pointer}',
-      '#plus{background:#fff;color:#000;border-color:#fff}'
-    ].join('\n'),
-    js: [
-      'var n = 0;',
-      'var num = document.getElementById("num");',
-      'document.getElementById("plus").onclick = function () { n++; num.textContent = n; };',
-      'document.getElementById("reset").onclick = function () { n = 0; num.textContent = n; };'
-    ].join('\n')
-  }
+    js: 'console.log("เว็บพร้อมแล้ว");' },
+  chat: { title: 'แชทออนไลน์',
+    html: ['<div id="app">','  <div id="top"><b>แชทรวมออนไลน์</b><span id="online">กำลังเชื่อมต่อ...</span></div>','  <div id="log"></div>','  <form id="f">','    <input id="nick" placeholder="ชื่อเล่น" maxlength="16">','    <input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300" autocomplete="off">','    <button>ส่ง</button>','  </form>','</div>'].join('\n'),
+    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:640px;margin:0 auto}','#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}','#online{color:#9a9a9a;font-size:14px}','#log{flex:1;overflow:auto;padding:14px 16px}','.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d}','.m.me{background:#fff;color:#000;margin-left:30px}','#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}','#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}','#nick{width:28%}','#msg{flex:1}','#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}'].join('\n'),
+    js: ['var nick = document.getElementById("nick");','nick.value = "ผู้เยี่ยมชม" + Math.floor(Math.random() * 900 + 100);','var logEl = document.getElementById("log");','var online = document.getElementById("online");','var room = alexa.join("lobby", { name: nick.value });','function add(who, text, mine) { var d = document.createElement("div"); d.className = "m" + (mine ? " me" : ""); var b = document.createElement("b"); b.textContent = who + ": "; var s = document.createElement("span"); s.textContent = text; d.appendChild(b); d.appendChild(s); logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; }','function show(m) { if (!m.data || typeof m.data.text !== "string") return; add(m.data.name || m.name || "?", m.data.text.slice(0, 300), m.from === alexa.id); }','function count() { online.textContent = "ออนไลน์ " + room.peers.length + " คน"; }','room.on("hello", function (info) { count(); logEl.innerHTML = ""; (info.history || []).forEach(show); });','room.on("join", count);','room.on("leave", count);','room.on("message", show);','document.getElementById("f").onsubmit = function (e) { e.preventDefault(); var box = document.getElementById("msg"); var t = box.value.trim(); if (!t) return; room.send({ text: t, name: nick.value.trim() || "?" }, { keep: true }); box.value = ""; };'].join('\n') },
+  game: { title: 'เกมตัวละครออนไลน์',
+    html: ['<canvas id="c"></canvas>','<div id="hud">ลากนิ้ว/เมาส์ · ออนไลน์ <span id="n">1</span> คน</div>'].join('\n'),
+    css: ['body{margin:0;overflow:hidden;background:#0a0a0a;touch-action:none}','canvas{display:block}','#hud{position:fixed;top:10px;left:10px;color:#bbb;font:13px system-ui,sans-serif;pointer-events:none}'].join('\n'),
+    js: ['var c = document.getElementById("c"), g = c.getContext("2d");','function fit() { c.width = innerWidth; c.height = innerHeight; }','fit(); addEventListener("resize", fit);','var myName = "P" + Math.floor(Math.random() * 900 + 100);','var room = alexa.join("arena", { name: myName });','var me = { x: 200, y: 200 };','var others = {};','var keys = {}, target = null, down = false;','addEventListener("keydown", function (e) { keys[e.key.toLowerCase()] = true; });','addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });','c.addEventListener("pointerdown", function (e) { down = true; target = { x: e.clientX, y: e.clientY }; });','c.addEventListener("pointermove", function (e) { if (down) target = { x: e.clientX, y: e.clientY }; });','addEventListener("pointerup", function () { down = false; target = null; });','function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360; return "hsl(" + h + ",80%,60%)"; }','room.on("hello", function () { others = {}; });','room.on("leave", function (p) { delete others[p.id]; });','room.on("message", function (m) { if (m.from === alexa.id || !m.data) return; others[m.from] = { x: m.data.x, y: m.data.y, name: m.name || "?", t: Date.now() }; });','function dot(x, y, col, name) { g.fillStyle = col; g.beginPath(); g.arc(x, y, 14, 0, 6.283); g.fill(); g.fillStyle = "#ddd"; g.font = "12px system-ui"; g.textAlign = "center"; g.fillText(name, x, y - 22); }','var lastSent = 0, sx = -1, sy = -1, prev = 0;','function loop(now) { var dt = Math.min(0.05, (now - (prev || now)) / 1000); prev = now; var dx = 0, dy = 0; if (keys.arrowleft || keys.a) dx -= 1; if (keys.arrowright || keys.d) dx += 1; if (keys.arrowup || keys.w) dy -= 1; if (keys.arrowdown || keys.s) dy += 1; if (target) { var vx = target.x - me.x, vy = target.y - me.y, d = Math.sqrt(vx * vx + vy * vy); if (d > 6) { dx = vx / d; dy = vy / d; } } me.x = Math.max(16, Math.min(c.width - 16, me.x + dx * 240 * dt)); me.y = Math.max(16, Math.min(c.height - 16, me.y + dy * 240 * dt)); var rx = Math.round(me.x), ry = Math.round(me.y); if (((rx !== sx || ry !== sy) && now - lastSent > 66) || now - lastSent > 1000) { lastSent = now; sx = rx; sy = ry; room.send({ x: rx, y: ry }, { self: false }); } g.clearRect(0, 0, c.width, c.height); var count = 1, t = Date.now(); for (var id in others) { var o = others[id]; if (t - o.t > 6000) { delete others[id]; continue; } count++; dot(o.x, o.y, colorOf(id), o.name); } dot(me.x, me.y, "#fff", myName + " (คุณ)"); document.getElementById("n").textContent = count; requestAnimationFrame(loop); }','requestAnimationFrame(loop);'].join('\n') },
+  guestbook: { title: 'สมุดเยี่ยม',
+    html: ['<main>','  <h1>สมุดเยี่ยม</h1>','  <p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p>','  <form id="f">','    <input id="nm" placeholder="ชื่อ" maxlength="20">','    <textarea id="tx" placeholder="เขียนข้อความ" maxlength="200"></textarea>','    <button>ฝากข้อความ</button>','  </form>','  <div id="list"></div>','</main>'].join('\n'),
+    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','main{max-width:560px;margin:0 auto;padding:28px 16px}','h1{margin:0 0 4px}','.sub{color:#9a9a9a;margin:0 0 20px}','#f{display:grid;gap:8px;margin-bottom:22px}','#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}','#f textarea{min-height:80px;resize:vertical}','#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}','.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}','.e p{margin:4px 0 0;color:#ccc}'].join('\n'),
+    js: ['var list = document.getElementById("list");','function render(items) { items = items.filter(function (it) { return it.value && typeof it.value.text === "string"; }); items.sort(function (a, b) { return (b.value.t || 0) - (a.value.t || 0); }); list.innerHTML = ""; items.slice(0, 50).forEach(function (it) { var d = document.createElement("div"); d.className = "e"; var b = document.createElement("b"); b.textContent = it.value.name || "ไม่ระบุชื่อ"; var p = document.createElement("p"); p.textContent = it.value.text; d.appendChild(b); d.appendChild(p); list.appendChild(d); }); }','function load() { alexa.db.list("msg:").then(render); }','alexa.db.incr("visits").then(function (n) { document.getElementById("visits").textContent = n; });','document.getElementById("f").onsubmit = function (e) { e.preventDefault(); var text = document.getElementById("tx").value.trim(); if (!text) return; var id = "msg:" + Date.now(); alexa.db.set(id, { name: document.getElementById("nm").value.trim(), text: text, t: Date.now() }).then(function () { document.getElementById("tx").value = ""; load(); }); };','load();','setInterval(load, 8000);'].join('\n') },
+  profile: { title: 'แนะนำตัว',
+    html: ['<main class="card">','  <div class="av">A</div>','  <h1>ชื่อของคุณ</h1>','  <p>เขียนแนะนำตัวสั้นๆ ตรงนี้</p>','  <div class="links">','    <a href="#">Discord</a>','    <a href="#">YouTube</a>','    <a href="#">Roblox</a>','  </div>','</main>'].join('\n'),
+    css: ['*{box-sizing:border-box}','body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif}','.card{width:min(360px,90vw);padding:32px;text-align:center;border:1px solid #333;border-radius:20px;background:#0c0c0c}','.av{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:36px;font-weight:900}','h1{margin:0 0 6px}','p{margin:0;color:#aaa}','.links{display:grid;gap:10px;margin-top:22px}','.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}','.links a:hover{background:#fff;color:#000}'].join('\n'),
+    js: '' },
+  landing: { title: 'หน้า Landing',
+    html: ['<header>','  <b>ชื่อโปรเจกต์</b>','  <a class="btn" href="#join">เริ่มเลย</a>','</header>','<section class="hero">','  <h1>คำโปรยที่ดึงดูดใจ</h1>','  <p>อธิบายสิ่งที่คุณทำสั้นๆ ใน 1-2 บรรทัด</p>','  <a class="btn solid" id="join" href="#features">ดูรายละเอียด</a>','</section>','<section id="features" class="features">','  <div><h3>จุดเด่นที่ 1</h3><p>คำอธิบายสั้นๆ</p></div>','  <div><h3>จุดเด่นที่ 2</h3><p>คำอธิบายสั้นๆ</p></div>','  <div><h3>จุดเด่นที่ 3</h3><p>คำอธิบายสั้นๆ</p></div>','</section>'].join('\n'),
+    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}','.hero{padding:90px 22px;text-align:center}','.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}','.hero p{color:#aaa;margin:0 0 26px}','.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}','.btn.solid{background:#fff;color:#000;border-color:#fff}','.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}','.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}','.features h3{margin:0 0 6px}','.features p{margin:0;color:#aaa}'].join('\n'),
+    js: '' },
+  counter: { title: 'ตัวนับ',
+    html: ['<main>','  <div id="num">0</div>','  <button id="plus">+1</button>','  <button id="reset">รีเซ็ต</button>','</main>'].join('\n'),
+    css: ['body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center}','#num{font-size:96px;font-weight:900;margin-bottom:16px}','button{font:inherit;padding:12px 22px;margin:4px;border-radius:12px;border:1px solid #666;background:#111;color:#fff;cursor:pointer}','#plus{background:#fff;color:#000;border-color:#fff}'].join('\n'),
+    js: ['var n = 0;','var num = document.getElementById("num");','document.getElementById("plus").onclick = function () { n++; num.textContent = n; };','document.getElementById("reset").onclick = function () { n = 0; num.textContent = n; };'].join('\n') }
 };
 
 const CHIPS = {
@@ -1037,14 +758,11 @@ const CHIPS = {
 
 /* ---------- สถานะรวม ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
-// รันบอท
+let myInfo = null;                       // pubMe() จาก /api/me
 let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', lastLibKey = '', view = 'code';
-// ตลาด / อัปโหลด
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
-// เว็บสาธารณะ
 let sites = [], sFilter = 'all', lastSitesKey = '', sdItems = {};
 let siteEditing = null, siteMode = 'split', siteTab = null, sHtml = '', sCss = '', sJs = '', sPublic = true, siteDirty = false, siteSaving = false;
-// แชท
 let chats = [], curChat = null, thrTotal = 0, thrBusy = false, attach = null, sending = false, lastChatsKey = '';
 
 async function api(method, url, body) {
@@ -1055,9 +773,9 @@ async function api(method, url, body) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) {
-    if (r.status === 401 && !/^\/api\/(login|register|me)$/.test(url)) toAuth();
+    if (r.status === 401 && !/^\/api\/(login|register|me|verify|resend)$/.test(url)) toAuth();
     const e = new Error(d.error || 'HTTP ' + r.status);
-    e.status = r.status;
+    e.status = r.status; e.trial = !!d.trial; e.needsVerify = !!d.needsVerify;
     throw e;
   }
   return d;
@@ -1099,7 +817,6 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-// ยืนยันแบบโมดัลของแอปเอง แทน confirm() ของเบราว์เซอร์ (ไม่โชว์ชื่อเว็บ/ลิงก์)
 let __confirmFinish = null;
 function askConfirm(msg, okText) {
   return new Promise(function (resolve) {
@@ -1138,49 +855,58 @@ async function copyText(t) {
   }
 }
 
-/* ---------- เข้าสู่ระบบ ---------- */
+/* ---------- เข้าสู่ระบบ / สมัคร ---------- */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
   $('#aGo').textContent = m === 'login' ? 'เข้าสู่ระบบ' : 'สมัครและเข้าสู่ระบบ';
   $('#ap').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  $('#aeWrap').classList.toggle('hide', m !== 'register');
   $('#aHint').textContent = m === 'login'
     ? 'ยังไม่มีบัญชี? เลือกแท็บสมัครสมาชิก'
-    : 'ชื่อผู้ใช้ 3-20 ตัว (a-z ตัวเลข _) รหัสผ่านอย่างน้อย 6 ตัว สมัครเสร็จจะเข้าสู่ระบบให้ทันที';
+    : 'ชื่อผู้ใช้ 3-20 ตัว (a-z ตัวเลข _) รหัสผ่านอย่างน้อย 6 ตัว ต้องยืนยันอีเมลก่อนใช้งาน';
   $('#aerr').textContent = '';
 }
 async function authGo() {
   $('#aerr').textContent = '';
   $('#aGo').disabled = true;
   try {
-    const d = await api('POST', '/api/' + (mode === 'login' ? 'login' : 'register'), {
-      username: $('#au').value.trim(),
-      password: $('#ap').value
-    });
+    const body = { username: $('#au').value.trim(), password: $('#ap').value };
+    if (mode === 'register') body.email = $('#ae').value.trim();
+    const d = await api('POST', '/api/' + (mode === 'login' ? 'login' : 'register'), body);
     $('#ap').value = '';
-    enter(d.user);
+    const info = await api('GET', '/api/me');
+    enter(info);
+    if (d.needsVerify) toast('สมัครสำเร็จ กรุณายืนยันอีเมล');
   } catch (e) {
     $('#aerr').textContent = e.message;
   }
   $('#aGo').disabled = false;
 }
+
 function toAuth() {
   hideBoot();
   clearInterval(timer); timer = null;
-  me = null; bots = []; cur = null; shownId = null; lastTabsKey = ''; lastLibKey = '';
+  me = null; myInfo = null; bots = []; cur = null; shownId = null; lastTabsKey = ''; lastLibKey = '';
   chats = []; curChat = null; thrTotal = 0; attach = null; lastChatsKey = ''; lastPostsKey = '';
   sites = []; lastSitesKey = ''; siteEditing = null; siteDirty = false;
   setDirty(false);
   closeModal();
   $('#menu').classList.add('hide');
   $('#app').classList.add('hide');
+  $('#verify').classList.add('hide');
   $('#auth').classList.remove('hide');
 }
-function enter(user) {
+
+function enter(info) {
+  // info = pubMe() object จาก /api/me: { user, admin, emailVerified, email, trialEnds, trialExpired, paid, maxBots, maxSites }
+  const user = typeof info === 'string' ? info : info.user;
   hideBoot();
   me = user;
+  myInfo = (typeof info === 'object') ? info : null;
   $('#who').textContent = user;
   $('#auth').classList.add('hide');
+  $('#verify').classList.add('hide');
   $('#app').classList.remove('hide');
   $('#editor').classList.add('hide');
   $('#newPanel').classList.add('hide');
@@ -1188,22 +914,74 @@ function enter(user) {
   showThread(false);
   cur = localStorage.getItem('cur:' + me) || null;
   shownId = null; lastLogKey = ''; lastTabsKey = ''; lastLibKey = ''; curChat = null; thrTotal = 0; lastChatsKey = '';
+
+  // toggle admin menu
+  const isAdm = myInfo && myInfo.admin;
+  const miAdm = document.getElementById('miAdmin');
+  if (miAdm) miAdm.classList.toggle('hide', !isAdm);
+
+  // ยังไม่ยืนยันอีเมล -> ไปหน้า verify
+  if (myInfo && !myInfo.emailVerified && !isAdm) {
+    showVerify(myInfo);
+    return;
+  }
+
   clearInterval(timer);
   tc = 0;
+
   let pg = localStorage.getItem('pg:' + me) || 'home';
-  if (pg === 'site') pg = 'sites';          // หน้าตัวสร้างเว็บไม่มีข้อมูลค้าง ให้กลับไปแกลเลอรี
+  if (pg === 'site') pg = 'sites';
+  if (pg === 'admin' && !isAdm) pg = 'home';
+  // ถ้าหมด trial และพยายามเข้าหน้าที่จำกัด -> ไป trial
+  if (myInfo && myInfo.trialExpired && !isAdm) {
+    if (pg === 'run' || pg === 'sites' || pg === 'site' || pg === 'upload') pg = 'trial';
+  }
   setPage(pg);
   loadChatList().catch(() => {});
   timer = setInterval(tick, 2000);
 }
+
+function showVerify(info) {
+  $('#auth').classList.add('hide');
+  $('#app').classList.add('hide');
+  $('#verify').classList.remove('hide');
+  $('#vCode').value = '';
+  $('#verr').textContent = '';
+  setTimeout(() => $('#vCode').focus(), 120);
+}
+
+async function doVerify() {
+  const code = $('#vCode').value.trim();
+  $('#verr').textContent = '';
+  if (!/^\d{6}$/.test(code)) { $('#verr').textContent = 'กรอกรหัส 6 หลัก'; return; }
+  try {
+    await api('POST', '/api/verify', { code });
+    toast('ยืนยันสำเร็จ!');
+    const info = await api('GET', '/api/me');
+    enter(info);
+  } catch (e) { $('#verr').textContent = e.message; }
+}
+async function doResend() {
+  try {
+    const d = await api('POST', '/api/resend');
+    toast(d.dev ? 'รหัสถูก log ที่เซิร์ฟเวอร์ (โหมดทดสอบ)' : 'ส่งรหัสใหม่แล้ว');
+  } catch (e) { toast(e.message); }
+}
+
 async function logout() {
   try { await api('POST', '/api/logout'); } catch {}
   toAuth();
 }
 
-/* ---------- เมนูสามจุด / หน้า ---------- */
+/* ---------- เมนู / หน้า ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
+  // trial guard
+  const isAdm = myInfo && myInfo.admin;
+  if (!isAdm && myInfo && myInfo.trialExpired && (p === 'run' || p === 'sites' || p === 'site' || p === 'upload' || p === 'admin')) {
+    p = 'trial';
+  }
+  if (p === 'admin' && !isAdm) return;
   if (page === 'site' && p !== 'site' && siteDirty && !(await askConfirm('มีการแก้ไขเว็บที่ยังไม่ได้บันทึก จะออกจากหน้านี้ไหม?'))) return;
   if (page === 'site' && p !== 'site') siteDirty = false;
   page = p;
@@ -1217,6 +995,7 @@ async function setPage(p) {
     else if (p === 'market') await loadPosts();
     else if (p === 'sites') await loadSites();
     else if (p === 'chat') await loadChatList();
+    else if (p === 'admin') await loadAdmin();
   } catch (e) { /* รอรอบหน้า */ }
 }
 async function tick() {
@@ -1238,10 +1017,8 @@ async function tick() {
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
-  set('#sUsers', d.runningUsers);
-  set('#sBots', d.runningBots);
-  set('#sMembers', d.users);
-  set('#sPosts', d.posts);
+  set('#sUsers', d.runningUsers); set('#sBots', d.runningBots);
+  set('#sMembers', d.users); set('#sPosts', d.posts);
 }
 
 /* ---------- รันบอท ---------- */
@@ -1252,8 +1029,7 @@ function renderTabs() {
   $('#tabs').innerHTML = bots.map((b) =>
     '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' +
     esc(b.name) + '</span><small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small></div>'
-  ).join('') +
-  '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
+  ).join('') + '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
 }
 function setView(v) {
   view = v;
@@ -1280,10 +1056,10 @@ function renderLibs(b) {
   lastLibKey = key;
   const py = b.lang === 'py';
   $('#libHelp').textContent = py
-    ? 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง pip install requests numpy pillow ก็ได้ (ระบบตัดคำสั่งและออปชันออกให้) ใส่เวอร์ชันได้ เช่น numpy==1.26.4 (ห้ามเว้นวรรคในเวอร์ชัน) ใส่ลิงก์ git ได้ เช่น git+https://github.com/user/repo ตัว discord.py aiohttp requests ติดตั้งมาให้แล้ว ไม่ต้องลงซ้ำ ชื่อที่ติดตั้งอาจไม่ตรงกับชื่อที่ import เช่น import PIL ต้องติดตั้ง pillow'
-    : 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง npm install axios dotenv ก็ได้ (ระบบตัดคำสั่งและออปชันออกให้) ใส่เวอร์ชันได้ เช่น moment@2 แพ็กเกจ scope เช่น @discordjs/voice และลิงก์ github เช่น github:user/repo ตัว discord.js ติดตั้งมาให้แล้ว';
+    ? 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง pip install requests ก็ได้ ตัว discord.py aiohttp requests ติดตั้งมาให้แล้ว'
+    : 'ใส่ได้หลายตัวในครั้งเดียว จะบรรทัดละตัว เว้นวรรค หรือวางคำสั่งเต็มอย่าง npm install axios ก็ได้ ตัว discord.js ติดตั้งมาให้แล้ว';
   $('#libIn').placeholder = py
-    ? 'pip install Pillow numpy matplotlib librosa\nหรือบรรทัดละตัว เช่น\nyt-dlp\nnumpy==1.26.4'
+    ? 'pip install Pillow numpy matplotlib\nหรือบรรทัดละตัว เช่น\nyt-dlp\nnumpy==1.26.4'
     : 'npm install axios dotenv moment\nหรือบรรทัดละตัว เช่น\n@discordjs/voice\ngithub:user/repo';
   $('#chips').innerHTML = CHIPS[b.lang].map((c) => '<button class="pk" data-s="' + esc(c) + '">' + esc(c) + '</button>').join('');
   const libs = b.libs || [];
@@ -1294,7 +1070,7 @@ function renderLibs(b) {
   $('#libGo').disabled = !!b.installing;
   $('#libRe').disabled = !!b.installing;
   $$('#libList .btn').forEach((x) => (x.disabled = !!b.installing));
-  $('#libFoot').textContent = 'ไลบรารีถูกเก็บแยกในโฟลเดอร์ของบอทแต่ละตัว ไม่ปนกัน และอยู่ใน Volume จึงไม่หายตอนอัปเดตเว็บ (เมื่อต่อ Volume แล้ว) ชุดใหญ่ เช่น librosa อาจใช้เวลาหลายนาที ดูความคืบหน้าในแท็บล็อก ติดตั้งเสร็จแล้วต้องกดรันบอทใหม่เพื่อใช้ไลบรารีที่เปลี่ยน';
+  $('#libFoot').textContent = 'ไลบรารีถูกเก็บแยกในโฟลเดอร์ของบอทแต่ละตัว';
 }
 function updateStatus() {
   const b = bots.find((x) => x.id === cur);
@@ -1329,8 +1105,7 @@ async function openBot(id) {
   $('#libIn').value = '';
   $('#langInfo').textContent = (d.lang === 'py' ? 'ภาษา Python (ไฟล์ bot.py)' : 'ภาษา JavaScript (ไฟล์ bot.js)') + ' - เปลี่ยนภาษาไม่ได้หลังสร้าง';
   setDirty(false);
-  lastLogKey = '';
-  lastLibKey = '';
+  lastLogKey = ''; lastLibKey = '';
   updateStatus();
   await loadLogs();
 }
@@ -1377,21 +1152,18 @@ async function tickRun() {
 }
 async function saveBot() {
   const d = await api('PUT', '/api/bots/' + cur, {
-    name: $('#name').value,
-    code: $('#code').value,
-    token: $('#token').value
+    name: $('#name').value, code: $('#code').value, token: $('#token').value
   });
   $('#token').value = '';
   setDirty(false);
   return d;
 }
 
-/* ---------- ติดตั้งไลบรารี ---------- */
+/* ---------- ไลบรารี ---------- */
 async function installLibs() {
   const text = $('#libIn').value;
   if (!text.trim()) return toast('ใส่ชื่อไลบรารีก่อน');
   try {
-    // ส่งข้อความดิบ ให้เซิร์ฟเวอร์แยกชื่อ/ตัดคำสั่งให้เอง
     const d = await api('POST', '/api/bots/' + cur + '/libs', { text });
     $('#libIn').value = '';
     lastLibKey = '';
@@ -1400,44 +1172,42 @@ async function installLibs() {
     let msg = 'เริ่มติดตั้ง ' + d.parsed.length + ' ตัว: ' + d.parsed.join(', ');
     if (d.ignored && d.ignored.length) msg += ' (ข้าม: ' + d.ignored.join(' ') + ')';
     toast(msg);
-  } catch (e) { toast(e.message); }
+  } catch (e) { handleApiError(e); }
 }
 async function removeLib(spec) {
   if (!(await askConfirm('ลบ ' + spec + ' ? ระบบจะติดตั้งตัวที่เหลือใหม่ทั้งหมด', 'ลบ'))) return;
   try {
     await api('POST', '/api/bots/' + cur + '/libs', { remove: spec });
-    lastLibKey = '';
-    setView('log');
-    await tickRun();
-  } catch (e) { toast(e.message); }
+    lastLibKey = ''; setView('log'); await tickRun();
+  } catch (e) { handleApiError(e); }
 }
 async function reinstallLibs() {
   if (!(await askConfirm('ล้างแล้วติดตั้งไลบรารีทั้งหมดใหม่?', 'ติดตั้งใหม่'))) return;
   try {
     await api('POST', '/api/bots/' + cur + '/libs', { reinstall: true });
-    lastLibKey = '';
-    setView('log');
-    await tickRun();
-  } catch (e) { toast(e.message); }
+    lastLibKey = ''; setView('log'); await tickRun();
+  } catch (e) { handleApiError(e); }
+}
+
+/* ---------- trial-block handler ---------- */
+function handleApiError(e) {
+  if (e && e.trial) { toast(e.message); setPage('trial'); return true; }
+  if (e && e.needsVerify) { toast('กรุณายืนยันอีเมลก่อน'); showVerify(myInfo || {}); return true; }
+  toast(e.message || 'เกิดข้อผิดพลาด');
+  return false;
 }
 
 /* ---------- ตลาดโค้ด ---------- */
 function cardHtml(p) {
-  const cover = p.cover
-    ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>'
-    : '<div class="cv ph">' + ic('img') + '</div>';
+  const cover = p.cover ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="cv ph">' + ic('img') + '</div>';
   return '<div class="card" data-id="' + p.id + '">' + cover +
     '<div class="ov"><span class="tag">' + (p.lang === 'py' ? 'PY' : 'JS') + '</span><span class="tag ' + (p.price ? 'paid' : 'free') + '">' +
     (p.price ? baht(p.price) : 'ฟรี') + '</span></div>' +
     '<div class="cb"><b>' + esc(p.title) + '</b><small>โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</small></div></div>';
 }
-async function loadPosts() {
-  posts = (await api('GET', '/api/posts')).posts;
-  renderPosts();
-}
+async function loadPosts() { posts = (await api('GET', '/api/posts')).posts; renderPosts(); }
 function renderPosts() {
-  const list = posts.filter((p) =>
-    filter === 'all' || (filter === 'free' && !p.price) || (filter === 'paid' && p.price) || (filter === 'mine' && p.mine));
+  const list = posts.filter((p) => filter === 'all' || (filter === 'free' && !p.price) || (filter === 'paid' && p.price) || (filter === 'mine' && p.mine));
   const key = filter + '|' + list.map((p) => p.id + p.title + p.price + p.cover).join(',');
   if (key === lastPostsKey) return;
   lastPostsKey = key;
@@ -1446,9 +1216,7 @@ function renderPosts() {
 async function openPost(id) {
   try {
     const p = await api('GET', '/api/posts/' + id);
-    const cover = p.cover
-      ? '<div class="mcover" style="background-image:url(/media/' + p.cover + ')"></div>'
-      : '<div class="mcover">' + ic('img') + '</div>';
+    const cover = p.cover ? '<div class="mcover" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="mcover">' + ic('img') + '</div>';
     let h = cover + '<h2>' + esc(p.title) + '</h2>' +
       '<div class="row" style="margin-bottom:6px"><span class="tag">' + (p.lang === 'py' ? 'Python' : 'JavaScript') + '</span>' +
       '<span class="tag ' + (p.price ? 'paid' : '') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span>' +
@@ -1462,11 +1230,7 @@ async function openPost(id) {
     else h += '<button class="btn ' + (p.locked ? 'solid' : '') + '" id="pTalk">' + ic('chat') + '<span>ติดต่อคนขาย</span></button>';
     h += '</div>';
     openModal(h);
-    if (!p.locked) {
-      $('#pcode').textContent = p.code;
-      $('#pCopy').onclick = () => copyText(p.code);
-      $('#pUse').onclick = () => usePost(p.id);
-    }
+    if (!p.locked) { $('#pcode').textContent = p.code; $('#pCopy').onclick = () => copyText(p.code); $('#pUse').onclick = () => usePost(p.id); }
     if ($('#pDel')) $('#pDel').onclick = () => deletePost(p.id);
     if ($('#pTalk')) $('#pTalk').onclick = () => contactSeller(p.id);
   } catch (e) { toast(e.message); }
@@ -1478,17 +1242,14 @@ async function usePost(id) {
     cur = b.id; shownId = null; lastTabsKey = '';
     localStorage.setItem('cur:' + me, b.id);
     await setPage('run');
-    toast('เพิ่มเป็นบอทของคุณแล้ว ใส่โทเคนแล้วกดรันได้เลย');
-  } catch (e) { toast(e.message); }
+    toast('เพิ่มเป็นบอทของคุณแล้ว');
+  } catch (e) { handleApiError(e); }
 }
 async function deletePost(id) {
   if (!(await askConfirm('ลบโพสต์นี้ถาวร?', 'ลบโพสต์'))) return;
   try {
     await api('DELETE', '/api/posts/' + id);
-    closeModal();
-    lastPostsKey = '';
-    await loadPosts();
-    toast('ลบโพสต์แล้ว');
+    closeModal(); lastPostsKey = ''; await loadPosts(); toast('ลบโพสต์แล้ว');
   } catch (e) { toast(e.message); }
 }
 async function contactSeller(postId) {
@@ -1505,13 +1266,8 @@ const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
   const pv = $('#coverPrev');
-  if (f) {
-    pv.style.backgroundImage = 'url(' + URL.createObjectURL(f) + ')';
-    pv.innerHTML = '';
-  } else {
-    pv.style.backgroundImage = '';
-    pv.innerHTML = ic('img');
-  }
+  if (f) { pv.style.backgroundImage = 'url(' + URL.createObjectURL(f) + ')'; pv.innerHTML = ''; }
+  else { pv.style.backgroundImage = ''; pv.innerHTML = ic('img'); }
   $('#coverX').classList.toggle('hide', !f);
 }
 function setPay(m) {
@@ -1529,8 +1285,7 @@ async function doPublish() {
   if (!title) return ($('#upst').textContent = 'ใส่ชื่อโค้ดด้วย');
   if (!code.trim()) return ($('#upst').textContent = 'ใส่โค้ดด้วย');
   if (paid && !(price >= 1)) return ($('#upst').textContent = 'ใส่ราคาให้ถูกต้อง');
-  publishing = true;
-  $('#upGo').disabled = true;
+  publishing = true; $('#upGo').disabled = true;
   try {
     let cover = '';
     if (coverFile) {
@@ -1542,18 +1297,15 @@ async function doPublish() {
     $('#upTitle').value = ''; $('#upCode').value = ''; $('#upPrice').value = '';
     setCover(null); setPay('free');
     $('#upst').textContent = '';
-    lastPostsKey = '';
-    filter = 'all';
+    lastPostsKey = ''; filter = 'all';
     $$('#fSeg button').forEach((b) => b.classList.toggle('on', b.dataset.f === 'all'));
     await setPage('market');
     toast('อัปโหลดลงสาธารณะแล้ว');
-  } catch (e) { $('#upst').textContent = e.message; }
-  publishing = false;
-  $('#upGo').disabled = false;
+  } catch (e) { handleApiError(e); }
+  publishing = false; $('#upGo').disabled = false;
 }
 
 /* ---------- เว็บสาธารณะ ---------- */
-// ประกอบหน้าเว็บแบบดิบ (ไม่มีตัวช่วย alexa) ใช้ตอนรวม HTML+CSS+JS เป็นไฟล์เดียว
 function buildSitePage(m, title, html, css, js) {
   if (m === 'full') return html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
@@ -1561,7 +1313,6 @@ function buildSitePage(m, title, html, css, js) {
     '<title>' + esc(title) + '</title><style>\n' + css + '\n</style></head><body>\n' +
     html + '\n<scr' + 'ipt>\n' + js + '\n</scr' + 'ipt></body></html>';
 }
-// สำหรับตัวอย่าง: แทรกตัวช่วย alexa เหมือนที่เซิร์ฟเวอร์ทำกับหน้าเว็บจริง
 function buildPreview(m, title, html, css, js) {
   const pg = buildSitePage(m, title, html, css, js);
   const tag = '<scr' + 'ipt src="' + location.origin + '/s/_sdk.js"></scr' + 'ipt>';
@@ -1573,15 +1324,12 @@ function buildPreview(m, title, html, css, js) {
 }
 const siteUrl = (slug) => location.origin + '/s/' + slug;
 
-async function loadSites() {
-  sites = (await api('GET', '/api/sites')).sites;
-  renderSites();
-}
+async function loadSites() { sites = (await api('GET', '/api/sites')).sites; renderSites(); }
 function siteCard(x) {
   const letter = esc(String(x.title || '?').trim().slice(0, 1).toUpperCase() || '?');
   return '<div class="card" data-slug="' + x.slug + '"><div class="cv ph stile"><span>' + letter + '</span></div>' +
     '<div class="ov"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' +
-    (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag paid">ร่าง</span>') + '</div>' +
+    (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '</div>' +
     '<div class="cb"><b>' + esc(x.title) + '</b><small>โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</small></div></div>';
 }
 function renderSites() {
@@ -1598,7 +1346,7 @@ function openSiteModal(slug) {
   const url = siteUrl(x.slug);
   let h = '<h2>' + esc(x.title) + '</h2>' +
     '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' +
-    (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag paid">ร่าง (เห็นแค่คุณ)</span>') +
+    (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') +
     '<span class="mut">โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</span></div>' +
     '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">' +
     '<div class="row" style="margin-top:12px">' +
@@ -1613,10 +1361,7 @@ function openSiteModal(slug) {
   openModal(h);
   $('#mCopy').onclick = () => copyText(url);
   $('#mRemix').onclick = () => remixSite(x.slug);
-  if (x.mine) {
-    $('#mEdit').onclick = () => editSite(x.slug);
-    $('#mDel').onclick = () => deleteSite(x.slug);
-  }
+  if (x.mine) { $('#mEdit').onclick = () => editSite(x.slug); $('#mDel').onclick = () => deleteSite(x.slug); }
 }
 async function remixSite(slug) {
   try {
@@ -1634,28 +1379,24 @@ async function editSite(slug) {
   } catch (e) { toast(e.message); }
 }
 async function deleteSite(slug) {
-  if (!(await askConfirm('ลบเว็บนี้ถาวร? ลิงก์และข้อมูลของเว็บจะหายทันที', 'ลบเว็บ'))) return;
+  if (!(await askConfirm('ลบเว็บนี้ถาวร?', 'ลบเว็บ'))) return;
   try {
     await api('DELETE', '/api/sites/' + slug);
-    closeModal();
-    siteDirty = false;
-    lastSitesKey = '';
+    closeModal(); siteDirty = false; lastSitesKey = '';
     if (page === 'site') await setPage('sites'); else await loadSites();
     toast('ลบเว็บแล้ว');
   } catch (e) { toast(e.message); }
 }
-
-// --- ตัวสร้าง/แก้ไข ---
 function saveTabValue() {
   if (siteTab === 'html') sHtml = $('#sCode').value;
   else if (siteTab === 'css') sCss = $('#sCode').value;
   else if (siteTab === 'js') sJs = $('#sCode').value;
 }
 const TAB_HINT = {
-  html: 'เขียน HTML ของหน้าเว็บ (เฉพาะส่วนใน body) เช่น <h1>สวัสดี</h1>',
-  css: 'เขียน CSS ตกแต่งหน้าเว็บ เช่น body { background: #000; }',
-  js: 'เขียน JavaScript ให้เว็บมีปฏิกิริยา เช่น console.log("hi");',
-  full: 'วาง HTML ทั้งหน้า (ตั้งแต่ doctype ถึงแท็ก html ปิด) ใส่ style และ script เองได้'
+  html: 'เขียน HTML (เฉพาะส่วนใน body) เช่น <h1>สวัสดี</h1>',
+  css: 'เขียน CSS ตกแต่ง เช่น body { background: #000; }',
+  js: 'เขียน JavaScript เช่น console.log("hi");',
+  full: 'วาง HTML ทั้งหน้า (ตั้งแต่ doctype)'
 };
 function setSiteTab(t) {
   saveTabValue();
@@ -1664,9 +1405,8 @@ function setSiteTab(t) {
   const prev = t === 'prev';
   $('#sCode').classList.toggle('hide', prev);
   $('#sPrevBox').classList.toggle('hide', !prev);
-  if (prev) {
-    $('#sPrev').srcdoc = buildPreview(siteMode, $('#sTitle').value, sHtml, sCss, sJs);
-  } else {
+  if (prev) $('#sPrev').srcdoc = buildPreview(siteMode, $('#sTitle').value, sHtml, sCss, sJs);
+  else {
     $('#sCode').value = t === 'html' ? sHtml : t === 'css' ? sCss : sJs;
     $('#sCode').placeholder = t === 'html' && siteMode === 'full' ? TAB_HINT.full : TAB_HINT[t];
   }
@@ -1677,9 +1417,7 @@ function applyModeUI() {
   $('#sTabSeg [data-t="js"]').classList.toggle('hide', siteMode === 'full');
   setSiteTab('html');
 }
-function applyPubUI() {
-  $$('#sPubSeg button').forEach((b) => b.classList.toggle('on', (b.dataset.v === '1') === sPublic));
-}
+function applyPubUI() { $$('#sPubSeg button').forEach((b) => b.classList.toggle('on', (b.dataset.v === '1') === sPublic)); }
 async function openSiteEditor(slug, data) {
   const d = data || Object.assign({ mode: 'split', public: true }, SITE_TPL.blank);
   siteEditing = slug;
@@ -1689,7 +1427,7 @@ async function openSiteEditor(slug, data) {
   $('#sTitle').value = d.title || '';
   $('#sSlug').value = slug || '';
   $('#sSlug').disabled = !!slug;
-  $('#sSlugHint').textContent = slug ? 'ลิงก์เปลี่ยนไม่ได้ ถ้าอยากได้ลิงก์ใหม่ให้สร้างเว็บใหม่' : 'ใช้ a-z 0-9 และ - ยาว 3-30 ตัว ตั้งแล้วเปลี่ยนไม่ได้';
+  $('#sSlugHint').textContent = slug ? 'ลิงก์เปลี่ยนไม่ได้' : 'ใช้ a-z 0-9 และ - ยาว 3-30 ตัว';
   $('#sTplBox').classList.toggle('hide', !!slug);
   $('#sTpl').value = 'blank';
   $('#siteHead').textContent = slug ? 'แก้ไขเว็บ' : 'สร้างเว็บสาธารณะ';
@@ -1698,31 +1436,24 @@ async function openSiteEditor(slug, data) {
   $('#sErr').textContent = '';
   $('#sdKey').value = ''; $('#sdVal').value = '';
   siteTab = null;
-  applyModeUI();
-  applyPubUI();
+  applyModeUI(); applyPubUI();
   siteDirty = false;
   await setPage('site');
   if (slug) loadSiteData();
 }
 function startNewSite() { openSiteEditor(null, null); }
-
 async function saveSite() {
   if (siteSaving) return;
   saveTabValue();
   $('#sErr').textContent = '';
   const body = { title: $('#sTitle').value.trim(), mode: siteMode, html: sHtml, css: sCss, js: sJs, public: sPublic };
   if (!siteEditing) body.slug = $('#sSlug').value.trim().toLowerCase();
-  siteSaving = true;
-  $('#sSave').disabled = true;
+  siteSaving = true; $('#sSave').disabled = true;
   try {
-    const d = siteEditing
-      ? await api('PUT', '/api/sites/' + siteEditing, body)
-      : await api('POST', '/api/sites', body);
+    const d = siteEditing ? await api('PUT', '/api/sites/' + siteEditing, body) : await api('POST', '/api/sites', body);
     siteEditing = d.slug;
-    siteDirty = false;
-    lastSitesKey = '';
-    $('#sSlug').value = d.slug;
-    $('#sSlug').disabled = true;
+    siteDirty = false; lastSitesKey = '';
+    $('#sSlug').value = d.slug; $('#sSlug').disabled = true;
     $('#sTplBox').classList.add('hide');
     $('#sDel').classList.remove('hide');
     $('#sDataBox').classList.remove('hide');
@@ -1730,16 +1461,16 @@ async function saveSite() {
     showSiteLink(d.slug, d.public);
     loadSiteData();
   } catch (e) {
+    if (e.trial) { handleApiError(e); return; }
     $('#sErr').textContent = e.message;
   }
-  siteSaving = false;
-  $('#sSave').disabled = false;
+  siteSaving = false; $('#sSave').disabled = false;
 }
 function showSiteLink(slug, isPublic) {
   const url = siteUrl(slug);
   let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่างแล้ว') + '</h2>' +
-    (isPublic ? '<div class="mut" style="margin-bottom:10px">ส่งลิงก์นี้ให้ใครก็ได้ เปิดได้เลยโดยไม่ต้องล็อกอิน ถ้าเว็บใช้ห้องออนไลน์ ลองเปิดลิงก์นี้พร้อมกัน 2 เครื่องเพื่อทดสอบ</div>'
-              : '<div class="notice">โหมดซ่อน: มีแค่คุณที่เปิดลิงก์นี้ได้ (เปิดสองแท็บเพื่อทดสอบห้องออนไลน์ได้) กด "เผยแพร่สาธารณะ" แล้วบันทึกอีกครั้งเมื่อพร้อม</div>') +
+    (isPublic ? '<div class="mut" style="margin-bottom:10px">ส่งลิงก์นี้ให้ใครก็ได้ เปิดได้เลย</div>'
+              : '<div class="notice">โหมดซ่อน: มีแค่คุณที่เปิดลิงก์นี้ได้</div>') +
     '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">' +
     '<div class="row" style="margin-top:12px">' +
     '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
@@ -1753,35 +1484,28 @@ function showSiteLink(slug, isPublic) {
 async function applyTemplate(key) {
   const t = SITE_TPL[key];
   if (!t) return;
-  if (siteDirty && !(await askConfirm('เปลี่ยนแม่แบบจะแทนที่โค้ดที่เขียนไว้ ต้องการต่อไหม?'))) { $('#sTpl').value = 'blank'; return; }
-  siteMode = 'split';
-  siteTab = null;
+  if (siteDirty && !(await askConfirm('เปลี่ยนแม่แบบจะแทนที่โค้ดที่เขียนไว้?'))) { $('#sTpl').value = 'blank'; return; }
+  siteMode = 'split'; siteTab = null;
   sHtml = t.html; sCss = t.css; sJs = t.js;
   if (!$('#sTitle').value.trim()) $('#sTitle').value = t.title;
-  applyModeUI();
-  siteDirty = false;
+  applyModeUI(); siteDirty = false;
 }
 async function changeSiteMode(m) {
   if (m === siteMode) return;
   saveTabValue();
   if (m === 'full' && (sCss.trim() || sJs.trim())) {
-    if (!(await askConfirm('โหมดเต็มหน้าจะรวม CSS และ JavaScript เข้าไปใน HTML ไฟล์เดียว ต้องการต่อไหม?'))) return;
+    if (!(await askConfirm('โหมดเต็มหน้าจะรวม CSS และ JavaScript เข้าไปใน HTML ไฟล์เดียว?'))) return;
     sHtml = buildSitePage('split', $('#sTitle').value, sHtml, sCss, sJs);
     sCss = ''; sJs = '';
   }
-  siteMode = m;
-  siteTab = null;
-  applyModeUI();
-  siteDirty = true;
+  siteMode = m; siteTab = null;
+  applyModeUI(); siteDirty = true;
 }
-
-// --- ที่เก็บข้อมูลของเว็บ (เจ้าของ) ---
 async function loadSiteData() {
   if (!siteEditing) return;
   try {
     const d = await api('GET', '/api/sites/' + siteEditing + '/data');
-    $('#sdInfo').textContent = 'ใช้ไป ' + (d.usage.bytes / 1024).toFixed(1) + ' / ' + Math.round(d.usage.limit / 1024) + ' KB · ' +
-      d.usage.keys + ' คีย์ · ออนไลน์ตอนนี้ ' + d.usage.online + ' คน';
+    $('#sdInfo').textContent = 'ใช้ไป ' + (d.usage.bytes / 1024).toFixed(1) + ' / ' + Math.round(d.usage.limit / 1024) + ' KB · ' + d.usage.keys + ' คีย์ · ออนไลน์ตอนนี้ ' + d.usage.online + ' คน';
     sdItems = {};
     $('#sdList').innerHTML = d.items.map((it) => {
       sdItems[it.key] = it;
@@ -1794,7 +1518,7 @@ async function loadSiteData() {
 function pickSiteKey(key) {
   const it = sdItems[key];
   if (!it) return;
-  if (it.truncated) return toast('ค่ายาวเกินกว่าจะแก้ในหน้านี้ (ลบแล้วเขียนใหม่ผ่านโค้ดเว็บได้)');
+  if (it.truncated) return toast('ค่ายาวเกินกว่าจะแก้ในหน้านี้');
   $('#sdKey').value = key;
   $('#sdVal').value = it.json;
 }
@@ -1805,33 +1529,24 @@ async function saveSiteKey() {
   const raw = $('#sdVal').value;
   let value;
   try { value = JSON.parse(raw); } catch { value = raw; }
-  try {
-    await api('PUT', '/api/sites/' + siteEditing + '/data', { key, value });
-    toast('บันทึกคีย์แล้ว');
-    loadSiteData();
-  } catch (e) { toast(e.message); }
+  try { await api('PUT', '/api/sites/' + siteEditing + '/data', { key, value }); toast('บันทึกคีย์แล้ว'); loadSiteData(); }
+  catch (e) { toast(e.message); }
 }
 async function deleteSiteKey(key) {
-  try {
-    await api('DELETE', '/api/sites/' + siteEditing + '/data', { key });
-    loadSiteData();
-  } catch (e) { toast(e.message); }
+  try { await api('DELETE', '/api/sites/' + siteEditing + '/data', { key }); loadSiteData(); }
+  catch (e) { toast(e.message); }
 }
 async function clearSiteData() {
   if (!siteEditing) return;
-  if (!(await askConfirm('ล้างข้อมูลทั้งหมดของเว็บนี้ (รวมข้อมูลส่วนตัวของผู้เข้าชมทุกคน) ย้อนกลับไม่ได้ ต้องการต่อไหม?', 'ล้างทั้งหมด'))) return;
-  try {
-    await api('DELETE', '/api/sites/' + siteEditing + '/data', { all: true });
-    toast('ล้างข้อมูลแล้ว');
-    loadSiteData();
-  } catch (e) { toast(e.message); }
+  if (!(await askConfirm('ล้างข้อมูลทั้งหมดของเว็บนี้?'))) return;
+  try { await api('DELETE', '/api/sites/' + siteEditing + '/data', { all: true }); toast('ล้างข้อมูลแล้ว'); loadSiteData(); }
+  catch (e) { toast(e.message); }
 }
 
 /* ---------- แชท ---------- */
 function setUnread(n) {
   $('#pip').classList.toggle('hide', !n);
-  const m = $('#mcnt');
-  m.textContent = n > 99 ? '99+' : n;
+  const m = $('#mcnt'); m.textContent = n > 99 ? '99+' : n;
   m.classList.toggle('hide', !n);
 }
 async function loadChatList() {
@@ -1852,30 +1567,22 @@ function renderChatList() {
     return '<div class="ci' + (c.id === curChat ? ' on' : '') + '" data-id="' + c.id + '"><div class="av">' + esc(c.other.slice(0, 1)) +
       '</div><div class="m"><b>@' + esc(c.other) + '</b><small>' + esc(c.postTitle) + '</small><small>' + esc(last) + '</small></div>' +
       (unread ? '<span class="ub">' + unread + '</span>' : '') + '</div>';
-  }).join('') || '<div class="empty">ยังไม่มีแชท กดติดต่อคนขายจากโพสต์ได้เลย</div>';
+  }).join('') || '<div class="empty">ยังไม่มีแชท</div>';
 }
 function showThread(on) {
   $('#thread').classList.toggle('hide', !on);
   $('#cEmpty').classList.toggle('hide', on);
 }
-function clearAttach() {
-  attach = null;
-  $('#fileIn').value = '';
-  $('#attBar').classList.add('hide');
-}
+function clearAttach() { attach = null; $('#fileIn').value = ''; $('#attBar').classList.add('hide'); }
 async function openChat(id) {
   curChat = id; thrTotal = 0;
   $('#msgs').innerHTML = '';
-  clearAttach();
-  $('#cin').value = '';
-  $('#cin').style.height = '';
+  clearAttach(); $('#cin').value = ''; $('#cin').style.height = '';
   $('#chatwrap').classList.add('open');
   showThread(true);
-  lastChatsKey = '';
-  renderChatList();
+  lastChatsKey = ''; renderChatList();
   await loadThread();
-  const box = $('#msgs');
-  box.scrollTop = box.scrollHeight;
+  const box = $('#msgs'); box.scrollTop = box.scrollHeight;
 }
 function msgNode(m) {
   const div = document.createElement('div');
@@ -1891,10 +1598,8 @@ function msgNode(m) {
   h += '<div class="tm">' + hhmm(m.t) + '</div>';
   div.innerHTML = h;
   if (m.text) {
-    const t = div.querySelector(m.code ? '.codem' : '.tx');
-    t.textContent = m.text;
-    const cp = div.querySelector('.cp');
-    if (cp) cp.onclick = () => copyText(m.text);
+    const t = div.querySelector(m.code ? '.codem' : '.tx'); t.textContent = m.text;
+    const cp = div.querySelector('.cp'); if (cp) cp.onclick = () => copyText(m.text);
   }
   const img = div.querySelector('img');
   if (img) img.onclick = () => openModal('<img alt="" src="/media/' + img.dataset.full + '" style="width:100%;border-radius:10px;margin-top:30px">');
@@ -1926,8 +1631,7 @@ async function sendMsg() {
   if (!curChat || sending) return;
   const text = $('#cin').value;
   if (!text.trim() && !attach) return;
-  sending = true;
-  $('#sendBtn').disabled = true;
+  sending = true; $('#sendBtn').disabled = true;
   try {
     let mediaId = null;
     if (attach) {
@@ -1936,28 +1640,90 @@ async function sendMsg() {
       mediaId = r.id;
     }
     await api('POST', '/api/chats/' + curChat + '/messages', { text, mediaId });
-    $('#cin').value = '';
-    $('#cin').style.height = '';
+    $('#cin').value = ''; $('#cin').style.height = '';
     clearAttach();
     await loadThread();
-    const box = $('#msgs');
-    box.scrollTop = box.scrollHeight;
+    const box = $('#msgs'); box.scrollTop = box.scrollHeight;
   } catch (e) { toast(e.message); }
-  sending = false;
-  $('#sendBtn').disabled = false;
+  sending = false; $('#sendBtn').disabled = false;
 }
 async function sendPostCode() {
   if (!curChat) return;
-  if (!(await askConfirm('ส่งโค้ดของโพสต์นี้ให้อีกฝ่ายในแชท?', 'ส่งโค้ด'))) return;
-  try {
-    await api('POST', '/api/chats/' + curChat + '/messages', { sendPostCode: true });
-    await loadThread();
-    const box = $('#msgs');
-    box.scrollTop = box.scrollHeight;
-  } catch (e) { toast(e.message); }
+  if (!(await askConfirm('ส่งโค้ดของโพสต์นี้ให้อีกฝ่าย?', 'ส่งโค้ด'))) return;
+  try { await api('POST', '/api/chats/' + curChat + '/messages', { sendPostCode: true }); await loadThread(); const box = $('#msgs'); box.scrollTop = box.scrollHeight; }
+  catch (e) { toast(e.message); }
 }
 
-/* ---------- ผูกปุ่มต่างๆ (แยกเป็นกลุ่ม ถ้ากลุ่มไหนพัง กลุ่มที่เหลือยังทำงานต่อ) ---------- */
+/* ---------- แอดมิน ---------- */
+async function loadAdmin() {
+  const listEl = document.getElementById('adList');
+  if (!listEl) return;
+  try {
+    const d = await api('GET', '/api/admin/users');
+    document.getElementById('adCount').textContent = '(' + d.users.length + ' คน)';
+    listEl.innerHTML = d.users.map((u) => {
+      const badge = [];
+      if (u.admin) badge.push('<span class="tag paid">ADMIN</span>');
+      if (u.paid) badge.push('<span class="tag paid">PAID</span>');
+      else if (u.trialExpired) badge.push('<span class="tag danger">หมดอายุ</span>');
+      else if (u.trialEnds) badge.push('<span class="tag">เหลือ ' + Math.max(0, Math.ceil((u.trialEnds - Date.now()) / 86400000)) + ' วัน</span>');
+      if (!u.emailVerified) badge.push('<span class="tag">ยังไม่ยืนยันอีเมล</span>');
+      return '<div class="adcard" data-u="' + esc(u.username) + '">' +
+        '<div class="adhead">' +
+        '<div style="min-width:0;flex:1"><b>@' + esc(u.username) + '</b> ' + badge.join(' ') +
+        '<div class="mut" style="font-size:12px;margin-top:3px">' + esc(u.email || '(ไม่มีอีเมล)') + '</div>' +
+        '<div class="mut" style="font-size:12px">บอท ' + u.bots + ' · เว็บ ' + u.sites + ' · โพสต์ ' + u.posts + '</div></div>' +
+        '<label style="display:flex;gap:6px;align-items:center;font-size:13px;flex:none"><input type="checkbox" class="adChk" data-u="' + esc(u.username) + '" style="width:20px;height:20px"> จัดการ</label>' +
+        '</div>' +
+        '<div class="adbody" style="display:none">' +
+        '<div><label>โควต้าบอท</label><input class="inp" type="number" min="0" max="999" value="' + u.maxBots + '" data-f="maxBots"></div>' +
+        '<div><label>โควต้าเว็บ</label><input class="inp" type="number" min="0" max="999" value="' + u.maxSites + '" data-f="maxSites"></div>' +
+        '</div>' +
+        '<div class="adfoot" style="display:none">' +
+        '<button class="btn solid" data-act="save">บันทึกโควต้า</button>' +
+        '<button class="btn" data-act="extend">+30 วัน</button>' +
+        '<button class="btn" data-act="toggle-paid">' + (u.paid ? 'ยกเลิก PAID' : 'ตั้งเป็น PAID') + '</button>' +
+        '<button class="btn danger" data-act="delete">ลบบัญชี + ข้อมูลทั้งหมด</button>' +
+        '</div></div>';
+    }).join('') || '<div class="mut">ไม่มีผู้ใช้</div>';
+    // bind checkbox
+    listEl.querySelectorAll('.adChk').forEach((chk) => {
+      chk.addEventListener('change', () => {
+        const box = chk.closest('.adcard');
+        const show = chk.checked;
+        box.querySelector('.adbody').style.display = show ? 'grid' : 'none';
+        box.querySelector('.adfoot').style.display = show ? 'flex' : 'none';
+      });
+    });
+    // bind actions
+    listEl.querySelectorAll('[data-act]').forEach((btn) => {
+      btn.onclick = async () => {
+        const card = btn.closest('.adcard');
+        const u = card.dataset.u;
+        const act = btn.dataset.act;
+        if (act === 'save') {
+          const mb = parseInt(card.querySelector('[data-f="maxBots"]').value, 10);
+          const ms = parseInt(card.querySelector('[data-f="maxSites"]').value, 10);
+          try { await api('POST', '/api/admin/update', { username: u, maxBots: mb, maxSites: ms }); toast('บันทึกแล้ว'); }
+          catch (e) { toast(e.message); }
+        } else if (act === 'extend') {
+          try { await api('POST', '/api/admin/update', { username: u, extendDays: 30 }); toast('+30 วัน'); loadAdmin(); }
+          catch (e) { toast(e.message); }
+        } else if (act === 'toggle-paid') {
+          const isPaid = btn.textContent.includes('ยกเลิก');
+          try { await api('POST', '/api/admin/update', { username: u, paid: !isPaid }); toast('อัปเดตแล้ว'); loadAdmin(); }
+          catch (e) { toast(e.message); }
+        } else if (act === 'delete') {
+          if (!(await askConfirm('ลบบัญชี @' + u + ' และข้อมูลทั้งหมด (บอท เว็บ โพสต์ แชท ไฟล์มีเดีย) ถาวร?', 'ลบถาวร'))) return;
+          try { await api('POST', '/api/admin/delete-user', { username: u }); toast('ลบแล้ว'); loadAdmin(); }
+          catch (e) { toast(e.message); }
+        }
+      };
+    });
+  } catch (e) { listEl.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
+}
+
+/* ---------- ผูกปุ่ม ---------- */
 function safe(label, fn) {
   try { fn(); }
   catch (e) {
@@ -1979,7 +1745,15 @@ safe('เข้าสู่ระบบ', function () {
   $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
   $('#aGo').onclick = authGo;
   $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
-  $('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#ap').focus(); });
+  $('#ae').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
+  $('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#aeWrap').classList.contains('hide') ? $('#ap').focus() : $('#ae').focus(); });
+});
+
+safe('ยืนยันอีเมล', function () {
+  $('#vGo').onclick = doVerify;
+  $('#vResend').onclick = doResend;
+  $('#vLogout').onclick = logout;
+  $('#vCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') doVerify(); });
 });
 
 safe('เมนู', function () {
@@ -1990,7 +1764,7 @@ safe('เมนู', function () {
     if (!b) return;
     menuOpen(false);
     if (b.id === 'outBtn') return logout();
-    setPage(b.dataset.pg);
+    if (b.dataset.pg) setPage(b.dataset.pg);
   });
   $('#brandBtn').onclick = () => setPage('home');
   $$('[data-go]').forEach((b) => (b.onclick = () => setPage(b.dataset.go)));
@@ -2015,32 +1789,26 @@ safe('รันบอท', function () {
       const d = await api('POST', '/api/bots', { name: $('#newName').value || 'บอทใหม่', lang, code: TPL[lang] });
       $('#newName').value = '';
       bots = (await api('GET', '/api/bots')).bots;
-      setDirty(false);
-      cur = null; shownId = null;
-      await select(d.id);
-      setView('code');
-    } catch (e) { toast(e.message); }
+      setDirty(false); cur = null; shownId = null;
+      await select(d.id); setView('code');
+    } catch (e) { handleApiError(e); }
   };
-  const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { toast(e.message); } };
+  const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { handleApiError(e); } };
   $('#saveBtn').onclick = doSave;
   $('#saveBtn2').onclick = doSave;
   $('#runBtn').onclick = async () => {
     try {
       await saveBot();
       await api('POST', '/api/bots/' + cur + '/start');
-      await tickRun();
-      setView('log');
-    } catch (e) { toast(e.message); }
+      await tickRun(); setView('log');
+    } catch (e) { handleApiError(e); }
   };
-  $('#stopBtn').onclick = async () => {
-    try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); }
-  };
+  $('#stopBtn').onclick = async () => { try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); } };
   $('#delBtn').onclick = async () => {
     if (!(await askConfirm('ลบบอทนี้ถาวร?', 'ลบบอท'))) return;
     try {
       await api('DELETE', '/api/bots/' + cur);
-      setDirty(false);
-      cur = null; shownId = null; lastTabsKey = '';
+      setDirty(false); cur = null; shownId = null; lastTabsKey = '';
       await tickRun();
     } catch (e) { toast(e.message); }
   };
@@ -2058,10 +1826,7 @@ safe('ไลบรารี', function () {
     const have = ta.value.split(/\s+/).filter(Boolean);
     if (!have.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
   });
-  $('#libList').addEventListener('click', (e) => {
-    const x = e.target.closest('[data-rm]');
-    if (x) removeLib(x.dataset.rm);
-  });
+  $('#libList').addEventListener('click', (e) => { const x = e.target.closest('[data-rm]'); if (x) removeLib(x.dataset.rm); });
 });
 
 safe('ตลาดโค้ด', function () {
@@ -2094,8 +1859,7 @@ safe('เว็บสาธารณะ', function () {
   $('#siteNew').onclick = startNewSite;
   $('#siteBack').onclick = () => setPage('sites');
   $('#sfSeg').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
+    const b = e.target.closest('button'); if (!b) return;
     sFilter = b.dataset.f;
     $$('#sfSeg button').forEach((x) => x.classList.toggle('on', x === b));
     renderSites();
@@ -2104,11 +1868,8 @@ safe('เว็บสาธารณะ', function () {
   $('#sModeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) changeSiteMode(b.dataset.m); });
   $('#sTabSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setSiteTab(b.dataset.t); });
   $('#sPubSeg').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    sPublic = b.dataset.v === '1';
-    applyPubUI();
-    siteDirty = true;
+    const b = e.target.closest('button'); if (!b) return;
+    sPublic = b.dataset.v === '1'; applyPubUI(); siteDirty = true;
   });
   $('#sTpl').addEventListener('change', (e) => applyTemplate(e.target.value));
   $('#sSlug').addEventListener('input', (e) => {
@@ -2123,10 +1884,8 @@ safe('เว็บสาธารณะ', function () {
   $('#sdSet').onclick = saveSiteKey;
   $('#sdClear').onclick = clearSiteData;
   $('#sdList').addEventListener('click', (e) => {
-    const del = e.target.closest('[data-sdel]');
-    if (del) return deleteSiteKey(del.dataset.sdel);
-    const it = e.target.closest('[data-skey]');
-    if (it) pickSiteKey(it.dataset.skey);
+    const del = e.target.closest('[data-sdel]'); if (del) return deleteSiteKey(del.dataset.sdel);
+    const it = e.target.closest('[data-skey]'); if (it) pickSiteKey(it.dataset.skey);
   });
 });
 
@@ -2136,8 +1895,7 @@ safe('แชท', function () {
     curChat = null; thrTotal = 0;
     $('#chatwrap').classList.remove('open');
     showThread(false);
-    lastChatsKey = '';
-    renderChatList();
+    lastChatsKey = ''; renderChatList();
   };
   $('#attachBtn').onclick = () => $('#fileIn').click();
   $('#attX').onclick = clearAttach;
@@ -2145,7 +1903,7 @@ safe('แชท', function () {
     const f = e.target.files[0];
     if (!f) return;
     const okType = IMG_OK.includes(f.type) || ['video/mp4', 'video/webm', 'video/quicktime'].includes(f.type);
-    if (!okType) { toast('รองรับรูป (jpg png gif webp) และวิดีโอ (mp4 webm mov)'); e.target.value = ''; return; }
+    if (!okType) { toast('รองรับรูป/วิดีโอที่กำหนด'); e.target.value = ''; return; }
     const lim = f.type.startsWith('video/') ? 30 : 10;
     if (f.size > lim * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน ' + lim + ' MB'); e.target.value = ''; return; }
     attach = f;
@@ -2163,14 +1921,23 @@ safe('แชท', function () {
   });
 });
 
-/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
+safe('แอดมิน', function () {
+  const adRef = document.getElementById('adRef');
+  if (adRef) adRef.onclick = loadAdmin;
+  const adToggle = document.getElementById('adToggle');
+  if (adToggle) adToggle.onclick = async () => {
+    try { const d = await api('POST', '/api/admin/toggle'); toast(d.adminUi ? 'เปิด UI แอดมิน' : 'ปิด UI แอดมิน'); }
+    catch (e) { toast(e.message); }
+  };
+});
+
+/* ---------- เริ่มต้น ---------- */
 safe('หน้าเข้าสู่ระบบ', function () { setMode('login'); });
 api('GET', '/api/me').then(
-  (d) => enter(d.user),
+  (d) => enter(d),
   (e) => {
-    if (e && e.status && e.status < 500) toAuth();               // 401 = ยังไม่ล็อกอิน -> หน้าล็อกอิน
-    else bootFail('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ หรือเซิร์ฟเวอร์ตอบผิดปกติ' + (e && e.status ? ' (HTTP ' + e.status + ')' : '') +
-      '\nเช็กสถานะ Deployments บน Railway แล้วลองรีเฟรช');
+    if (e && e.status && e.status < 500) toAuth();
+    else bootFail('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' + (e && e.status ? ' (HTTP ' + e.status + ')' : ''));
   }
 );
 window.__alexaReady = true;
