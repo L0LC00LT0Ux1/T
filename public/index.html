@@ -4,6 +4,34 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
+<script>
+// ตาข่ายนิรภัย: ถ้าสคริปต์หลักพัง จะโชว์ข้อความผิดพลาดบนจอ แทนหน้าจอดำเปล่าๆ
+(function () {
+  var box = null;
+  function show(msg) {
+    try {
+      if (!box) {
+        box = document.createElement('div');
+        box.style.cssText = 'position:fixed;left:10px;right:10px;top:10px;z-index:99999;padding:12px 14px;border:1px solid #ff4d4f;border-radius:12px;background:#1a0709;color:#ffb3b5;font:13px/1.5 system-ui,sans-serif;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto';
+        box.onclick = function () { if (box && box.parentNode) box.parentNode.removeChild(box); box = null; };
+        (document.body || document.documentElement).appendChild(box);
+      }
+      box.textContent = 'หน้าเว็บทำงานผิดพลาด (แคปหน้านี้ส่งให้ผู้พัฒนาได้ แตะที่กล่องเพื่อปิด)\n\n' + msg;
+    } catch (e) {}
+  }
+  window.__alexaFatal = show;
+  window.addEventListener('error', function (e) {
+    show((e.message || 'error') + (e.lineno ? '\nบรรทัด ' + e.lineno + ':' + (e.colno || 0) : ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    if (window.__alexaReady) return;
+    show('promise: ' + ((e.reason && e.reason.message) || e.reason));
+  });
+  setTimeout(function () {
+    if (!window.__alexaReady) show('สคริปต์หลักยังไม่ทำงานหลังผ่านไป 6 วินาที\nไฟล์ index.html อาจวางไม่ครบ (ท้ายไฟล์ต้องมีแท็ก html ปิด) หรือโหลดไม่สำเร็จ ลองรีเฟรชหรือล้างแคชของเบราว์เซอร์');
+  }, 6000);
+})();
+</script>
 <title>Alexa Hub</title>
 <style>
 :root{--tx:#f2f2f2;--mut:#8a8a8a;--line:rgba(255,255,255,.16);--line2:rgba(255,255,255,.34);--panel:rgba(12,12,12,.78);--red:#ff4d4f}
@@ -11,6 +39,11 @@
 html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
 .hide{display:none!important}
+
+/* ---------- หน้าโหลด ---------- */
+#boot{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9a9a9a;font-size:13px;letter-spacing:.3em}
+.spin{width:28px;height:28px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
 
 /* ---------- พื้นหลัง: ไฟขาว ---------- */
 .bg{position:fixed;inset:0;z-index:-1;background:#000;overflow:hidden}
@@ -286,6 +319,9 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
+
+<!-- ===== หน้าโหลด (หายไปเองเมื่อแอปพร้อม) ===== -->
+<div id="boot"><div class="spin"></div><div>ALEXA HUB</div></div>
 
 <!-- ===== เข้าสู่ระบบ / สมัครสมาชิก ===== -->
 <div id="auth" class="hide">
@@ -649,6 +685,11 @@ const ic = (n, f) => '<svg class="ic' + (f ? ' f' : '') + '"><use href="#i-' + n
 const hhmm = (t) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
 const dmy = (t) => new Date(t).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 const baht = (n) => '฿' + Number(n).toLocaleString('th-TH');
+
+// หน้าโหลด + แจ้งความผิดพลาดตอนเริ่มต้น
+const bootEl = document.getElementById('boot');
+function hideBoot() { if (bootEl) bootEl.classList.add('hide'); }
+function bootFail(msg) { hideBoot(); if (window.__alexaFatal) window.__alexaFatal(msg); }
 
 const TPL = {
   py: [
@@ -1088,6 +1129,7 @@ async function authGo() {
   $('#aGo').disabled = false;
 }
 function toAuth() {
+  hideBoot();
   clearInterval(timer); timer = null;
   me = null; bots = []; cur = null; shownId = null; lastTabsKey = ''; lastLibKey = '';
   chats = []; curChat = null; thrTotal = 0; attach = null; lastChatsKey = ''; lastPostsKey = '';
@@ -1099,6 +1141,7 @@ function toAuth() {
   $('#auth').classList.remove('hide');
 }
 function enter(user) {
+  hideBoot();
   me = user;
   $('#who').textContent = user;
   $('#auth').classList.add('hide');
@@ -1485,13 +1528,13 @@ function buildSitePage(m, title, html, css, js) {
 }
 // สำหรับตัวอย่าง: แทรกตัวช่วย alexa เหมือนที่เซิร์ฟเวอร์ทำกับหน้าเว็บจริง
 function buildPreview(m, title, html, css, js) {
-  const page = buildSitePage(m, title, html, css, js);
+  const pg = buildSitePage(m, title, html, css, js);
   const tag = '<scr' + 'ipt src="' + location.origin + '/s/_sdk.js"></scr' + 'ipt>';
   for (const re of [/<head(\s[^>]*)?>/i, /<html(\s[^>]*)?>/i, /<!doctype[^>]*>/i]) {
-    const x = re.exec(page);
-    if (x) { const i = x.index + x[0].length; return page.slice(0, i) + tag + page.slice(i); }
+    const x = re.exec(pg);
+    if (x) { const i = x.index + x[0].length; return pg.slice(0, i) + tag + pg.slice(i); }
   }
-  return tag + page;
+  return tag + pg;
 }
 const siteUrl = (slug) => location.origin + '/s/' + slug;
 
@@ -1577,7 +1620,7 @@ const TAB_HINT = {
   html: 'เขียน HTML ของหน้าเว็บ (เฉพาะส่วนใน body) เช่น <h1>สวัสดี</h1>',
   css: 'เขียน CSS ตกแต่งหน้าเว็บ เช่น body { background: #000; }',
   js: 'เขียน JavaScript ให้เว็บมีปฏิกิริยา เช่น console.log("hi");',
-  full: 'วาง HTML ทั้งหน้า (ตั้งแต่ <!doctype html> ถึง </html>) ใส่ <style> และ <script> เองได้'
+  full: 'วาง HTML ทั้งหน้า (ตั้งแต่ doctype ถึงแท็ก html ปิด) ใส่ style และ script เองได้'
 };
 function setSiteTab(t) {
   saveTabValue();
@@ -1879,68 +1922,14 @@ async function sendPostCode() {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- ผูกปุ่มต่างๆ ---------- */
-$('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
-$('#aGo').onclick = authGo;
-$('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
-$('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#ap').focus(); });
-
-$('#menuBtn').onclick = (e) => { e.stopPropagation(); menuOpen($('#menu').classList.contains('hide')); };
-document.addEventListener('click', (e) => { if (!e.target.closest('#menu')) menuOpen(false); });
-$('#menu').addEventListener('click', (e) => {
-  const b = e.target.closest('.mi');
-  if (!b) return;
-  menuOpen(false);
-  if (b.id === 'outBtn') return logout();
-  setPage(b.dataset.pg);
-});
-$('#brandBtn').onclick = () => setPage('home');
-$$('[data-go]').forEach((b) => (b.onclick = () => setPage(b.dataset.go)));
-
-$('#mback').onclick = closeModal;
-$('#mclose').onclick = closeModal;
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); menuOpen(false); } });
-
-// รันบอท
-$('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
-$('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
-$('#toLog').onclick = () => setView('log');
-$('#addBtn').onclick = async () => {
-  const lang = $('#newLang').value;
-  try {
-    const d = await api('POST', '/api/bots', { name: $('#newName').value || 'บอทใหม่', lang, code: TPL[lang] });
-    $('#newName').value = '';
-    bots = (await api('GET', '/api/bots')).bots;
-    setDirty(false);
-    cur = null; shownId = null;
-    await select(d.id);
-    setView('code');
-  } catch (e) { toast(e.message); }
-};
-const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { toast(e.message); } };
-$('#saveBtn').onclick = doSave;
-$('#saveBtn2').onclick = doSave;
-$('#runBtn').onclick = async () => {
-  try {
-    await saveBot();
-    await api('POST', '/api/bots/' + cur + '/start');
-    await tickRun();
-    setView('log');
-  } catch (e) { toast(e.message); }
-};
-$('#stopBtn').onclick = async () => {
-  try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); }
-};
-$('#delBtn').onclick = async () => {
-  if (!confirm('ลบบอทนี้ถาวร?')) return;
-  try {
-    await api('DELETE', '/api/bots/' + cur);
-    setDirty(false);
-    cur = null; shownId = null; lastTabsKey = '';
-    await tickRun();
-  } catch (e) { toast(e.message); }
-};
-['#code', '#name', '#token'].forEach((s) => $(s).addEventListener('input', () => setDirty(true)));
+/* ---------- ผูกปุ่มต่างๆ (แยกเป็นกลุ่ม ถ้ากลุ่มไหนพัง กลุ่มที่เหลือยังทำงานต่อ) ---------- */
+function safe(label, fn) {
+  try { fn(); }
+  catch (e) {
+    console.error('[' + label + ']', e);
+    if (window.__alexaFatal) window.__alexaFatal('ส่วน "' + label + '" เริ่มทำงานไม่ได้: ' + e.message);
+  }
+}
 function tabInsert(e) {
   if (e.key === 'Tab') {
     e.preventDefault();
@@ -1950,6 +1939,8 @@ function tabInsert(e) {
     t.dispatchEvent(new Event('input'));
   }
 }
-$('#code').addEventListener('keydown', tabInsert);
-$('#sCode').addEventListener('keydown', tabInsert);
-window.addEventListener('be
+
+safe('เข้าสู่ระบบ', function () {
+  $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
+  $('#aGo').onclick = authGo;
+  $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); }
