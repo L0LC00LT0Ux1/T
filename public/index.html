@@ -364,7 +364,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 
     <!-- ===== หน้าหลัก ===== -->
     <section id="pg-home" class="page">
-      <div class="warn hide" id="persistWarn">คำเตือน: เซิร์ฟเวอร์นี้ยังไม่ได้ต่อ Volume ข้อมูลทั้งหมด (บัญชี บอท ไลบรารี โพสต์ แชท เว็บสาธารณะ และข้อมูลของเว็บ) จะหายทุกครั้งที่อัปเดตเว็บ ผู้ดูแลต้องต่อ Volume ที่ Railway แล้วตั้ง Mount path เป็น /data</div>
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
         <h1>ALEXA HUB</h1>
@@ -387,7 +386,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
             <li>บอทและโทเคนของคุณคนอื่นมองไม่เห็น แชทเห็นได้เฉพาะสองฝ่ายที่คุยกัน</li>
             <li>เว็บที่ตั้งเป็นสาธารณะ ใครก็เปิดดูได้โดยไม่ต้องล็อกอิน (ตั้งเป็นร่างเพื่อซ่อนได้) และเว็บแต่ละแห่งเห็นเพียงรหัสสุ่มของผู้เข้าชม ไม่เห็นชื่อบัญชีหรือข้อมูลอื่นของคุณ</li>
           </ul>
-          <div class="note">หมายเหตุ: ผู้ดูแลเว็บเข้าถึงข้อมูลบนเซิร์ฟเวอร์ได้ในทางเทคนิค จึงไม่ควรส่งข้อมูลลับในแชท</div>
         </div>
       </div>
       <div class="quick">
@@ -1244,7 +1242,6 @@ async function loadStats() {
   set('#sBots', d.runningBots);
   set('#sMembers', d.users);
   set('#sPosts', d.posts);
-  $('#persistWarn').classList.toggle('hide', !!d.persistent);
 }
 
 /* ---------- รันบอท ---------- */
