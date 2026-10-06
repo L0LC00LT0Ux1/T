@@ -5,6 +5,8 @@ const path = require('path');
 const crypto = require('crypto');
 const util = require('util');
 const { spawn } = require('child_process');
+const { Bucket } = require("@upstash/blob"); // 👈 เพิ่มการนำเข้า Upstash Blob
+
 const scrypt = util.promisify(crypto.scrypt);
 
 const PORT = process.env.PORT || 3000;
@@ -26,6 +28,20 @@ const SITE_KEYS_MAX = 2000;
 const ROOM_MAX = parseInt(process.env.ROOM_MAX_CLIENTS || '40', 10);                    // คนต่อห้อง
 const SITE_ROOMS_MAX = 20;                                                               // ห้องต่อเว็บ
 const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);                              // ผู้ออนไลน์พร้อมกันทั้งเซิร์ฟเวอร์
+
+// ---------------- 🚀 ตั้งค่า Upstash Blob ----------------
+let bucket = null;
+if (process.env.UPSTASH_BLOB_TOKEN) {
+  try {
+    bucket = Bucket.fromEnv();
+    console.log('✅ Upstash Blob connected successfully');
+  } catch (e) {
+    console.error('❌ Upstash Blob init error:', e.message);
+  }
+} else {
+  console.warn('⚠️ UPSTASH_BLOB_TOKEN not found. Media will be stored locally.');
+}
+// --------------------------------------------------------
 
 // ที่เก็บข้อมูล: DATA_DIR > จุดเมานต์ Volume ของ Railway > ./data
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
@@ -71,7 +87,6 @@ try {
 }
 
 // ---------- โหลด/บันทึกไฟล์ข้อมูลแบบปลอดภัย ----------
-// อ่านไฟล์หลักก่อน ถ้าพัง ย้ายไฟล์เสียไว้ข้างๆ แล้วลองไฟล์สำรอง (.bak)
 function loadJson(file) {
   for (const f of [file, file + '.bak']) {
     try {
@@ -85,7 +100,6 @@ function loadJson(file) {
   }
   return null;
 }
-// สำรองไฟล์เก่าไว้เป็น .bak อย่างน้อยทุก 5 นาที (ก่อนเขียนทับ)
 function backupOnce(file) {
   try {
     const b = file + '.bak';
@@ -96,7 +110,6 @@ function backupOnce(file) {
     }
   } catch {}
 }
-// สำเนารายวัน เก็บย้อนหลัง 7 วัน
 function snapshot() {
   const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   for (const [name, file] of [['state', STATE_FILE], ['hub', HUB_FILE], ['sitedata', SITEDATA_FILE]]) {
@@ -122,7 +135,7 @@ let state = { users: {}, sessions: {}, bots: {}, nextUid: 20000 };
   if (r) {
     const raw = r.data;
     if (raw && raw.users && raw.bots) state = Object.assign(state, raw);
-    else if (raw && typeof raw === 'object') state.bots = raw; // ไฟล์รุ่นเก่า (ยังไม่มีผู้ใช้)
+    else if (raw && typeof raw === 'object') state.bots = raw;
     if (r.from !== STATE_FILE) console.error('ไฟล์หลักเสีย ใช้ไฟล์สำรองแทน:', r.from);
   }
 }
@@ -157,8 +170,7 @@ function saveHub() {
   hubTimer = setTimeout(() => { hubTimer = null; try { writeHub(); } catch (e) { console.error('saveHub:', e.message); } }, 400);
 }
 
-// ---------- sitedata: ที่เก็บข้อมูลของเว็บสาธารณะ (แยกไฟล์ เพราะเขียนบ่อย) ----------
-// รูปแบบ: { sites: { slug: { shared: { 'k:คีย์': {v: JSON-string, t} }, priv: { รหัสผู้เข้าชม: { 'k:คีย์': {...} } } } } }
+// ---------- sitedata: ที่เก็บข้อมูลของเว็บสาธารณะ ----------
 let sdata = { sites: {} };
 {
   const r = loadJson(SITEDATA_FILE);
@@ -206,7 +218,6 @@ const pub = (b, full) => Object.assign({
   libs: b.libs || [], installing: !!installs[b.id]
 }, full ? { code: readCode(b) } : {});
 
-// ตั้งสิทธิ์โฟลเดอร์/ไฟล์ของบอท ให้เจ้าของเท่านั้นที่อ่านได้
 function fixPerm(b) {
   if (!ISOLATE) return;
   const u = getUser(b.owner);
@@ -236,7 +247,6 @@ function createBot(owner, name, lang, code) {
 }
 const botCount = (u) => Object.values(bots).filter((b) => b.owner === u).length;
 
-// ---------- start / stop ----------
 function startBot(id) {
   const b = bots[id];
   if (!b || procs[id]) return;
@@ -252,7 +262,6 @@ function startBot(id) {
   if (!fs.existsSync(file)) fs.writeFileSync(file, '');
   fixPerm(b);
 
-  // ส่ง env เฉพาะที่จำเป็น ไม่ส่งตัวแปรลับของเซิร์ฟเวอร์ให้โค้ดผู้ใช้
   const env = {
     PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
     HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
@@ -285,7 +294,7 @@ function startBot(id) {
   const done = (status, msg) => {
     if (procs[id] !== child) return;
     delete procs[id];
-    if (shuttingDown) return; // เซิร์ฟเวอร์ปิดเอง -> คงสถานะเดิมไว้ เพื่อเปิดใหม่อัตโนมัติ
+    if (shuttingDown) return;
     const cur = bots[id];
     if (!cur) return;
     cur.status = status;
@@ -322,13 +331,10 @@ function stopBot(id) {
   });
 }
 
-// ---------- ติดตั้งไลบรารี (pip / npm) ----------
-// ตัวอักษรที่อนุญาต: ขึ้นต้นด้วยตัวอักษร/ตัวเลข/@ เท่านั้น (กันการแทรกออปชันอย่าง -r หรือ --index-url)
 function validSpec(s) {
   return typeof s === 'string' && s.length <= 200 &&
     /^[A-Za-z0-9@][A-Za-z0-9@\/._:+#^~<>=!*|,%?&\[\]-]*$/.test(s) && !/^file:/i.test(s);
 }
-// คีย์ชื่อแพ็กเกจ (ไว้แทนที่เวอร์ชันเก่าเมื่อติดตั้งซ้ำ)
 function keyOf(lang, spec) {
   if (/^(git\+|github:|https?:)/i.test(spec)) return spec;
   if (lang === 'py') return spec.split(/[=<>!~\[;]/)[0].toLowerCase().replace(/[-_.]+/g, '-');
@@ -336,17 +342,14 @@ function keyOf(lang, spec) {
   return m ? m[1].toLowerCase() : spec;
 }
 
-// คำสั่งที่ตัดทิ้งได้ถ้าอยู่หน้าสุดของบรรทัด (เผื่อผู้ใช้วางคำสั่งเต็ม)
 const CMD_WORDS = {
   py: new Set(['sudo', 'python', 'python3', 'py', 'pip', 'pip3', '-m', 'install']),
   js: new Set(['sudo', 'npm', 'npx', 'yarn', 'pnpm', 'bun', 'install', 'i', 'add'])
 };
-// ออปชันที่ตามด้วยค่า (ต้องข้ามค่าด้วย)
 const FLAG_WITH_ARG = new Set([
   '-r', '--requirement', '-c', '--constraint', '-i', '--index-url', '--extra-index-url',
   '-f', '--find-links', '-t', '--target', '--prefix', '--registry', '--cache', '--root', '--proxy'
 ]);
-// แยกคอมมาเฉพาะตอนที่ตามด้วยชื่อแพ็กเกจใหม่ (ไม่แยกในเวอร์ชัน เช่น >=2,<3 หรือใน [extras,ย่อย])
 function splitCommas(tok) {
   const out = [];
   let depth = 0, curTok = '';
@@ -364,7 +367,6 @@ function splitCommas(tok) {
   if (curTok) out.push(curTok);
   return out;
 }
-// แปลงข้อความที่ผู้ใช้พิมพ์/วาง ให้เป็นรายการแพ็กเกจ
 function parseSpecs(lang, text) {
   const cmds = CMD_WORDS[lang] || CMD_WORDS.py;
   const found = [], ignored = [], bad = [];
@@ -455,7 +457,6 @@ function runInstall(id, specs) {
   });
 }
 
-// o = { add:[...] } | { remove:'spec' } | { reinstall:true }
 async function libJob(id, o) {
   const b = bots[id];
   if (!b) return;
@@ -480,7 +481,6 @@ async function libJob(id, o) {
     let r = { ok: true, msg: '' };
     if (specs.length) r = await runInstall(id, specs);
 
-    // เกินเพดานขนาด: ยกเลิกรอบนี้ แล้วคืนไลบรารีเดิม (ไม่ลบของเดิมทิ้ง)
     if (r.ok && specs.length && dirSize(libDir(b)) > MAX_LIB) {
       const prev = (b.libs || []).slice();
       wipeLibs(b);
@@ -517,7 +517,6 @@ async function libJob(id, o) {
   }
 }
 
-// ---------- session / auth ----------
 const SESSION_MS = 30 * 24 * 3600 * 1000;
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
@@ -568,7 +567,6 @@ function msgLimited(u) {
   return f.n > 40;
 }
 
-// ---------- ตลาดโค้ด / แชท ----------
 const pubPost = (p, me) => ({
   id: p.id, owner: p.owner, title: p.title, lang: p.lang, cover: p.cover || '',
   price: p.price, created: p.created, mine: p.owner === me
@@ -615,13 +613,50 @@ function saveStream(req, fp, limit) {
   });
 }
 
-function serveMedia(req, res, id, me) {
+// 👈 ฟังก์ชันใหม่: อ่าน Stream เป็น Buffer เพื่อส่งไป Upstash
+function readStreamToBuffer(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let n = 0;
+    req.on('data', (c) => {
+      n += c.length;
+      if (n > limit) {
+        req.destroy();
+        return reject(Object.assign(new Error('ไฟล์ใหญ่เกิน ' + Math.round(limit / 1048576) + ' MB'), { status: 413 }));
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      if (n === 0) return reject(Object.assign(new Error('ไฟล์ว่างเปล่า'), { status: 400 }));
+      resolve(Buffer.concat(chunks));
+    });
+    req.on('error', reject);
+    req.on('aborted', () => reject(new Error('การอัปโหลดถูกยกเลิก')));
+  });
+}
+
+// 👈 แก้ไข serveMedia ให้เป็น async และรองรับ Upstash
+async function serveMedia(req, res, id, me) {
   const m = own(hub.media, id);
   if (!m) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   if (m.scope !== 'cover') {
     const c = own(hub.chats, m.scope);
     if (!c || !c.members.includes(me)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   }
+
+  // 🚀 ถ้าไฟล์อยู่ใน Upstash Blob ให้สร้าง Signed URL แล้ว Redirect ไป
+  if (m.upstashPath && bucket) {
+    try {
+      const url = await bucket.signedReadUrl(m.upstashPath, { expiresIn: 3600 });
+      res.writeHead(302, { Location: url, 'Cache-Control': 'private, max-age=3600' });
+      return res.end();
+    } catch (e) {
+      console.error('Upstash sign error:', e);
+      return json(res, 500, { error: 'ไม่สามารถสร้างลิงก์ไฟล์ได้' });
+    }
+  }
+
+  // Fallback: ถ้าไม่มี Upstash หรือเป็นไฟล์เก่า ให้เสิร์ฟจาก Local Disk
   const fp = path.join(MEDIA_DIR, id + '.' + m.ext);
   let size;
   try { size = fs.statSync(fp).size; } catch { return json(res, 404, { error: 'ไม่เจอไฟล์' }); }
@@ -644,7 +679,6 @@ function serveMedia(req, res, id, me) {
   s.pipe(res);
 }
 
-// ---------- เว็บสาธารณะ ----------
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{2,29}$/;
 const SITE_KEY_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const ROOM_RE = /^[A-Za-z0-9_-]{1,32}$/;
@@ -657,7 +691,6 @@ const pubSite = (x, me) => ({
   views: x.views || 0, created: x.created, updated: x.updated, mine: x.owner === me
 });
 
-// ประกอบหน้าเว็บจาก HTML + CSS + JS (โหมด full = ใช้ HTML เต็มหน้าตามที่เขียน)
 function buildSitePage(s) {
   if (s.mode === 'full') return s.html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
@@ -666,7 +699,6 @@ function buildSitePage(s) {
     s.html + '\n<script>\n' + s.js + '\n</script></body></html>';
 }
 
-// แทรกตัวช่วย alexa (ห้องออนไลน์ + ที่เก็บข้อมูล) เข้าไปในหน้าเว็บ
 const SDK_TAG = '<script src="/s/_sdk.js"></script>';
 function injectSdk(html) {
   for (const re of [/<head(\s[^>]*)?>/i, /<html(\s[^>]*)?>/i, /<!doctype[^>]*>/i]) {
@@ -690,9 +722,6 @@ function validateSite(d) {
   return { title, mode, html, css, js, public: d.public !== false };
 }
 
-// ===== ตัวช่วยฝั่งเบราว์เซอร์ (ส่งไปทำงานในหน้าเว็บของสมาชิก: /s/_sdk.js) =====
-// เว็บของสมาชิกทำงานในกล่อง sandbox จึงคุยกับเซิร์ฟเวอร์ตรงๆ ไม่ได้ ต้องผ่าน "ตัวกลาง" (alexaHost)
-// ที่เป็นโค้ดของเราเอง ซึ่งกำหนดเองว่าเว็บนี้ใช้ข้อมูลของ slug ไหน
 function alexaSdk() {
   if (window.alexa) return;
   var parentWin = window.parent;
@@ -739,7 +768,6 @@ function alexaSdk() {
     }
   });
 
-  // จับมือกับหน้าตัวกลาง ถ้าไม่มีตอบ (เช่น โหมดตัวอย่างในหน้าสร้างเว็บ) จะใช้โหมดออฟไลน์
   var tries = 0;
   function hello() {
     if (decided || !hasParent) return;
@@ -754,7 +782,6 @@ function alexaSdk() {
     resolveReady();
   }, 2200);
 
-  // ---------- ห้องออนไลน์ ----------
   function Room(name, opts) {
     var self = this;
     this.name = name;
@@ -819,7 +846,6 @@ function alexaSdk() {
     return room;
   }
 
-  // ---------- ที่เก็บข้อมูล ----------
   var local = { shared: {}, mine: {} };
   var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
   function localDb(op, scope, a) {
@@ -866,13 +892,11 @@ function alexaSdk() {
   window.alexa = api;
 }
 
-// ตัวกลางในหน้า /s/<slug> (โค้ดของเราเอง ไม่ใช่ของสมาชิก): รับคำสั่งจากเว็บใน iframe แล้วคุยกับเซิร์ฟเวอร์แทน
 function alexaHost() {
   var mm = /^\/s\/([a-z0-9][a-z0-9-]{2,29})/.exec(location.pathname);
   if (!mm) return;
   var slug = mm[1], base = '/sapi/' + slug;
   var ROOM_RE = /^[A-Za-z0-9_-]{1,32}$/;
-  // รหัสลับของผู้เข้าชม แยกตามเว็บ (เว็บอื่นเห็นรหัสของคุณไม่ได้)
   var cid = null, lsKey = 'alexa_cid_' + slug;
   try { cid = localStorage.getItem(lsKey); } catch (e) {}
   if (!cid || !/^[a-f0-9]{32}$/.test(cid)) {
@@ -981,13 +1005,11 @@ function serveSite(req, res, slug, raw) {
       '<h2>ไม่พบเว็บนี้</h2><p><a style="color:#fff" href="/">ALEXA HUB</a></p></body>');
   }
   if (raw) {
-    // เปิดตรงๆ ไม่ผ่านหน้าตัวกลาง -> พากลับไปหน้าตัวกลาง (ไม่งั้นห้องออนไลน์/ที่เก็บข้อมูลจะไม่ทำงาน)
     const dest = req.headers['sec-fetch-dest'];
     if (dest && dest !== 'iframe' && dest !== 'frame') {
       res.writeHead(302, { Location: '/s/' + site.slug });
       return res.end();
     }
-    // ตัวเว็บจริง: sandbox ไม่มี allow-same-origin จึงอ่านคุกกี้/เรียก API ของแอปหลักไม่ได้
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Security-Policy': 'sandbox ' + SANDBOX_FLAGS,
@@ -1027,8 +1049,7 @@ function serveSite(req, res, slug, raw) {
     'allow="fullscreen; autoplay; gamepad" referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
 }
 
-// ---------- ห้องออนไลน์ (Server-Sent Events) ----------
-const rooms = new Map();            // 'slug|ห้อง' -> { slug, name, clients: Map(cid -> client), history: [], emptySince }
+const rooms = new Map();
 let sseCount = 0;
 const sseByIp = new Map();
 const sapiHits = new Map();
@@ -1104,7 +1125,7 @@ function sapiEvents(req, res, url, site, ip) {
   }
   const old = room.clients.get(cid);
   if (!old && room.clients.size >= ROOM_MAX) return fatal('ห้องเต็ม');
-  if (old) { room.clients.delete(cid); try { old.res.end(); } catch {} }   // เชื่อมต่อซ้ำ: แทนที่ของเดิม
+  if (old) { room.clients.delete(cid); try { old.res.end(); } catch {} }
 
   req.socket.setNoDelay(true);
   req.socket.setTimeout(0);
@@ -1136,8 +1157,6 @@ function sapiEvents(req, res, url, site, ip) {
   });
 }
 
-// ---------- ที่เก็บข้อมูลของเว็บ ----------
-// คีย์เก็บในรูป 'k:ชื่อ' เสมอ กันชื่ออย่าง __proto__ ทำให้โครงสร้างข้อมูลเพี้ยน
 function dbExec(slug, cid, scope, op, d) {
   const site = () => sdata.sites[slug] || null;
   const store = (create) => {
@@ -1210,7 +1229,6 @@ function dbExec(slug, cid, scope, op, d) {
     }
     const vs = JSON.stringify(value);
     if (vs.length > SITE_VALUE_MAX) return { status: 413, error: 'ข้อมูลใหญ่เกิน ' + Math.round(SITE_VALUE_MAX / 1024) + ' KB ต่อคีย์' };
-    // ตรวจเพดานรวมของทั้งเว็บ
     const s = site();
     let bytes = 0, keys = 0;
     if (s) {
@@ -1277,7 +1295,6 @@ async function handleSapi(req, res, url, slug, kind) {
     return json(res, 200, { ok: true });
   }
 
-  // kind === 'db'
   const op = String(d.op || '');
   if (op === 'whoami') return json(res, 200, { result: pidOf(site.slug, cid) });
   if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'เรียกที่เก็บข้อมูลถี่เกินไป' });
@@ -1287,7 +1304,6 @@ async function handleSapi(req, res, url, slug, kind) {
   return json(res, 200, { result: out.result });
 }
 
-// ---------- http ----------
 function json(res, code, obj, headers) {
   res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' }, headers || {}));
   res.end(JSON.stringify(obj));
@@ -1322,13 +1338,11 @@ const server = http.createServer(async (req, res) => {
       return res.end(fs.readFileSync(path.join(__dirname, 'public', 'index.html')));
     }
 
-    // ----- ตัวช่วยของเว็บสาธารณะ + ตัวเว็บ (ไม่ต้องล็อกอินก็เปิดดูได้) -----
     if (M === 'GET' && p === '/s/_sdk.js') return serveJs(res, SDK_JS);
     if (M === 'GET' && p === '/s/_host.js') return serveJs(res, HOST_JS);
     const sm = p.match(/^\/s\/([a-z0-9][a-z0-9-]{2,29})(\/raw)?$/);
     if (sm && M === 'GET') return serveSite(req, res, sm[1], !!sm[2]);
 
-    // ----- ห้องออนไลน์ + ที่เก็บข้อมูลของเว็บ (เรียกผ่านหน้าตัวกลางของเว็บเท่านั้น) -----
     const sapi = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/(events|send|db)$/);
     if (sapi) return await handleSapi(req, res, url, sapi[1], sapi[2]);
 
@@ -1336,7 +1350,6 @@ const server = http.createServer(async (req, res) => {
 
     const ip = ipOf(req);
 
-    // ----- สมัครสมาชิก (สมัครเสร็จเข้าสู่ระบบให้เลย) -----
     if (p === '/api/register' && M === 'POST') {
       if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัครอยู่' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป ลองใหม่ภายหลัง' });
@@ -1350,7 +1363,6 @@ const server = http.createServer(async (req, res) => {
       const hash = (await scrypt(pw, salt, 64)).toString('hex');
       if (getUser(u)) return json(res, 409, { error: 'ชื่อนี้มีคนใช้แล้ว' });
       state.users[u] = { salt, hash, uid: state.nextUid++, created: Date.now() };
-      // บอทรุ่นเก่าที่ยังไม่มีเจ้าของ ยกให้คนแรกที่สมัคร
       if (Object.keys(state.users).length === 1) {
         for (const b of Object.values(bots)) if (!b.owner) { b.owner = u; fixPerm(b); }
       }
@@ -1359,7 +1371,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ----- เข้าสู่ระบบ -----
     if (p === '/api/login' && M === 'POST') {
       if (tooMany(loginFails, ip, 10, 600000)) return json(res, 429, { error: 'ลองผิดบ่อยเกินไป รอ 10 นาทีนะ' });
       const d = await readBody(req);
@@ -1374,24 +1385,21 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ----- ออกจากระบบ -----
     if (p === '/api/logout' && M === 'POST') {
       const tok = getCookie(req, 'sid');
       if (tok) { delete state.sessions[sha(tok)]; save(); }
       return json(res, 200, { ok: true }, { 'Set-Cookie': sessCookie(req, '', 0) });
     }
 
-    // ----- ต่อจากนี้ต้องล็อกอินแล้ว -----
     const me = userOf(req);
     if (!me) return json(res, 401, { error: 'unauthorized' });
     if (p === '/api/me') return json(res, 200, { user: me });
 
-    // ----- ไฟล์รูป/วิดีโอ -----
+    // 👈 แก้ไข: ให้ await serveMedia เนื่องจากเป็น async แล้ว
     const mm = p.match(/^\/media\/([a-f0-9]{24})$/);
-    if (mm && M === 'GET') return serveMedia(req, res, mm[1], me);
+    if (mm && M === 'GET') return await serveMedia(req, res, mm[1], me);
     if (p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
 
-    // ----- สถิติหน้าหลัก -----
     if (p === '/api/stats' && M === 'GET') {
       const run = Object.values(bots).filter((b) => b.status === 'running');
       return json(res, 200, {
@@ -1403,7 +1411,6 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // ----- เว็บสาธารณะ: จัดการ -----
     if (p === '/api/sites') {
       if (M === 'GET') {
         const list = Object.values(hub.sites).filter((x) => x.public || x.owner === me)
@@ -1434,7 +1441,6 @@ const server = http.createServer(async (req, res) => {
       const site = own(hub.sites, stm[1]);
       if (!site || (!site.public && site.owner !== me)) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
 
-      // ที่เก็บข้อมูลของเว็บ (เจ้าของเท่านั้น)
       if (stm[2] === 'data') {
         if (site.owner !== me) return json(res, 403, { error: 'ดูข้อมูลได้เฉพาะเจ้าของเว็บ' });
         if (M === 'GET') {
@@ -1481,7 +1487,7 @@ const server = http.createServer(async (req, res) => {
         if (v.error) return json(res, 400, { error: v.error });
         Object.assign(site, v, { updated: Date.now() });
         saveHub();
-        if (!site.public) closeSiteRooms(site.slug);     // เปลี่ยนเป็นร่าง: เตะคนในห้องออก
+        if (!site.public) closeSiteRooms(site.slug);
         return json(res, 200, pubSite(site, me));
       }
       if (M === 'DELETE') {
@@ -1495,7 +1501,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ----- อัปโหลดไฟล์ (ส่งเป็น binary ตรงๆ) -----
+    // 👈 แก้ไข /api/upload ให้รองรับ Upstash
     if (p === '/api/upload' && M === 'POST') {
       const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
       const ext = own(MIME, ct);
@@ -1512,17 +1518,49 @@ const server = http.createServer(async (req, res) => {
       }
       const used = Object.values(hub.media).filter((x) => x.owner === me).reduce((a, x) => a + x.size, 0);
       if (used + len > QUOTA) return json(res, 413, { error: 'พื้นที่อัปโหลดของคุณเต็ม' }, { Connection: 'close' });
+
       const id = crypto.randomBytes(12).toString('hex');
-      const fp = path.join(MEDIA_DIR, id + '.' + ext);
-      let size;
-      try { size = await saveStream(req, fp, limit); }
-      catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
-      hub.media[id] = { owner: me, mime: ct, ext, kind, scope, size, t: Date.now() };
+      let size = 0;
+      let upstashPath = null;
+
+      if (bucket) {
+        // 🚀 กรณีใช้ Upstash Blob
+        let bodyBuffer;
+        try {
+          bodyBuffer = await readStreamToBuffer(req, limit);
+        } catch (e) {
+          return json(res, e.status || 400, { error: e.message }, { Connection: 'close' });
+        }
+        size = bodyBuffer.length;
+        if (used + size > QUOTA) {
+          return json(res, 413, { error: 'พื้นที่อัปโหลดของคุณเต็ม' });
+        }
+        upstashPath = `media/${id}.${ext}`;
+        try {
+          await bucket.put(upstashPath, bodyBuffer, { contentType: ct });
+        } catch (e) {
+          console.error('Upstash put error:', e);
+          return json(res, 500, { error: 'อัปโหลดไปยัง Upstash ไม่สำเร็จ' });
+        }
+      } else {
+        // Fallback: กรณีไม่มี Upstash
+        const fp = path.join(MEDIA_DIR, id + '.' + ext);
+        try {
+          size = await saveStream(req, fp, limit);
+        } catch (e) {
+          return json(res, e.status || 400, { error: e.message }, { Connection: 'close' });
+        }
+        if (used + size > QUOTA) {
+          fs.unlink(fp, () => {});
+          return json(res, 413, { error: 'พื้นที่อัปโหลดของคุณเต็ม' });
+        }
+      }
+
+      hub.media[id] = { owner: me, mime: ct, ext, kind, scope, size, upstashPath, t: Date.now() };
       saveHub();
       return json(res, 200, { id, kind });
     }
 
-    // ----- ตลาดโค้ด -----
     if (p === '/api/posts') {
       if (M === 'GET') {
         const list = Object.values(hub.posts).sort((a, b) => b.created - a.created).slice(0, 200);
@@ -1585,7 +1623,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ----- แชท -----
     if (p === '/api/chats') {
       if (M === 'GET') {
         const list = Object.values(hub.chats).filter((c) => c.members.includes(me))
@@ -1656,7 +1693,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ----- บอท (เฉพาะของตัวเอง) -----
     if (p === '/api/bots') {
       if (M === 'GET') {
         const list = Object.values(bots).filter((b) => b.owner === me).sort((a, b) => (a.created || 0) - (b.created || 0));
@@ -1672,7 +1708,6 @@ const server = http.createServer(async (req, res) => {
     }
 
     const m = p.match(/^\/api\/bots\/([a-f0-9]{8})(?:\/(start|stop|logs|libs))?$/);
-    // บอทของคนอื่น = ตอบว่า "ไม่เจอ" เหมือนไม่มีอยู่จริง
     if (!m || !bots[m[1]] || bots[m[1]].owner !== me) return json(res, 404, { error: 'ไม่เจอบอทนี้' });
     const id = m[1], b = bots[id], sub = m[2];
 
@@ -1721,7 +1756,6 @@ const server = http.createServer(async (req, res) => {
         if (!(b.libs || []).includes(d.remove)) return json(res, 404, { error: 'ไม่เจอไลบรารีนี้ในรายการ' });
         o.remove = d.remove;
       } else {
-        // รับได้ทั้งข้อความดิบ (text) และรายการ (add)
         const raw = typeof d.text === 'string' ? d.text : (Array.isArray(d.add) ? d.add.map(String).join(' ') : '');
         const ps = parseSpecs(b.lang, raw);
         if (ps.bad.length) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + ps.bad.slice(0, 5).join(', ') + (ps.bad.length > 5 ? ' ...' : '') });
@@ -1748,7 +1782,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-// ---------- shutdown: ไม่แตะสถานะบอท เพื่อให้บูตใหม่แล้วเปิดบอทต่อ ----------
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -1764,11 +1797,9 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
-// ---------- boot ----------
 snapshot();
 setInterval(snapshot, 6 * 3600 * 1000);
 
-// เก็บกวาดทุก 5 นาที: ห้องว่างนานเกิน 30 นาที / ตัวนับที่ไม่ได้ใช้แล้ว
 setInterval(() => {
   const now = Date.now();
   for (const [k, r] of Array.from(rooms.entries())) {
