@@ -165,7 +165,7 @@ textarea.code:focus{border-color:var(--line2)}
 .pk:hover{background:rgba(255,255,255,.1)}
 .lib{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:rgba(0,0,0,.5)}
 .lib code{font:13px ui-monospace,Menlo,monospace;word-break:break-all}
-.lib .btn{min-height:32px;width:36px;padding:0}
+.lib .btn{min-height:32px;width:36px;padding:0;flex:none}
 .busy{margin-top:12px;padding:10px 14px;border:1px solid var(--line2);border-radius:12px;background:rgba(255,255,255,.07);font-weight:600}
 
 /* ---------- ตลาดโค้ด / เว็บสาธารณะ ---------- */
@@ -196,6 +196,10 @@ textarea.code:focus{border-color:var(--line2)}
 .slugrow .pre{display:flex;align-items:center;padding:0 10px;color:var(--mut);font:13px ui-monospace,Menlo,monospace;border-right:1px solid var(--line);white-space:nowrap}
 .slugrow .inp{border:0;border-radius:0;background:transparent;box-shadow:none}
 #sPrev{display:block;width:100%;height:62vh;border:1px solid var(--line);border-radius:10px;background:#fff}
+details.doc{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);padding:2px 14px 12px}
+details.doc summary{cursor:pointer;padding:12px 0;font-weight:700}
+details.doc .codebox{margin:8px 0 0;max-height:340px}
+#sDataBox{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 
 /* ---------- โมดัล / ทอสต์ ---------- */
 .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
@@ -324,11 +328,11 @@ textarea.code:focus{border-color:var(--line2)}
 
     <!-- ===== หน้าหลัก ===== -->
     <section id="pg-home" class="page">
-      <div class="warn hide" id="persistWarn">คำเตือน: เซิร์ฟเวอร์นี้ยังไม่ได้ต่อ Volume ข้อมูลทั้งหมด (บัญชี บอท ไลบรารี โพสต์ แชท เว็บสาธารณะ) จะหายทุกครั้งที่อัปเดตเว็บ ผู้ดูแลต้องต่อ Volume ที่ Railway แล้วตั้ง Mount path เป็น /data</div>
+      <div class="warn hide" id="persistWarn">คำเตือน: เซิร์ฟเวอร์นี้ยังไม่ได้ต่อ Volume ข้อมูลทั้งหมด (บัญชี บอท ไลบรารี โพสต์ แชท เว็บสาธารณะ และข้อมูลของเว็บ) จะหายทุกครั้งที่อัปเดตเว็บ ผู้ดูแลต้องต่อ Volume ที่ Railway แล้วตั้ง Mount path เป็น /data</div>
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
         <h1>ALEXA HUB</h1>
-        <p>ที่รันบอทดิสคอดตลอด 24 ชั่วโมง ตลาดแจก/ซื้อขายโค้ดบอท และที่สร้างเว็บสาธารณะของสมาชิก</p>
+        <p>ที่รันบอทดิสคอดตลอด 24 ชั่วโมง ตลาดแจก/ซื้อขายโค้ดบอท และที่สร้างเว็บออนไลน์ของสมาชิก</p>
       </div>
       <div class="stats">
         <div class="stat panel"><div class="num" id="sUsers">-</div><div class="lbl">ผู้ใช้ที่กำลังรันบอท</div></div>
@@ -341,11 +345,11 @@ textarea.code:focus{border-color:var(--line2)}
         <div>
           <h3>ความเป็นส่วนตัวและความปลอดภัย</h3>
           <ul>
-            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช อ่านย้อนกลับไม่ได้) โค้ดและโทเคนบอทของคุณ โพสต์และเว็บที่คุณสร้าง และข้อความแชท</li>
+            <li>เก็บเฉพาะข้อมูลที่จำเป็นต่อการใช้งาน ได้แก่ ชื่อผู้ใช้ รหัสผ่าน (เก็บเป็นค่าแฮช อ่านย้อนกลับไม่ได้) โค้ดและโทเคนบอทของคุณ โพสต์ เว็บที่คุณสร้างพร้อมข้อมูลที่ผู้เข้าชมบันทึกไว้ในเว็บนั้น และข้อความแชท</li>
             <li>ไม่เก็บอีเมล เบอร์โทร หรือตำแหน่งที่ตั้ง และไม่บันทึก IP ของคุณลงข้อมูลของเว็บ</li>
             <li>ไม่ขายและไม่แชร์ข้อมูลให้บุคคลภายนอก</li>
             <li>บอทและโทเคนของคุณคนอื่นมองไม่เห็น แชทเห็นได้เฉพาะสองฝ่ายที่คุยกัน</li>
-            <li>เว็บที่คุณตั้งเป็นสาธารณะ ใครก็เปิดดูได้โดยไม่ต้องล็อกอิน (ตั้งเป็นร่างเพื่อซ่อนได้)</li>
+            <li>เว็บที่ตั้งเป็นสาธารณะ ใครก็เปิดดูได้โดยไม่ต้องล็อกอิน (ตั้งเป็นร่างเพื่อซ่อนได้) และเว็บแต่ละแห่งเห็นเพียงรหัสสุ่มของผู้เข้าชม ไม่เห็นชื่อบัญชีหรือข้อมูลอื่นของคุณ</li>
           </ul>
           <div class="note">หมายเหตุ: ผู้ดูแลเว็บเข้าถึงข้อมูลบนเซิร์ฟเวอร์ได้ในทางเทคนิค จึงไม่ควรส่งข้อมูลลับในแชท</div>
         </div>
@@ -488,10 +492,10 @@ textarea.code:focus{border-color:var(--line2)}
     <!-- ===== เว็บสาธารณะ: แกลเลอรี ===== -->
     <section id="pg-sites" class="page hide">
       <div class="ph row" style="justify-content:space-between">
-        <div><h2>เว็บสาธารณะ</h2><p>สร้างเว็บจาก HTML / CSS / JavaScript แล้วแชร์เป็นลิงก์ให้ใครก็เปิดได้</p></div>
+        <div><h2>เว็บสาธารณะ</h2><p>สร้างเว็บ HTML / CSS / JavaScript ออนไลน์ แชร์เป็นลิงก์ให้ใครก็เปิดได้</p></div>
         <button class="btn solid" id="siteNew"><svg class="ic"><use href="#i-plus"/></svg><span>สร้างเว็บ</span></button>
       </div>
-      <div class="notice">เว็บของสมาชิกทุกหน้าจะมีแถบเตือนด้านบน และทำงานในกล่องแยกที่เข้าถึงบัญชีของคุณไม่ได้ แต่ก็อย่ากรอกรหัสผ่านหรือข้อมูลสำคัญในเว็บของคนอื่น</div>
+      <div class="notice">เว็บของสมาชิกทำงานในกล่องแยกที่เข้าถึงบัญชีของคุณไม่ได้ แต่ก็ควรระวัง อย่ากรอกรหัสผ่านหรือข้อมูลสำคัญในเว็บของคนอื่น เพราะเว็บเหล่านี้ไม่มีแถบเตือนแยกจากเว็บทั่วไป</div>
       <div class="seg" id="sfSeg">
         <button data-f="all" class="on">ทั้งหมด</button>
         <button data-f="mine">ของฉัน</button>
@@ -517,6 +521,9 @@ textarea.code:focus{border-color:var(--line2)}
           <label class="l" for="sTpl">เริ่มจากแม่แบบ</label>
           <select class="inp" id="sTpl">
             <option value="blank">เว็บเปล่า (สวัสดีชาวโลก)</option>
+            <option value="chat">แชทออนไลน์ (หลายคนเห็นข้อความกัน)</option>
+            <option value="game">เกมตัวละคร (เห็นกันแบบเรียลไทม์)</option>
+            <option value="guestbook">สมุดเยี่ยม (ใช้ที่เก็บข้อมูล)</option>
             <option value="profile">หน้าแนะนำตัว</option>
             <option value="landing">หน้า Landing</option>
             <option value="counter">ตัวนับ (ใช้ JavaScript)</option>
@@ -537,9 +544,35 @@ textarea.code:focus{border-color:var(--line2)}
         </div>
         <textarea class="code" id="sCode" style="margin-top:10px;min-height:46vh" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
         <div id="sPrevBox" class="hide" style="margin-top:10px">
-          <iframe id="sPrev" sandbox="allow-scripts allow-forms allow-popups allow-modals" referrerpolicy="no-referrer"></iframe>
-          <div class="foot">ตัวอย่างนี้ทำงานในกล่องแยก localStorage และคุกกี้จะใช้ไม่ได้ (เหมือนหน้าเว็บจริง)</div>
+          <iframe id="sPrev" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock" referrerpolicy="no-referrer"></iframe>
+          <div class="foot">ตัวอย่างนี้ทำงานในกล่องแยกแบบออฟไลน์ ห้องออนไลน์และที่เก็บข้อมูลจะทำงานเฉพาะในเครื่องคุณ (จะออนไลน์จริงเมื่อเปิดผ่านลิงก์หลังบันทึก) localStorage และคุกกี้ใช้ไม่ได้เหมือนหน้าเว็บจริง</div>
         </div>
+
+        <details class="doc">
+          <summary>คู่มือ alexa API (ทำแชท / เกมออนไลน์ / เก็บข้อมูล)</summary>
+          <p class="foot">ใช้ได้ทันทีในโค้ด JavaScript ของเว็บ ไม่ต้องติดตั้งอะไรเพิ่ม ตัวอย่างที่พร้อมใช้อยู่ในแม่แบบ "แชทออนไลน์", "เกมตัวละคร" และ "สมุดเยี่ยม"</p>
+          <pre class="codebox">// ห้องออนไลน์: ทุกคนที่เปิดเว็บนี้และอยู่ห้องเดียวกันเห็นข้อมูลกันทันที
+var room = alexa.join("lobby", { name: "ชื่อเล่น" });
+room.on("hello", function (info) { /* info.peers = คนในห้อง, info.history = ข้อความเก่า */ });
+room.on("join", function (p) { /* p.id, p.name */ });
+room.on("leave", function (p) { });
+room.on("message", function (m) { /* m.from, m.name, m.data */ });
+room.send({ text: "สวัสดี" });          // ส่งให้ทุกคนในห้อง (รวมตัวเอง)
+room.send(data, { keep: true });       // เก็บ 50 ข้อความล่าสุดให้คนที่เข้าทีหลัง
+room.send(data, { self: false });      // ไม่ส่งกลับหาตัวเอง
+alexa.id                               // รหัสสุ่มของผู้เข้าชม (ไว้เช็ก m.from)
+
+// ที่เก็บข้อมูล (บันทึกถาวรบนเซิร์ฟเวอร์ ทุกอันคืนค่าเป็น Promise)
+alexa.db.set("note", "hi")             // ข้อมูลร่วม ทุกคนเห็น
+alexa.db.set("score", 10, "mine")      // ข้อมูลส่วนตัว เฉพาะผู้เข้าชมคนนี้ (ผูกกับเบราว์เซอร์)
+alexa.db.get("score", "mine").then(function (v) { })
+alexa.db.incr("visits")                // นับเพิ่ม +1 แล้วได้เลขใหม่
+alexa.db.list("msg:")                  // [{ key, value }]
+alexa.db.del("note")
+
+// ข้อจำกัด: ข้อความละไม่เกิน 8 KB, ข้อมูลต่อคีย์ไม่เกิน 64 KB,
+// ที่เก็บต่อเว็บรวมไม่เกิน 1 MB, ห้องละไม่เกิน 40 คน</pre>
+        </details>
 
         <label class="l">การเผยแพร่</label>
         <div class="seg" id="sPubSeg">
@@ -551,6 +584,22 @@ textarea.code:focus{border-color:var(--line2)}
         <div class="row">
           <button class="btn solid" id="sSave"><svg class="ic"><use href="#i-globe"/></svg><span>บันทึกและเผยแพร่</span></button>
           <button class="btn danger hide" id="sDel"><svg class="ic"><use href="#i-trash"/></svg><span>ลบเว็บ</span></button>
+        </div>
+
+        <div id="sDataBox" class="hide">
+          <div class="row" style="justify-content:space-between">
+            <div><b>ที่เก็บข้อมูลของเว็บ</b><div class="foot" id="sdInfo" style="margin-top:2px">-</div></div>
+            <div class="row">
+              <button class="btn" id="sdRef"><svg class="ic"><use href="#i-restart"/></svg><span>รีเฟรช</span></button>
+              <button class="btn danger" id="sdClear"><svg class="ic"><use href="#i-trash"/></svg><span>ล้างทั้งหมด</span></button>
+            </div>
+          </div>
+          <div id="sdList" style="margin-top:8px"></div>
+          <label class="l">เพิ่ม / แก้ข้อมูลร่วม</label>
+          <input class="inp" id="sdKey" maxlength="64" placeholder="ชื่อคีย์ เช่น title" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <textarea class="libin" id="sdVal" style="min-height:70px;margin-top:8px" spellcheck="false" placeholder='ค่า เช่น "สวัสดี" หรือ 123 หรือ {"a":1}'></textarea>
+          <div style="margin-top:8px"><button class="btn" id="sdSet"><svg class="ic"><use href="#i-save"/></svg><span>บันทึกคีย์</span></button></div>
+          <div class="foot">กดที่ชื่อคีย์เพื่อดึงค่ามาแก้ ข้อมูลส่วนตัวของผู้เข้าชม (แบบ "mine") ไม่แสดงที่นี่ แต่นับรวมในพื้นที่ ข้อมูลร่วมที่ผู้เข้าชมเขียนได้อาจถูกคนอื่นแก้ทับ ตรวจดูที่นี่เป็นระยะ</div>
         </div>
       </div>
     </section>
@@ -655,6 +704,200 @@ const SITE_TPL = {
     css: ['body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#000;color:#fff;font-family:system-ui,sans-serif}', 'h1{font-size:44px;margin:0 0 8px}'].join('\n'),
     js: 'console.log("เว็บพร้อมแล้ว");'
   },
+  chat: {
+    title: 'แชทออนไลน์',
+    html: [
+      '<div id="app">',
+      '  <div id="top"><b>แชทรวมออนไลน์</b><span id="online">กำลังเชื่อมต่อ...</span></div>',
+      '  <div id="log"></div>',
+      '  <form id="f">',
+      '    <input id="nick" placeholder="ชื่อเล่น" maxlength="16">',
+      '    <input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300" autocomplete="off">',
+      '    <button>ส่ง</button>',
+      '  </form>',
+      '</div>'
+    ].join('\n'),
+    css: [
+      '*{box-sizing:border-box}',
+      'body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}',
+      '#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:640px;margin:0 auto}',
+      '#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}',
+      '#online{color:#9a9a9a;font-size:14px}',
+      '#log{flex:1;overflow:auto;padding:14px 16px}',
+      '.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;word-break:break-word}',
+      '.m.me{background:#fff;color:#000;margin-left:30px}',
+      '#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}',
+      '#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}',
+      '#nick{width:28%}',
+      '#msg{flex:1}',
+      '#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}'
+    ].join('\n'),
+    js: [
+      'var nick = document.getElementById("nick");',
+      'nick.value = "ผู้เยี่ยมชม" + Math.floor(Math.random() * 900 + 100);',
+      'var logEl = document.getElementById("log");',
+      'var online = document.getElementById("online");',
+      'var room = alexa.join("lobby", { name: nick.value });',
+      'function add(who, text, mine) {',
+      '  var d = document.createElement("div");',
+      '  d.className = "m" + (mine ? " me" : "");',
+      '  var b = document.createElement("b");',
+      '  b.textContent = who + ": ";',
+      '  var s = document.createElement("span");',
+      '  s.textContent = text;',
+      '  d.appendChild(b); d.appendChild(s);',
+      '  logEl.appendChild(d);',
+      '  logEl.scrollTop = logEl.scrollHeight;',
+      '}',
+      'function show(m) {',
+      '  if (!m.data || typeof m.data.text !== "string") return;',
+      '  add(m.data.name || m.name || "?", m.data.text.slice(0, 300), m.from === alexa.id);',
+      '}',
+      'function count() { online.textContent = "ออนไลน์ " + room.peers.length + " คน"; }',
+      'room.on("hello", function (info) {',
+      '  count();',
+      '  logEl.innerHTML = "";',
+      '  (info.history || []).forEach(show);',
+      '});',
+      'room.on("join", count);',
+      'room.on("leave", count);',
+      'room.on("message", show);',
+      'room.on("error", function (e) { online.textContent = e.error || "เชื่อมต่อไม่ได้"; });',
+      'document.getElementById("f").onsubmit = function (e) {',
+      '  e.preventDefault();',
+      '  var box = document.getElementById("msg");',
+      '  var t = box.value.trim();',
+      '  if (!t) return;',
+      '  room.send({ text: t, name: nick.value.trim() || "?" }, { keep: true });',
+      '  box.value = "";',
+      '};'
+    ].join('\n')
+  },
+  game: {
+    title: 'เกมตัวละครออนไลน์',
+    html: [
+      '<canvas id="c"></canvas>',
+      '<div id="hud">ลากนิ้ว/เมาส์ หรือกดลูกศร/WASD เพื่อเดิน · ออนไลน์ <span id="n">1</span> คน</div>'
+    ].join('\n'),
+    css: [
+      'body{margin:0;overflow:hidden;background:#0a0a0a;touch-action:none}',
+      'canvas{display:block}',
+      '#hud{position:fixed;top:10px;left:10px;color:#bbb;font:13px system-ui,sans-serif;pointer-events:none}'
+    ].join('\n'),
+    js: [
+      'var c = document.getElementById("c"), g = c.getContext("2d");',
+      'function fit() { c.width = innerWidth; c.height = innerHeight; }',
+      'fit(); addEventListener("resize", fit);',
+      'var myName = "P" + Math.floor(Math.random() * 900 + 100);',
+      'var room = alexa.join("arena", { name: myName });',
+      'var me = { x: 150 + Math.random() * 200, y: 150 + Math.random() * 200 };',
+      'var others = {};',
+      'var keys = {}, target = null, down = false;',
+      'addEventListener("keydown", function (e) { keys[e.key.toLowerCase()] = true; });',
+      'addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });',
+      'c.addEventListener("pointerdown", function (e) { down = true; target = { x: e.clientX, y: e.clientY }; });',
+      'c.addEventListener("pointermove", function (e) { if (down) target = { x: e.clientX, y: e.clientY }; });',
+      'addEventListener("pointerup", function () { down = false; target = null; });',
+      'function colorOf(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360; return "hsl(" + h + ",80%,60%)"; }',
+      'room.on("hello", function () { others = {}; });',
+      'room.on("leave", function (p) { delete others[p.id]; });',
+      'room.on("message", function (m) {',
+      '  if (m.from === alexa.id || !m.data) return;',
+      '  others[m.from] = { x: m.data.x, y: m.data.y, name: m.name || "?", t: Date.now() };',
+      '});',
+      'function dot(x, y, col, name) {',
+      '  g.fillStyle = col; g.beginPath(); g.arc(x, y, 14, 0, 6.283); g.fill();',
+      '  g.fillStyle = "#ddd"; g.font = "12px system-ui"; g.textAlign = "center"; g.fillText(name, x, y - 22);',
+      '}',
+      'var lastSent = 0, sx = -1, sy = -1, prev = 0;',
+      'function loop(now) {',
+      '  var dt = Math.min(0.05, (now - (prev || now)) / 1000); prev = now;',
+      '  var dx = 0, dy = 0;',
+      '  if (keys.arrowleft || keys.a) dx -= 1;',
+      '  if (keys.arrowright || keys.d) dx += 1;',
+      '  if (keys.arrowup || keys.w) dy -= 1;',
+      '  if (keys.arrowdown || keys.s) dy += 1;',
+      '  if (target) {',
+      '    var vx = target.x - me.x, vy = target.y - me.y, d = Math.sqrt(vx * vx + vy * vy);',
+      '    if (d > 6) { dx = vx / d; dy = vy / d; }',
+      '  }',
+      '  me.x = Math.max(16, Math.min(c.width - 16, me.x + dx * 240 * dt));',
+      '  me.y = Math.max(16, Math.min(c.height - 16, me.y + dy * 240 * dt));',
+      '  var rx = Math.round(me.x), ry = Math.round(me.y);',
+      '  if (((rx !== sx || ry !== sy) && now - lastSent > 66) || now - lastSent > 1000) {',
+      '    lastSent = now; sx = rx; sy = ry;',
+      '    room.send({ x: rx, y: ry }, { self: false });',
+      '  }',
+      '  g.clearRect(0, 0, c.width, c.height);',
+      '  var count = 1, t = Date.now();',
+      '  for (var id in others) {',
+      '    var o = others[id];',
+      '    if (t - o.t > 6000) { delete others[id]; continue; }',
+      '    count++;',
+      '    dot(o.x, o.y, colorOf(id), o.name);',
+      '  }',
+      '  dot(me.x, me.y, "#fff", myName + " (คุณ)");',
+      '  document.getElementById("n").textContent = count;',
+      '  requestAnimationFrame(loop);',
+      '}',
+      'requestAnimationFrame(loop);'
+    ].join('\n')
+  },
+  guestbook: {
+    title: 'สมุดเยี่ยม',
+    html: [
+      '<main>',
+      '  <h1>สมุดเยี่ยม</h1>',
+      '  <p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p>',
+      '  <form id="f">',
+      '    <input id="nm" placeholder="ชื่อ" maxlength="20">',
+      '    <textarea id="tx" placeholder="เขียนข้อความถึงเจ้าของเว็บ" maxlength="200"></textarea>',
+      '    <button>ฝากข้อความ</button>',
+      '  </form>',
+      '  <div id="list"></div>',
+      '</main>'
+    ].join('\n'),
+    css: [
+      '*{box-sizing:border-box}',
+      'body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}',
+      'main{max-width:560px;margin:0 auto;padding:28px 16px}',
+      'h1{margin:0 0 4px}',
+      '.sub{color:#9a9a9a;margin:0 0 20px}',
+      '#f{display:grid;gap:8px;margin-bottom:22px}',
+      '#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}',
+      '#f textarea{min-height:80px;resize:vertical}',
+      '#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}',
+      '.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}',
+      '.e p{margin:4px 0 0;color:#ccc;word-break:break-word}'
+    ].join('\n'),
+    js: [
+      'var list = document.getElementById("list");',
+      'function render(items) {',
+      '  items = items.filter(function (it) { return it.value && typeof it.value.text === "string"; });',
+      '  items.sort(function (a, b) { return (b.value.t || 0) - (a.value.t || 0); });',
+      '  list.innerHTML = "";',
+      '  items.slice(0, 50).forEach(function (it) {',
+      '    var d = document.createElement("div"); d.className = "e";',
+      '    var b = document.createElement("b"); b.textContent = it.value.name || "ไม่ระบุชื่อ";',
+      '    var p = document.createElement("p"); p.textContent = it.value.text;',
+      '    d.appendChild(b); d.appendChild(p); list.appendChild(d);',
+      '  });',
+      '}',
+      'function load() { alexa.db.list("msg:").then(render); }',
+      'alexa.db.incr("visits").then(function (n) { document.getElementById("visits").textContent = n; });',
+      'document.getElementById("f").onsubmit = function (e) {',
+      '  e.preventDefault();',
+      '  var text = document.getElementById("tx").value.trim();',
+      '  if (!text) return;',
+      '  var id = "msg:" + Date.now() + "-" + Math.floor(Math.random() * 1000);',
+      '  alexa.db.set(id, { name: document.getElementById("nm").value.trim(), text: text, t: Date.now() })',
+      '    .then(function () { document.getElementById("tx").value = ""; load(); })',
+      '    .catch(function (err) { alert(err.message); });',
+      '};',
+      'load();',
+      'setInterval(load, 8000);'
+    ].join('\n')
+  },
   profile: {
     title: 'แนะนำตัว',
     html: [
@@ -752,7 +995,7 @@ let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastT
 // ตลาด / อัปโหลด
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
 // เว็บสาธารณะ
-let sites = [], sFilter = 'all', lastSitesKey = '';
+let sites = [], sFilter = 'all', lastSitesKey = '', sdItems = {};
 let siteEditing = null, siteMode = 'split', siteTab = null, sHtml = '', sCss = '', sJs = '', sPublic = true, siteDirty = false, siteSaving = false;
 // แชท
 let chats = [], curChat = null, thrTotal = 0, thrBusy = false, attach = null, sending = false, lastChatsKey = '';
@@ -1232,13 +1475,23 @@ async function doPublish() {
 }
 
 /* ---------- เว็บสาธารณะ ---------- */
-// ประกอบหน้าเว็บสำหรับตัวอย่าง (ต้องตรงกับที่เซิร์ฟเวอร์ประกอบจริง)
+// ประกอบหน้าเว็บแบบดิบ (ไม่มีตัวช่วย alexa) ใช้ตอนรวม HTML+CSS+JS เป็นไฟล์เดียว
 function buildSitePage(m, title, html, css, js) {
   if (m === 'full') return html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     '<title>' + esc(title) + '</title><style>\n' + css + '\n</style></head><body>\n' +
     html + '\n<scr' + 'ipt>\n' + js + '\n</scr' + 'ipt></body></html>';
+}
+// สำหรับตัวอย่าง: แทรกตัวช่วย alexa เหมือนที่เซิร์ฟเวอร์ทำกับหน้าเว็บจริง
+function buildPreview(m, title, html, css, js) {
+  const page = buildSitePage(m, title, html, css, js);
+  const tag = '<scr' + 'ipt src="' + location.origin + '/s/_sdk.js"></scr' + 'ipt>';
+  for (const re of [/<head(\s[^>]*)?>/i, /<html(\s[^>]*)?>/i, /<!doctype[^>]*>/i]) {
+    const x = re.exec(page);
+    if (x) { const i = x.index + x[0].length; return page.slice(0, i) + tag + page.slice(i); }
+  }
+  return tag + page;
 }
 const siteUrl = (slug) => location.origin + '/s/' + slug;
 
@@ -1303,7 +1556,7 @@ async function editSite(slug) {
   } catch (e) { toast(e.message); }
 }
 async function deleteSite(slug) {
-  if (!confirm('ลบเว็บนี้ถาวร? ลิงก์จะใช้ไม่ได้ทันที')) return;
+  if (!confirm('ลบเว็บนี้ถาวร? ลิงก์และข้อมูลของเว็บจะหายทันที')) return;
   try {
     await api('DELETE', '/api/sites/' + slug);
     closeModal();
@@ -1334,7 +1587,7 @@ function setSiteTab(t) {
   $('#sCode').classList.toggle('hide', prev);
   $('#sPrevBox').classList.toggle('hide', !prev);
   if (prev) {
-    $('#sPrev').srcdoc = buildSitePage(siteMode, $('#sTitle').value, sHtml, sCss, sJs);
+    $('#sPrev').srcdoc = buildPreview(siteMode, $('#sTitle').value, sHtml, sCss, sJs);
   } else {
     $('#sCode').value = t === 'html' ? sHtml : t === 'css' ? sCss : sJs;
     $('#sCode').placeholder = t === 'html' && siteMode === 'full' ? TAB_HINT.full : TAB_HINT[t];
@@ -1363,12 +1616,15 @@ async function openSiteEditor(slug, data) {
   $('#sTpl').value = 'blank';
   $('#siteHead').textContent = slug ? 'แก้ไขเว็บ' : 'สร้างเว็บสาธารณะ';
   $('#sDel').classList.toggle('hide', !slug);
+  $('#sDataBox').classList.toggle('hide', !slug);
   $('#sErr').textContent = '';
+  $('#sdKey').value = ''; $('#sdVal').value = '';
   siteTab = null;
   applyModeUI();
   applyPubUI();
   siteDirty = false;
   await setPage('site');
+  if (slug) loadSiteData();
 }
 function startNewSite() { openSiteEditor(null, null); }
 
@@ -1391,8 +1647,10 @@ async function saveSite() {
     $('#sSlug').disabled = true;
     $('#sTplBox').classList.add('hide');
     $('#sDel').classList.remove('hide');
+    $('#sDataBox').classList.remove('hide');
     $('#siteHead').textContent = 'แก้ไขเว็บ';
     showSiteLink(d.slug, d.public);
+    loadSiteData();
   } catch (e) {
     $('#sErr').textContent = e.message;
   }
@@ -1402,8 +1660,8 @@ async function saveSite() {
 function showSiteLink(slug, isPublic) {
   const url = siteUrl(slug);
   let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่างแล้ว') + '</h2>' +
-    (isPublic ? '<div class="mut" style="margin-bottom:10px">ส่งลิงก์นี้ให้ใครก็ได้ เปิดได้เลยโดยไม่ต้องล็อกอิน</div>'
-              : '<div class="notice">โหมดซ่อน: มีแค่คุณที่เปิดลิงก์นี้ได้ กด "เผยแพร่สาธารณะ" แล้วบันทึกอีกครั้งเมื่อพร้อม</div>') +
+    (isPublic ? '<div class="mut" style="margin-bottom:10px">ส่งลิงก์นี้ให้ใครก็ได้ เปิดได้เลยโดยไม่ต้องล็อกอิน ถ้าเว็บใช้ห้องออนไลน์ ลองเปิดลิงก์นี้พร้อมกัน 2 เครื่องเพื่อทดสอบ</div>'
+              : '<div class="notice">โหมดซ่อน: มีแค่คุณที่เปิดลิงก์นี้ได้ (เปิดสองแท็บเพื่อทดสอบห้องออนไลน์ได้) กด "เผยแพร่สาธารณะ" แล้วบันทึกอีกครั้งเมื่อพร้อม</div>') +
     '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">' +
     '<div class="row" style="margin-top:12px">' +
     '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
@@ -1437,6 +1695,58 @@ function changeSiteMode(m) {
   siteTab = null;
   applyModeUI();
   siteDirty = true;
+}
+
+// --- ที่เก็บข้อมูลของเว็บ (เจ้าของ) ---
+async function loadSiteData() {
+  if (!siteEditing) return;
+  try {
+    const d = await api('GET', '/api/sites/' + siteEditing + '/data');
+    $('#sdInfo').textContent = 'ใช้ไป ' + (d.usage.bytes / 1024).toFixed(1) + ' / ' + Math.round(d.usage.limit / 1024) + ' KB · ' +
+      d.usage.keys + ' คีย์ · ออนไลน์ตอนนี้ ' + d.usage.online + ' คน';
+    sdItems = {};
+    $('#sdList').innerHTML = d.items.map((it) => {
+      sdItems[it.key] = it;
+      return '<div class="lib"><div data-skey="' + esc(it.key) + '" style="min-width:0;cursor:pointer;flex:1"><code>' + esc(it.key) +
+        '</code><div class="mut" style="font-size:12px;word-break:break-all">' + esc(it.preview) + '</div></div>' +
+        '<button class="btn" data-sdel="' + esc(it.key) + '" aria-label="ลบ">' + ic('x') + '</button></div>';
+    }).join('') || '<div class="mut">ยังไม่มีข้อมูลร่วมในที่เก็บ</div>';
+  } catch (e) { $('#sdInfo').textContent = e.message; }
+}
+function pickSiteKey(key) {
+  const it = sdItems[key];
+  if (!it) return;
+  if (it.truncated) return toast('ค่ายาวเกินกว่าจะแก้ในหน้านี้ (ลบแล้วเขียนใหม่ผ่านโค้ดเว็บได้)');
+  $('#sdKey').value = key;
+  $('#sdVal').value = it.json;
+}
+async function saveSiteKey() {
+  if (!siteEditing) return;
+  const key = $('#sdKey').value.trim();
+  if (!key) return toast('ใส่ชื่อคีย์ก่อน');
+  const raw = $('#sdVal').value;
+  let value;
+  try { value = JSON.parse(raw); } catch { value = raw; }
+  try {
+    await api('PUT', '/api/sites/' + siteEditing + '/data', { key, value });
+    toast('บันทึกคีย์แล้ว');
+    loadSiteData();
+  } catch (e) { toast(e.message); }
+}
+async function deleteSiteKey(key) {
+  try {
+    await api('DELETE', '/api/sites/' + siteEditing + '/data', { key });
+    loadSiteData();
+  } catch (e) { toast(e.message); }
+}
+async function clearSiteData() {
+  if (!siteEditing) return;
+  if (!confirm('ล้างข้อมูลทั้งหมดของเว็บนี้ (รวมข้อมูลส่วนตัวของผู้เข้าชมทุกคน) ย้อนกลับไม่ได้ ต้องการต่อไหม?')) return;
+  try {
+    await api('DELETE', '/api/sites/' + siteEditing + '/data', { all: true });
+    toast('ล้างข้อมูลแล้ว');
+    loadSiteData();
+  } catch (e) { toast(e.message); }
 }
 
 /* ---------- แชท ---------- */
@@ -1642,111 +1952,4 @@ function tabInsert(e) {
 }
 $('#code').addEventListener('keydown', tabInsert);
 $('#sCode').addEventListener('keydown', tabInsert);
-window.addEventListener('beforeunload', (e) => { if (dirty || siteDirty) { e.preventDefault(); e.returnValue = ''; } });
-
-// ไลบรารี
-$('#libGo').onclick = installLibs;
-$('#libRe').onclick = reinstallLibs;
-$('#chips').addEventListener('click', (e) => {
-  const c = e.target.closest('.pk');
-  if (!c) return;
-  const ta = $('#libIn');
-  const have = ta.value.split(/\s+/).filter(Boolean);
-  if (!have.includes(c.dataset.s)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + c.dataset.s;
-});
-$('#libList').addEventListener('click', (e) => {
-  const x = e.target.closest('[data-rm]');
-  if (x) removeLib(x.dataset.rm);
-});
-
-// ตลาด
-$('#fSeg').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  filter = b.dataset.f;
-  $$('#fSeg button').forEach((x) => x.classList.toggle('on', x === b));
-  renderPosts();
-});
-$('#posts').addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) openPost(c.dataset.id); });
-$('#goUpload').onclick = () => setPage('upload');
-
-// อัปโหลด
-$('#coverBtn').onclick = () => $('#coverIn').click();
-$('#coverX').onclick = () => { $('#coverIn').value = ''; setCover(null); };
-$('#coverIn').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  if (!IMG_OK.includes(f.type)) { toast('รูปปกต้องเป็น jpg png gif หรือ webp'); e.target.value = ''; return; }
-  if (f.size > 10 * 1024 * 1024) { toast('รูปปกใหญ่เกิน 10 MB'); e.target.value = ''; return; }
-  setCover(f);
-});
-$('#paySeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setPay(b.dataset.p); });
-$('#upGo').onclick = doPublish;
-
-// เว็บสาธารณะ
-$('#siteNew').onclick = startNewSite;
-$('#siteBack').onclick = () => setPage('sites');
-$('#sfSeg').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  sFilter = b.dataset.f;
-  $$('#sfSeg button').forEach((x) => x.classList.toggle('on', x === b));
-  renderSites();
-});
-$('#sitesGrid').addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) openSiteModal(c.dataset.slug); });
-$('#sModeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) changeSiteMode(b.dataset.m); });
-$('#sTabSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setSiteTab(b.dataset.t); });
-$('#sPubSeg').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  sPublic = b.dataset.v === '1';
-  applyPubUI();
-  siteDirty = true;
-});
-$('#sTpl').addEventListener('change', (e) => applyTemplate(e.target.value));
-$('#sSlug').addEventListener('input', (e) => {
-  e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-  siteDirty = true;
-});
-['#sTitle', '#sCode'].forEach((s) => $(s).addEventListener('input', () => { siteDirty = true; }));
-$('#sSave').onclick = saveSite;
-$('#sDel').onclick = () => { if (siteEditing) deleteSite(siteEditing); };
-
-// แชท
-$('#cList').addEventListener('click', (e) => { const c = e.target.closest('.ci'); if (c) openChat(c.dataset.id); });
-$('#cBack').onclick = () => {
-  curChat = null; thrTotal = 0;
-  $('#chatwrap').classList.remove('open');
-  showThread(false);
-  lastChatsKey = '';
-  renderChatList();
-};
-$('#attachBtn').onclick = () => $('#fileIn').click();
-$('#attX').onclick = clearAttach;
-$('#fileIn').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const okType = IMG_OK.includes(f.type) || ['video/mp4', 'video/webm', 'video/quicktime'].includes(f.type);
-  if (!okType) { toast('รองรับรูป (jpg png gif webp) และวิดีโอ (mp4 webm mov)'); e.target.value = ''; return; }
-  const lim = f.type.startsWith('video/') ? 30 : 10;
-  if (f.size > lim * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน ' + lim + ' MB'); e.target.value = ''; return; }
-  attach = f;
-  $('#attName').textContent = f.name;
-  $('#attBar').classList.remove('hide');
-});
-$('#sendBtn').onclick = sendMsg;
-$('#sendCode').onclick = sendPostCode;
-$('#cin').addEventListener('input', (e) => {
-  e.target.style.height = 'auto';
-  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-});
-$('#cin').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); }
-});
-
-/* ---------- เริ่มต้น: ถ้าเคยล็อกอินไว้ ข้ามหน้าสมัครเลย ---------- */
-setMode('login');
-api('GET', '/api/me').then((d) => enter(d.user)).catch(() => toAuth());
-</script>
-</body>
-</html>
+window.addEventListener('be
