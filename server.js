@@ -36,6 +36,28 @@ const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 
 const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
+const BOT_EXPIRED_MSG = 'บอทนี้หมดเวลาแล้ว กรุณาต่อเวลาใหม่';
+
+// ---------- ID generator ----------
+function genPublicId(existing) {
+  for (let i = 0; i < 20; i++) {
+    const id = crypto.randomBytes(4).toString('hex').toUpperCase();
+    if (!existing || !existing.has(id)) return id;
+  }
+  return crypto.randomBytes(6).toString('hex').toUpperCase();
+}
+function allBotIds() {
+  const s = new Set();
+  for (const b of Object.values(state.bots)) if (b.publicId) s.add(b.publicId);
+  return s;
+}
+function allSiteIds() {
+  const s = new Set();
+  for (const x of Object.values(hub.sites)) if (x.publicId) s.add(x.publicId);
+  return s;
+}
+function genBotId() { return genPublicId(allBotIds()); }
+function genSiteId() { return genPublicId(allSiteIds()); }
 
 // ---------- Upstash Redis ----------
 const REDIS_URL = String(process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
@@ -60,7 +82,6 @@ async function redisGet(key) {
     return null;
   }
 }
-
 async function redisSet(key, value) {
   if (!hasRedis) return false;
   try {
@@ -77,17 +98,14 @@ async function redisSet(key, value) {
     return false;
   }
 }
-
 const redisTimers = {};
 function scheduleRedisSave(key, getter, delay) {
   if (!hasRedis) return;
   if (redisTimers[key]) clearTimeout(redisTimers[key]);
   redisTimers[key] = setTimeout(async () => {
     delete redisTimers[key];
-    try {
-      const v = getter();
-      await redisSet(key, JSON.stringify(v));
-    } catch (e) { console.error('redis flush ' + key + ':', e.message); }
+    try { await redisSet(key, JSON.stringify(getter())); }
+    catch (e) { console.error('redis flush ' + key + ':', e.message); }
   }, delay || 5000);
 }
 async function flushRedis() {
@@ -101,10 +119,9 @@ async function flushRedis() {
   console.log('✓ Flushed state to Redis');
 }
 
-// ---------- Upstash Blob (multi-account) ----------
+// ---------- Upstash Blob (multi) ----------
 const BLOB_TOKENS = String(process.env.UPSTASH_BLOB_TOKENS || process.env.UPSTASH_BLOB_TOKEN || '')
   .split(',').map(s => s.trim()).filter(Boolean);
-
 const blobBuckets = [];
 for (let i = 0; i < BLOB_TOKENS.length; i++) {
   try {
@@ -114,18 +131,13 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
     if (old !== undefined) process.env.UPSTASH_BLOB_TOKEN = old;
     else delete process.env.UPSTASH_BLOB_TOKEN;
     blobBuckets.push({ bucket: bk, id: i, used: 0 });
-  } catch (e) {
-    console.error('❌ Blob init error #' + i + ':', e.message);
-  }
+  } catch (e) { console.error('❌ Blob init error #' + i + ':', e.message); }
 }
-if (blobBuckets.length) {
-  console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
-} else {
-  console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
-}
+if (blobBuckets.length) console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
+else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
 const bucket = blobBuckets[0]?.bucket || null;
 
-// ---------- storage dirs ----------
+// ---------- storage ----------
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
 const DATA_DIR = process.env.DATA_DIR || volPath || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
@@ -160,7 +172,7 @@ try {
   fs.symlinkSync(path.join(__dirname, 'node_modules'), link, 'dir');
 } catch (e) { console.error('symlink:', e.message); }
 
-// ---------- JSON ----------
+// ---------- JSON io ----------
 function loadJson(file) {
   for (const f of [file, file + '.bak']) {
     try { return { data: JSON.parse(fs.readFileSync(f, 'utf8')), from: f }; }
@@ -337,8 +349,9 @@ function addLog(id, k, data) {
 const codeFile = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'bot.py' : 'bot.js');
 const readCode = (b) => { try { return fs.readFileSync(codeFile(b), 'utf8'); } catch { return ''; } };
 const pub = (b, full) => Object.assign({
-  id: b.id, name: b.name, lang: b.lang, status: b.status, owner: b.owner,
+  id: b.id, publicId: b.publicId || '', name: b.name, lang: b.lang, status: b.status, owner: b.owner,
   startedAt: b.startedAt || 0, lastExit: b.lastExit || '', hasToken: !!b.token,
+  expiresAt: b.expiresAt || 0,
   libs: b.libs || [], installing: !!installs[b.id]
 }, full ? { code: readCode(b) } : {});
 
@@ -355,11 +368,19 @@ function fixPerm(b) {
 }
 const dropOpts = (owner) => (ISOLATE ? { uid: owner.uid, gid: owner.uid } : {});
 
-function createBot(owner, name, lang, code) {
+function botExpired(b) {
+  return !!b.expiresAt && Date.now() > b.expiresAt;
+}
+
+function createBot(owner, name, lang, code, expiresAt) {
   const id = crypto.randomBytes(4).toString('hex');
+  const publicId = genBotId();
   const b = {
-    id, owner, lang, name: String(name || 'บอทใหม่').trim().slice(0, 40) || 'บอทใหม่',
-    token: '', libs: [], desired: false, status: 'stopped', startedAt: 0, lastExit: '', created: Date.now()
+    id, publicId, owner, lang,
+    name: String(name || 'บอทใหม่').trim().slice(0, 40) || 'บอทใหม่',
+    token: '', libs: [], desired: false, status: 'stopped',
+    startedAt: 0, lastExit: '', created: Date.now(),
+    expiresAt: expiresAt || 0
   };
   bots[id] = b;
   try {
@@ -379,6 +400,10 @@ function startBot(id) {
   if (trialExpired(owner)) {
     b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; save();
     addLog(id, 'err', 'ไม่สามารถรันได้: ' + TRIAL_MSG); return;
+  }
+  if (botExpired(b)) {
+    b.status = 'stopped'; b.desired = false; b.lastExit = BOT_EXPIRED_MSG; save();
+    addLog(id, 'err', 'ไม่สามารถรันได้: ' + BOT_EXPIRED_MSG); return;
   }
   const file = codeFile(b); const dir = path.dirname(file);
   try { fs.mkdirSync(dir, { recursive: true }); } catch {}
@@ -579,7 +604,11 @@ function newSession(user) {
   return tok;
 }
 function userOf(req) {
-  const tok = getCookie(req, 'sid');
+  let tok = '';
+  const auth = String(req.headers['authorization'] || '');
+  if (auth.startsWith('Bearer ')) tok = auth.slice(7).trim();
+  if (!tok) tok = String(req.headers['x-session'] || '').trim();
+  if (!tok) tok = getCookie(req, 'sid');
   if (!tok) return null;
   const s = state.sessions[sha(tok)];
   if (!s || s.exp < Date.now()) return null;
@@ -683,7 +712,7 @@ const CID_RE = /^[a-f0-9]{32}$/;
 const SANDBOX_FLAGS = 'allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-pointer-lock';
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-const pubSite = (x, me) => ({ slug: x.slug, owner: x.owner, title: x.title, mode: x.mode, public: !!x.public, views: x.views || 0, created: x.created, updated: x.updated, mine: x.owner === me });
+const pubSite = (x, me) => ({ slug: x.slug, publicId: x.publicId || '', owner: x.owner, title: x.title, mode: x.mode, public: !!x.public, views: x.views || 0, created: x.created, updated: x.updated, mine: x.owner === me });
 
 function buildSitePage(s) {
   if (s.mode === 'full') return s.html;
@@ -1094,7 +1123,7 @@ function readBody(req) {
   });
 }
 
-// ---------- admin: delete user + all their data ----------
+// ---------- admin delete user ----------
 async function deleteUserData(username) {
   const u = String(username).toLowerCase();
   for (const [id, b] of Object.entries(bots)) {
@@ -1138,6 +1167,19 @@ async function deleteUserData(username) {
   delete state.users[u];
   for (const [k, s] of Object.entries(state.sessions)) if (s.user === u) delete state.sessions[k];
   save(); saveHub(); saveSData();
+}
+
+// ---------- admin: lookup by publicId ----------
+function findByPublicId(id) {
+  const target = String(id || '').trim().toUpperCase();
+  if (!target) return null;
+  for (const b of Object.values(bots)) if ((b.publicId || '').toUpperCase() === target) {
+    return { type: 'bot', data: b };
+  }
+  for (const x of Object.values(hub.sites)) if ((x.publicId || '').toUpperCase() === target) {
+    return { type: 'site', data: x };
+  }
+  return null;
 }
 
 // ---------- HTTP server ----------
@@ -1198,12 +1240,12 @@ const server = http.createServer(async (req, res) => {
           '<p>รหัสนี้มีอายุ 15 นาที</p>');
       }
       const tok = newSession(u);
-      const resp = { user: u, needsVerify: !!em };
+      const resp = { user: u, needsVerify: !!em, token: tok, info: pubMe(u) };
       if (em && !sent.ok && !sent.dev) resp.emailError = sent.msg;
       return json(res, 200, resp, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ===== Verify email =====
+    // ===== Verify =====
     if (p === '/api/verify' && M === 'POST') {
       const me = userOf(req);
       if (!me) return json(res, 401, { error: 'unauthorized' });
@@ -1226,7 +1268,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, trialEnds: user.trialEnds });
     }
 
-    // ===== Resend verify code =====
+    // ===== Resend =====
     if (p === '/api/resend' && M === 'POST') {
       const me = userOf(req);
       if (!me) return json(res, 401, { error: 'unauthorized' });
@@ -1256,7 +1298,7 @@ const server = http.createServer(async (req, res) => {
       if (!ok) { bump(loginFails, ip, 600000); return json(res, 401, { error: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' }); }
       loginFails.delete(ip);
       const tok = newSession(u);
-      return json(res, 200, { user: u }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
+      return json(res, 200, { user: u, token: tok, info: pubMe(u) }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
     if (p === '/api/logout' && M === 'POST') {
@@ -1367,6 +1409,86 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
+    // ===== Admin: Lookup by Public ID =====
+    if (p === '/api/admin/lookup' && M === 'POST') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const d = await readBody(req);
+      const found = findByPublicId(d.id);
+      if (!found) return json(res, 404, { error: 'ไม่พบ ID นี้ในระบบ' });
+      const owner = getUser(found.data.owner);
+      if (found.type === 'bot') {
+        const b = found.data;
+        return json(res, 200, {
+          type: 'bot',
+          owner: b.owner,
+          ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null,
+          bot: pub(b, true),
+          running: !!procs[b.id]
+        });
+      } else {
+        const x = found.data;
+        const mySites = Object.values(hub.sites).filter((s) => s.owner === x.owner).length;
+        return json(res, 200, {
+          type: 'site',
+          owner: x.owner,
+          ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null,
+          site: pubSite(x, me),
+          html: x.html, css: x.css, js: x.js,
+          sitesCount: mySites
+        });
+      }
+    }
+
+    // ===== Admin: Set bot timer =====
+    if (p === '/api/admin/set-bot-timer' && M === 'POST') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const d = await readBody(req);
+      const found = findByPublicId(d.id);
+      if (!found) return json(res, 404, { error: 'ไม่พบ ID นี้' });
+      if (found.type !== 'bot') return json(res, 400, { error: 'ID นี้ไม่ใช่บอท' });
+      const b = found.data;
+      const hours = Number(d.hours);
+      if (!Number.isFinite(hours) || hours < 0 || hours > 8760) return json(res, 400, { error: 'จำนวนชั่วโมงไม่ถูกต้อง (0-8760)' });
+      const fromNow = d.extend ? Math.max(Date.now(), b.expiresAt || Date.now()) : Date.now();
+      b.expiresAt = hours === 0 ? 0 : fromNow + hours * 3600 * 1000;
+      save();
+      addLog(b.id, 'sys', 'แอดมินตั้งเวลาใหม่: ' + (hours === 0 ? 'ไม่จำกัด' : hours + ' ชม.'));
+      // ถ้าหมดเวลาใหม่ → หยุดทันที
+      if (botExpired(b) && procs[b.id]) {
+        addLog(b.id, 'err', 'หมดเวลา → หยุดบอท');
+        stopBot(b.id).catch(() => {});
+      }
+      return json(res, 200, { ok: true, expiresAt: b.expiresAt });
+    }
+
+    // ===== Admin: Stop any bot =====
+    if (p === '/api/admin/bot-stop' && M === 'POST') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const d = await readBody(req);
+      const found = findByPublicId(d.id);
+      if (!found || found.type !== 'bot') return json(res, 404, { error: 'ไม่พบ ID' });
+      await stopBot(found.data.id);
+      return json(res, 200, { ok: true, bot: pub(found.data) });
+    }
+    if (p === '/api/admin/bot-start' && M === 'POST') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const d = await readBody(req);
+      const found = findByPublicId(d.id);
+      if (!found || found.type !== 'bot') return json(res, 404, { error: 'ไม่พบ ID' });
+      const b = found.data;
+      if (botExpired(b)) return json(res, 400, { error: BOT_EXPIRED_MSG });
+      await stopBot(b.id);
+      startBot(b.id);
+      return json(res, 200, { ok: true, bot: pub(b) });
+    }
+    if (p === '/api/admin/bot-logs' && M === 'POST') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const d = await readBody(req);
+      const found = findByPublicId(d.id);
+      if (!found || found.type !== 'bot') return json(res, 404, { error: 'ไม่พบ ID' });
+      return json(res, 200, { logs: logs[found.data.id] || [] });
+    }
+
     // ===== Media =====
     const mm = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mm && M === 'GET') return await serveMedia(req, res, mm[1], me);
@@ -1408,7 +1530,8 @@ const server = http.createServer(async (req, res) => {
         const myCount = Object.values(hub.sites).filter((x) => x.owner === me).length;
         if (myCount >= maxSitesFor(me)) return json(res, 400, { error: 'สร้างเว็บได้สูงสุด ' + maxSitesFor(me) + ' เว็บ (โควต้าของคุณ)' });
         const now = Date.now();
-        hub.sites[slug] = Object.assign({ slug, owner: me, views: 0, created: now, updated: now }, v);
+        const publicId = genSiteId();
+        hub.sites[slug] = Object.assign({ slug, publicId, owner: me, views: 0, created: now, updated: now }, v);
         saveHub();
         return json(res, 200, pubSite(hub.sites[slug], me));
       }
@@ -1451,6 +1574,7 @@ const server = http.createServer(async (req, res) => {
         const v = validateSite(d);
         if (v.error) return json(res, 400, { error: v.error });
         Object.assign(site, v, { updated: Date.now() });
+        if (!site.publicId) site.publicId = genSiteId();
         saveHub();
         if (!site.public) closeSiteRooms(site.slug);
         return json(res, 200, pubSite(site, me));
@@ -1489,11 +1613,8 @@ const server = http.createServer(async (req, res) => {
         catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
         size = buf.length;
         if (used + size > QUOTA) return json(res, 413, { error: 'พื้นที่อัปโหลดเต็ม' });
-
-        // เรียงตาม used น้อยสุดก่อน
         blobBuckets.sort((a, b) => a.used - b.used);
-        let uploaded = false;
-        let lastErr = null;
+        let uploaded = false, lastErr = null;
         for (const bk of blobBuckets) {
           try {
             upstashPath = `media/${id}.${ext}`;
@@ -1667,6 +1788,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof d.name === 'string' && d.name.trim()) b.name = d.name.trim().slice(0, 40);
       if (typeof d.code === 'string') { try { fs.writeFileSync(codeFile(b), d.code); } catch (e) { console.error('write code:', e.message); } fixPerm(b); }
       if (typeof d.token === 'string' && d.token.trim()) b.token = d.token.trim();
+      if (!b.publicId) b.publicId = genBotId();
       save();
       return json(res, 200, pub(b, true));
     }
@@ -1680,6 +1802,7 @@ const server = http.createServer(async (req, res) => {
     if (sub === 'start' && M === 'POST') {
       const chk = canCreate(meUser);
       if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
+      if (botExpired(b)) return json(res, 403, { error: BOT_EXPIRED_MSG, expired: true });
       await stopBot(id);
       startBot(id);
       return json(res, 200, pub(b));
@@ -1738,7 +1861,7 @@ process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
 (async () => {
-  // ---------- โหลด state จาก Redis ก่อน (ถ้ามี) ----------
+  // ---------- Redis load ----------
   if (hasRedis) {
     console.log('🔌 Upstash Redis detected, loading state...');
     try {
@@ -1756,22 +1879,12 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
         if (rs.nextUid) state.nextUid = rs.nextUid;
         if (rs.adminUi !== undefined) state.adminUi = rs.adminUi;
         console.log('✓ state loaded from Redis (' + Object.keys(state.users).length + ' users, ' + Object.keys(state.bots).length + ' bots)');
-      } else {
-        console.log('• Redis ไม่มี state เก่า → เริ่มใหม่');
-      }
-      if (rh && typeof rh === 'object') {
-        Object.assign(hub, rh);
-        console.log('✓ hub loaded from Redis');
-      }
-      if (rd && typeof rd === 'object' && rd.sites) {
-        sdata.sites = rd.sites;
-        console.log('✓ sitedata loaded from Redis');
-      }
-    } catch (e) {
-      console.error('Redis boot error:', e.message);
-    }
+      } else console.log('• Redis ไม่มี state เก่า → เริ่มใหม่');
+      if (rh && typeof rh === 'object') { Object.assign(hub, rh); console.log('✓ hub loaded from Redis'); }
+      if (rd && typeof rd === 'object' && rd.sites) { sdata.sites = rd.sites; console.log('✓ sitedata loaded from Redis'); }
+    } catch (e) { console.error('Redis boot error:', e.message); }
   } else {
-    console.log('⚠️  ไม่มี UPSTASH_REDIS_REST_URL/TOKEN → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
+    console.log('⚠️  ไม่มี UPSTASH_REDIS_REST_URL/TOKEN → ใช้ไฟล์ในเครื่อง');
   }
 
   // ---------- migrations ----------
@@ -1786,12 +1899,22 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     if (usr.paid === undefined) usr.paid = false;
     if (usr.trialEnds === undefined) usr.trialEnds = 0;
   }
+  // migrate bots: เพิ่ม publicId ให้ bot เก่าที่ไม่มี
+  for (const b of Object.values(bots)) {
+    if (!b.publicId) b.publicId = genBotId();
+    if (b.expiresAt === undefined) b.expiresAt = 0;
+  }
+  // migrate sites: เพิ่ม publicId ให้ site เก่า
+  for (const x of Object.values(hub.sites)) {
+    if (!x.publicId) x.publicId = genSiteId();
+  }
   if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
 
-  // ---------- snapshot + timers ----------
+  // ---------- snapshot + periodic ----------
   snapshot();
   setInterval(snapshot, 6 * 3600 * 1000);
 
+  // cleanup rooms/tokens
   setInterval(() => {
     const now = Date.now();
     for (const [k, r] of Array.from(rooms.entries())) if (!r.clients.size && r.emptySince && now - r.emptySince > 30 * 60 * 1000) rooms.delete(k);
@@ -1800,22 +1923,29 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     for (const [k, f] of Array.from(loginFails.entries())) if (now - f.t > 3600000) loginFails.delete(k);
     for (const [k, f] of Array.from(msgRate.entries())) if (now - f.t > 120000) msgRate.delete(k);
     for (const [k, f] of Array.from(emailSends.entries())) if (now - f.t > 3600000) emailSends.delete(k);
+  }, 5 * 60 * 1000);
+
+  // ตรวจหมดเวลา trial + bot timer ทุก 1 นาที
+  setInterval(() => {
     for (const b of Object.values(bots)) {
       const o = getUser(b.owner);
       if (b.status === 'running' && o && trialExpired(o)) {
         addLog(b.id, 'err', 'หมดเวลาทดลอง: หยุดบอทอัตโนมัติ');
         stopBot(b.id).catch(() => {});
+      } else if (b.status === 'running' && botExpired(b)) {
+        addLog(b.id, 'err', 'หมดเวลาที่แอดมินตั้งไว้: หยุดบอท');
+        stopBot(b.id).catch(() => {});
       }
     }
-  }, 5 * 60 * 1000);
+  }, 60 * 1000);
 
-  // ---------- session cleanup ----------
+  // session cleanup
   for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
 
-  // ---------- fix perm ----------
+  // fix perm
   for (const b of Object.values(bots)) fixPerm(b);
 
-  // ---------- คำนวณ usage ของแต่ละ blob bucket ----------
+  // คำนวณ blob usage
   if (blobBuckets.length) {
     const usedPerBucket = {};
     for (const m of Object.values(hub.media)) {
@@ -1823,18 +1953,17 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
         usedPerBucket[m.bucketId] = (usedPerBucket[m.bucketId] || 0) + m.size;
       }
     }
-    for (const bk of blobBuckets) {
-      bk.used = usedPerBucket[bk.id] || 0;
-    }
+    for (const bk of blobBuckets) bk.used = usedPerBucket[bk.id] || 0;
     console.log('📊 Blob usage: ' + blobBuckets.map(b => '#' + b.id + '=' + (b.used / 1048576).toFixed(1) + 'MB').join(' '));
   }
 
-  // ---------- restart desired bots ----------
+  // restart desired bots
   let i = 0;
   for (const b of Object.values(bots)) {
     if (b.desired) {
       const o = getUser(b.owner);
       if (o && trialExpired(o)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; continue; }
+      if (botExpired(b)) { b.status = 'stopped'; b.desired = false; b.lastExit = BOT_EXPIRED_MSG; continue; }
       setTimeout(() => { addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทอัตโนมัติ'); startBot(b.id); }, 800 + i++ * 1500);
     } else if (b.status === 'running') {
       b.status = 'stopped';
@@ -1842,11 +1971,10 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   }
   save();
 
-  // ---------- start server ----------
   server.listen(PORT, '0.0.0.0', () => {
     console.log('Alexa Hub @ ' + PORT + ' | ADMIN=' + ADMIN_USER + ' | DATA=' + DATA_DIR +
       ' | Volume=' + (PERSISTENT ? 'yes' : 'NO') + ' | Redis=' + (hasRedis ? 'yes' : 'no') +
-      ' | Blobs=' + blobBuckets.length +
-      ' | Trial=' + TRIAL_DAYS + 'd | Email=' + (RESEND_API_KEY ? 'resend' : 'dev-console'));
+      ' | Blobs=' + blobBuckets.length + ' | Trial=' + TRIAL_DAYS + 'd' +
+      ' | Email=' + (RESEND_API_KEY ? 'resend' : 'dev-console'));
   });
 })();
