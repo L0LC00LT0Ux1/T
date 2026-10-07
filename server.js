@@ -37,7 +37,7 @@ const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
 
-// ---------- Upstash Redis (state persistence) ----------
+// ---------- Upstash Redis ----------
 const REDIS_URL = String(process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
 const REDIS_TOKEN = String(process.env.UPSTASH_REDIS_REST_TOKEN || '');
 const hasRedis = !!(REDIS_URL && REDIS_TOKEN);
@@ -101,12 +101,29 @@ async function flushRedis() {
   console.log('✓ Flushed state to Redis');
 }
 
-// ---------- Upstash Blob ----------
-let bucket = null;
-if (process.env.UPSTASH_BLOB_TOKEN) {
-  try { bucket = Bucket.fromEnv(); console.log('✅ Upstash Blob connected'); }
-  catch (e) { console.error('❌ Upstash init error:', e.message); }
-} else console.warn('⚠️ UPSTASH_BLOB_TOKEN not found. Media stored locally.');
+// ---------- Upstash Blob (multi-account) ----------
+const BLOB_TOKENS = String(process.env.UPSTASH_BLOB_TOKENS || process.env.UPSTASH_BLOB_TOKEN || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+const blobBuckets = [];
+for (let i = 0; i < BLOB_TOKENS.length; i++) {
+  try {
+    const old = process.env.UPSTASH_BLOB_TOKEN;
+    process.env.UPSTASH_BLOB_TOKEN = BLOB_TOKENS[i];
+    const bk = Bucket.fromEnv();
+    if (old !== undefined) process.env.UPSTASH_BLOB_TOKEN = old;
+    else delete process.env.UPSTASH_BLOB_TOKEN;
+    blobBuckets.push({ bucket: bk, id: i, used: 0 });
+  } catch (e) {
+    console.error('❌ Blob init error #' + i + ':', e.message);
+  }
+}
+if (blobBuckets.length) {
+  console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
+} else {
+  console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
+}
+const bucket = blobBuckets[0]?.bucket || null;
 
 // ---------- storage dirs ----------
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
@@ -203,7 +220,7 @@ function save() {
     backupOnce(STATE_FILE);
     fs.renameSync(tmp, STATE_FILE);
     try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
-  } catch (e) { /* ไม่มี volume ก็ข้ามไป */ }
+  } catch (e) {}
   scheduleRedisSave('alexa:state', () => state, 5000);
 }
 
@@ -630,12 +647,16 @@ async function serveMedia(req, res, id, me) {
     const c = own(hub.chats, m.scope);
     if (!c || !c.members.includes(me)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   }
-  if (m.upstashPath && bucket) {
-    try {
-      const url = await bucket.signedReadUrl(m.upstashPath, { expiresIn: 3600 });
-      res.writeHead(302, { Location: url, 'Cache-Control': 'private, max-age=3600' });
-      return res.end();
-    } catch (e) { console.error('Upstash sign err:', e); return json(res, 500, { error: 'สร้างลิงก์ไม่ได้' }); }
+  if (m.upstashPath) {
+    const bi = typeof m.bucketId === 'number' ? m.bucketId : 0;
+    const bk = blobBuckets[bi];
+    if (bk) {
+      try {
+        const url = await bk.bucket.signedReadUrl(m.upstashPath, { expiresIn: 3600 });
+        res.writeHead(302, { Location: url, 'Cache-Control': 'private, max-age=3600' });
+        return res.end();
+      } catch (e) { console.error('Upstash sign err:', e); return json(res, 500, { error: 'สร้างลิงก์ไม่ได้' }); }
+    }
   }
   const fp = path.join(MEDIA_DIR, id + '.' + m.ext);
   let size;
@@ -1087,8 +1108,10 @@ async function deleteUserData(username) {
     if (p.cover) {
       const m = hub.media[p.cover];
       if (m) {
-        if (m.upstashPath && bucket) { try { await bucket.delete(m.upstashPath); } catch (e) { console.error('b2 del:', e.message); } }
-        else fs.unlink(path.join(MEDIA_DIR, p.cover + '.' + m.ext), () => {});
+        if (m.upstashPath) {
+          const bk = blobBuckets[m.bucketId || 0];
+          if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch (e) { console.error('blob del:', e.message); } }
+        } else fs.unlink(path.join(MEDIA_DIR, p.cover + '.' + m.ext), () => {});
         delete hub.media[p.cover];
       }
     }
@@ -1106,8 +1129,10 @@ async function deleteUserData(username) {
   }
   for (const [id, m] of Object.entries(hub.media)) {
     if (m.owner !== u) continue;
-    if (m.upstashPath && bucket) { try { await bucket.delete(m.upstashPath); } catch (e) { console.error('b2 del:', e.message); } }
-    else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
+    if (m.upstashPath) {
+      const bk = blobBuckets[m.bucketId || 0];
+      if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch (e) { console.error('blob del:', e.message); } }
+    } else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
     delete hub.media[id];
   }
   delete state.users[u];
@@ -1457,23 +1482,39 @@ const server = http.createServer(async (req, res) => {
       const used = Object.values(hub.media).filter((x) => x.owner === me).reduce((a, x) => a + x.size, 0);
       if (used + len > QUOTA) return json(res, 413, { error: 'พื้นที่อัปโหลดเต็ม' }, { Connection: 'close' });
       const id = crypto.randomBytes(12).toString('hex');
-      let size = 0, upstashPath = null;
-      if (bucket) {
+      let size = 0, upstashPath = null, bucketId = -1;
+      if (blobBuckets.length) {
         let buf;
         try { buf = await readStreamToBuffer(req, limit); }
         catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
         size = buf.length;
         if (used + size > QUOTA) return json(res, 413, { error: 'พื้นที่อัปโหลดเต็ม' });
-        upstashPath = `media/${id}.${ext}`;
-        try { await bucket.put(upstashPath, buf, { contentType: ct }); }
-        catch (e) { console.error('Upstash put:', e); return json(res, 500, { error: 'อัปโหลดไป Upstash ไม่สำเร็จ' }); }
+
+        // เรียงตาม used น้อยสุดก่อน
+        blobBuckets.sort((a, b) => a.used - b.used);
+        let uploaded = false;
+        let lastErr = null;
+        for (const bk of blobBuckets) {
+          try {
+            upstashPath = `media/${id}.${ext}`;
+            await bk.bucket.put(upstashPath, buf, { contentType: ct });
+            bk.used += size;
+            bucketId = bk.id;
+            uploaded = true;
+            break;
+          } catch (e) {
+            console.error('Upstash put failed on bucket #' + bk.id + ':', e.message);
+            lastErr = e;
+          }
+        }
+        if (!uploaded) return json(res, 500, { error: 'อัปโหลดไป Upstash ทุก bucket ไม่สำเร็จ' + (lastErr ? ': ' + lastErr.message : '') });
       } else {
         const fp = path.join(MEDIA_DIR, id + '.' + ext);
         try { size = await saveStream(req, fp, limit); }
         catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
         if (used + size > QUOTA) { fs.unlink(fp, () => {}); return json(res, 413, { error: 'พื้นที่อัปโหลดเต็ม' }); }
       }
-      hub.media[id] = { owner: me, mime: ct, ext, kind, scope, size, upstashPath, t: Date.now() };
+      hub.media[id] = { owner: me, mime: ct, ext, kind, scope, size, upstashPath, bucketId, t: Date.now() };
       saveHub();
       return json(res, 200, { id, kind });
     }
@@ -1518,7 +1559,16 @@ const server = http.createServer(async (req, res) => {
       if (!pm[2] && M === 'GET') return json(res, 200, Object.assign(pubPost(post, me), { locked: !open }, open ? { code: post.code } : {}));
       if (!pm[2] && M === 'DELETE') {
         if (post.owner !== me) return json(res, 403, { error: 'ลบได้เฉพาะของตัวเอง' });
-        if (post.cover) { const m = own(hub.media, post.cover); if (m) { fs.unlink(path.join(MEDIA_DIR, post.cover + '.' + m.ext), () => {}); delete hub.media[post.cover]; } }
+        if (post.cover) {
+          const m = own(hub.media, post.cover);
+          if (m) {
+            if (m.upstashPath) {
+              const bk = blobBuckets[m.bucketId || 0];
+              if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch (e) { console.error('blob del:', e.message); } }
+            } else fs.unlink(path.join(MEDIA_DIR, post.cover + '.' + m.ext), () => {});
+            delete hub.media[post.cover];
+          }
+        }
         delete hub.posts[post.id]; saveHub();
         return json(res, 200, { ok: true });
       }
@@ -1765,6 +1815,20 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   // ---------- fix perm ----------
   for (const b of Object.values(bots)) fixPerm(b);
 
+  // ---------- คำนวณ usage ของแต่ละ blob bucket ----------
+  if (blobBuckets.length) {
+    const usedPerBucket = {};
+    for (const m of Object.values(hub.media)) {
+      if (typeof m.bucketId === 'number' && m.size) {
+        usedPerBucket[m.bucketId] = (usedPerBucket[m.bucketId] || 0) + m.size;
+      }
+    }
+    for (const bk of blobBuckets) {
+      bk.used = usedPerBucket[bk.id] || 0;
+    }
+    console.log('📊 Blob usage: ' + blobBuckets.map(b => '#' + b.id + '=' + (b.used / 1048576).toFixed(1) + 'MB').join(' '));
+  }
+
   // ---------- restart desired bots ----------
   let i = 0;
   for (const b of Object.values(bots)) {
@@ -1782,6 +1846,7 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   server.listen(PORT, '0.0.0.0', () => {
     console.log('Alexa Hub @ ' + PORT + ' | ADMIN=' + ADMIN_USER + ' | DATA=' + DATA_DIR +
       ' | Volume=' + (PERSISTENT ? 'yes' : 'NO') + ' | Redis=' + (hasRedis ? 'yes' : 'no') +
+      ' | Blobs=' + blobBuckets.length +
       ' | Trial=' + TRIAL_DAYS + 'd | Email=' + (RESEND_API_KEY ? 'resend' : 'dev-console'));
   });
 })();
