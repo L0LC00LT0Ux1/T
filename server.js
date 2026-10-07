@@ -9,6 +9,7 @@ const { Bucket } = require("@upstash/blob");
 
 const scrypt = util.promisify(crypto.scrypt);
 
+// ============ CONFIG ============
 const PORT = process.env.PORT || 3000;
 const ADMIN_USER = String(process.env.ADMIN_USER || 'toux1').toLowerCase();
 const TRIAL_DAYS = parseInt(process.env.TRIAL_DAYS || '3', 10);
@@ -20,8 +21,6 @@ const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@example.com';
 const ADMIN_UI_DEFAULT = process.env.ADMIN_UI !== 'off';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS_PER_USER || '20', 10);
 const SIGNUP_OPEN = process.env.SIGNUP !== 'off';
-const MAX_IMG = parseInt(process.env.MAX_IMAGE_MB || '10', 10) * 1024 * 1024;
-const MAX_VID = parseInt(process.env.MAX_VIDEO_MB || '30', 10) * 1024 * 1024;
 const QUOTA = parseInt(process.env.QUOTA_MB || '300', 10) * 1024 * 1024;
 const MAX_LIB = parseInt(process.env.MAX_LIB_MB || '1000', 10) * 1024 * 1024;
 const MAX_INSTALLS = 2;
@@ -34,11 +33,13 @@ const ROOM_MAX = parseInt(process.env.ROOM_MAX_CLIENTS || '40', 10);
 const SITE_ROOMS_MAX = 20;
 const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 
+// Chat limits
 const MSG_MAX = 500;
 const CHAT_IMG_MAX = 5 * 1024 * 1024;
 const CHAT_VID_MAX = 10 * 1024 * 1024;
 const CHAT_FILE_MAX = 10 * 1024 * 1024;
 
+// Discord
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK
   || 'https://discord.com/api/webhooks/1541593046813118495/hCm3CkixqczVAeVpOu2X45EZ2wkGj84aO8XuEjoO9sAO8dqwRiwpAu_PeqFpmuLIjhqE';
 
@@ -46,7 +47,7 @@ const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
 const BOT_EXPIRED_MSG = 'บอทนี้หมดเวลาแล้ว กรุณาต่อเวลาใหม่';
 
-// ---------- ID gen ----------
+// ============ ID GEN ============
 function genPublicId(existing) {
   for (let i = 0; i < 20; i++) {
     const id = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -63,7 +64,7 @@ function chatId(a, b) {
   return crypto.createHash('sha256').update(x + ':' + y).digest('hex').slice(0, 8);
 }
 
-// ---------- Upstash Redis ----------
+// ============ UPSTASH REDIS ============
 const REDIS_URL = String(process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
 const REDIS_TOKEN = String(process.env.UPSTASH_REDIS_REST_TOKEN || '');
 const hasRedis = !!(REDIS_URL && REDIS_TOKEN);
@@ -99,7 +100,7 @@ function scheduleRedisSave(key, getter, delay) {
   redisTimers[key] = setTimeout(async () => {
     delete redisTimers[key];
     try { await redisSet(key, JSON.stringify(getter())); } catch (e) { console.error('redis flush ' + key + ':', e.message); }
-  }, delay || 500);
+  }, delay || 300);
 }
 async function flushRedis() {
   for (const k of Object.keys(redisTimers)) { clearTimeout(redisTimers[k]); delete redisTimers[k]; }
@@ -112,7 +113,7 @@ async function flushRedis() {
   console.log('✓ Flushed state to Redis');
 }
 
-// ---------- Upstash Blob (multi) ----------
+// ============ UPSTASH BLOB (multi) ============
 const BLOB_TOKENS = String(process.env.UPSTASH_BLOB_TOKENS || process.env.UPSTASH_BLOB_TOKEN || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 const blobBuckets = [];
@@ -128,7 +129,7 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
 if (blobBuckets.length) console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
 else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
 
-// ---------- dirs ----------
+// ============ DIRS ============
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
 const DATA_DIR = process.env.DATA_DIR || volPath || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
@@ -162,7 +163,7 @@ try {
   fs.symlinkSync(path.join(__dirname, 'node_modules'), link, 'dir');
 } catch (e) { console.error('symlink:', e.message); }
 
-// ---------- JSON io ----------
+// ============ JSON IO ============
 function loadJson(file) {
   for (const f of [file, file + '.bak']) {
     try { return { data: JSON.parse(fs.readFileSync(f, 'utf8')), from: f }; }
@@ -198,7 +199,7 @@ function snapshot() {
   } catch {}
 }
 
-// ---------- state ----------
+// ============ STATE ============
 const state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMIN_UI_DEFAULT };
 {
   const r = loadJson(STATE_FILE);
@@ -211,7 +212,6 @@ const state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMI
 }
 const bots = state.bots;
 
-// ---- SAVE (debounce 300ms) ----
 function saveDisk() {
   try {
     const tmp = STATE_FILE + '.tmp';
@@ -225,7 +225,6 @@ function save() {
   saveDisk();
   scheduleRedisSave('alexa:state', () => state, 300);
 }
-// saveNow = save ทันที (ไม่มี debounce) — ใช้ตอนสร้าง/แก้/รันบอท
 async function saveNow() {
   saveDisk();
   if (redisTimers['alexa:state']) { clearTimeout(redisTimers['alexa:state']); delete redisTimers['alexa:state']; }
@@ -233,7 +232,7 @@ async function saveNow() {
   await redisSet('alexa:state', JSON.stringify(state));
 }
 
-// ---------- hub ----------
+// ============ HUB ============
 let hub = { posts: {}, chats: {}, media: {}, sites: {} };
 {
   const r = loadJson(HUB_FILE);
@@ -263,7 +262,7 @@ async function saveHubNow() {
   await redisSet('alexa:hub', JSON.stringify(hub));
 }
 
-// ---------- sitedata ----------
+// ============ SITEDATA ============
 let sdata = { sites: {} };
 {
   const r = loadJson(SITEDATA_FILE);
@@ -290,7 +289,7 @@ const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const own = (o, k) => (hasOwn(o, k) ? o[k] : null);
 const getUser = (u) => own(state.users, u);
 
-// ---------- user helpers ----------
+// ============ USER HELPERS ============
 function trialExpired(user) {
   if (!user) return true;
   if (isAdmin(user)) return false;
@@ -320,7 +319,7 @@ function pubMe(u) {
   };
 }
 
-// ---------- email ----------
+// ============ EMAIL ============
 async function sendEmail(to, subject, html) {
   if (!RESEND_API_KEY) {
     console.log('=== [DEV EMAIL] ===\nTo: ' + to + '\nSubject: ' + subject + '\n' + html + '\n===================');
@@ -338,7 +337,7 @@ async function sendEmail(to, subject, html) {
 }
 function genCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
-// ---------- discord webhook ----------
+// ============ DISCORD ============
 async function sendToDiscord(embed) {
   try {
     const r = await fetch(DISCORD_WEBHOOK, {
@@ -351,7 +350,7 @@ async function sendToDiscord(embed) {
   } catch (e) { console.error('Discord webhook:', e.message); return { ok: false, msg: e.message }; }
 }
 
-// ---------- procs ----------
+// ============ PROCESS MGMT ============
 const procs = {};
 const installs = {};
 let activeInstalls = 0;
@@ -367,12 +366,10 @@ function addLog(id, k, data) {
   if (arr.length > 400) arr.splice(0, arr.length - 400);
 }
 const codeFile = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'bot.py' : 'bot.js');
-// readCode: fallback ไปใช้ b.code ถ้าไฟล์ไม่มี
 const readCode = (b) => {
   try { return fs.readFileSync(codeFile(b), 'utf8'); }
   catch { return b.code || ''; }
 };
-// ensureBotFile: เขียนไฟล์จาก b.code ถ้าไฟล์หาย
 function ensureBotFile(b) {
   if (!b) return;
   const dir = path.join(BOTS_DIR, b.id);
@@ -412,7 +409,7 @@ function createBot(owner, name, lang, code, expiresAt) {
     token: '', libs: [], desired: false, status: 'stopped',
     startedAt: 0, lastExit: '', created: Date.now(),
     expiresAt: expiresAt || 0,
-    code: typeof code === 'string' ? code : ''  // ⭐ เก็บ code ใน state
+    code: typeof code === 'string' ? code : ''
   };
   bots[id] = b;
   ensureBotFile(b);
@@ -428,7 +425,6 @@ function startBot(id) {
   if (!owner) { b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save(); addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ'); return; }
   if (trialExpired(owner)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; save(); addLog(id, 'err', 'ไม่สามารถรันได้: ' + TRIAL_MSG); return; }
   if (botExpired(b)) { b.status = 'stopped'; b.desired = false; b.lastExit = BOT_EXPIRED_MSG; save(); addLog(id, 'err', 'ไม่สามารถรันได้: ' + BOT_EXPIRED_MSG); return; }
-  // ⭐ Restore code file ก่อนถ้าไฟล์หาย
   ensureBotFile(b);
   const file = codeFile(b); const dir = path.dirname(file);
   try { fs.mkdirSync(dir, { recursive: true }); } catch {}
@@ -481,7 +477,7 @@ function stopBot(id) {
   });
 }
 
-// ---------- lib parse ----------
+// ============ LIB PARSE ============
 function validSpec(s) {
   return typeof s === 'string' && s.length <= 200 &&
     /^[A-Za-z0-9@][A-Za-z0-9@\/._:+#^~<>=!*|,%?&\[\]-]*$/.test(s) && !/^file:/i.test(s);
@@ -601,7 +597,7 @@ async function libJob(id, o) {
   } finally { delete installs[id]; activeInstalls--; }
 }
 
-// ---------- auth ----------
+// ============ AUTH ============
 const SESSION_MS = 30 * 24 * 3600 * 1000;
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 function getCookie(req, name) {
@@ -743,6 +739,7 @@ async function serveMedia(req, res, id, me) {
   s.on('error', () => res.destroy()); s.pipe(res);
 }
 
+// ============ SITE HELPERS ============
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{2,29}$/;
 const SITE_KEY_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const ROOM_RE = /^[A-Za-z0-9_-]{1,32}$/;
@@ -805,11 +802,7 @@ function alexaSdk() {
   var tries = 0;
   function hello() { if (decided || !hasParent) return; post({ cmd: 'hello' }); if (++tries < 5) setTimeout(hello, 400); }
   hello();
-  setTimeout(function () {
-    if (decided) return;
-    decided = true; online = false; cid = 'local' + rnd(20);
-    resolveReady();
-  }, 2200);
+  setTimeout(function () { if (decided) return; decided = true; online = false; cid = 'local' + rnd(20); resolveReady(); }, 2200);
   function Room(name, opts) {
     var self = this;
     this.name = name; this.peers = []; this.id = null; this._h = {};
@@ -817,7 +810,7 @@ function alexaSdk() {
     this._joined = new Promise(function (r) { self._resolveJoined = r; });
   }
   Room.prototype.on = function (ev, fn) { (this._h[ev] = this._h[ev] || []).push(fn); return this; };
-  Room.prototype._emit = function (ev, data) { (this._h[ev] || []).slice().forEach(function (f) { try { f(data); } catch (e) { console.error(e); } }); };
+  Room.prototype._emit = function (ev, data) { (this._h[ev] || []).slice().forEach(function (f) { try { f(data); } catch (e) {} }); };
   Room.prototype._event = function (ev, d) {
     if (ev === 'hello') { this.id = d.id; this.peers = (d.peers || []).slice(); this._resolveJoined(); this._emit('hello', d); }
     else if (ev === 'join') { if (!this.peers.some(function (p) { return p.id === d.id; })) this.peers.push(d); this._emit('join', d); }
@@ -955,6 +948,7 @@ function serveSite(req, res, slug, raw) {
   res.end('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>' + escHtml(site.title) + '</title><style>html,body{margin:0;height:100%;background:#000}iframe{position:fixed;left:0;right:0;bottom:0;top:0;width:100%;height:100%;border:0;background:#fff}' + (SITE_BANNER ? 'body.b iframe{top:34px;height:calc(100% - 34px)}.bar{position:fixed;left:0;right:0;top:0;height:34px;z-index:2;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:0 12px;background:#0b0b0b;border-bottom:1px solid #333;font:13px system-ui,sans-serif;color:#eee}.bar a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.2em}.bar span{color:#9a9a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' : '') + '</style><script src="/s/_host.js"></script></head><body' + (SITE_BANNER ? ' class="b"' : '') + '>' + bar + '<iframe id="f" src="/s/' + site.slug + '/raw" sandbox="' + SANDBOX_FLAGS + '" allow="fullscreen; autoplay; gamepad" referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
 }
 
+// ============ SAPI (room + db) ============
 const rooms = new Map();
 let sseCount = 0;
 const sseByIp = new Map(), sapiHits = new Map(), buckets = new Map();
@@ -1123,6 +1117,7 @@ async function handleSapi(req, res, url, slug, kind) {
   return json(res, 200, { result: out.result });
 }
 
+// ============ JSON HELPERS ============
 function json(res, code, obj, headers) {
   res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' }, headers || {}));
   res.end(JSON.stringify(obj));
@@ -1136,7 +1131,7 @@ function readBody(req) {
   });
 }
 
-// ---------- friends ----------
+// ============ FRIENDS ============
 function ensureFriendArrays(x) {
   if (!Array.isArray(x.friends)) x.friends = [];
   if (!Array.isArray(x.friendReqIn)) x.friendReqIn = [];
@@ -1152,7 +1147,7 @@ function findOrCreateChat(a, b) {
   return c;
 }
 
-// ---------- admin delete ----------
+// ============ ADMIN DELETE ============
 async function deleteUserData(username) {
   const u = String(username).toLowerCase();
   for (const [id, b] of Object.entries(bots)) {
@@ -1205,7 +1200,7 @@ function findByPublicId(id) {
   return null;
 }
 
-// ================= HTTP SERVER =================
+// ============ HTTP SERVER ============
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
@@ -1529,6 +1524,43 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { logs: logs[found.data.id] || [] });
     }
 
+    // ===== Admin: Storage Stats =====
+    if (p === '/api/admin/storage' && M === 'GET') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const totalBuckets = blobBuckets.length;
+      const FREE_PER_BUCKET = 1 * 1024 * 1024 * 1024;
+      const totalLimit = totalBuckets * FREE_PER_BUCKET;
+      let totalUsed = 0;
+      const bucketsInfo = [];
+      for (const bk of blobBuckets) {
+        const used = bk.used || 0;
+        totalUsed += used;
+        const pct = totalLimit ? (used / FREE_PER_BUCKET) * 100 : 0;
+        bucketsInfo.push({
+          id: bk.id, used, limit: FREE_PER_BUCKET,
+          percent: Math.min(100, pct),
+          full: pct >= 95,
+          nearlyFull: pct >= 80 && pct < 95
+        });
+      }
+      const fileCounts = {};
+      let totalFiles = 0;
+      for (const m of Object.values(hub.media)) {
+        if (typeof m.bucketId === 'number') {
+          fileCounts[m.bucketId] = (fileCounts[m.bucketId] || 0) + 1;
+          totalFiles++;
+        }
+      }
+      for (const b of bucketsInfo) b.files = fileCounts[b.id] || 0;
+      const fullCount = bucketsInfo.filter(b => b.full).length;
+      const nearlyCount = bucketsInfo.filter(b => b.nearlyFull).length;
+      const overallPct = totalLimit ? Math.min(100, (totalUsed / totalLimit) * 100) : 0;
+      return json(res, 200, {
+        totalBuckets, totalLimit, totalUsed, overallPercent: overallPct,
+        fullCount, nearlyCount, totalFiles, buckets: bucketsInfo
+      });
+    }
+
     // ===== Media =====
     const mm = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mm && M === 'GET') return await serveMedia(req, res, mm[1], me);
@@ -1604,13 +1636,11 @@ const server = http.createServer(async (req, res) => {
       if (meUser.friendReqIn.includes(target)) {
         meUser.friendReqIn = meUser.friendReqIn.filter((u) => u !== target);
         tu.friendReqOut = tu.friendReqOut.filter((u) => u !== me);
-        meUser.friends.push(target);
-        tu.friends.push(me);
+        meUser.friends.push(target); tu.friends.push(me);
         await saveNow();
         return json(res, 200, { ok: true, accepted: true });
       }
-      meUser.friendReqOut.push(target);
-      tu.friendReqIn.push(me);
+      meUser.friendReqOut.push(target); tu.friendReqIn.push(me);
       await saveNow();
       return json(res, 200, { ok: true });
     }
@@ -1647,7 +1677,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
-    // ===== Chat =====
+    // ===== Chat with friend =====
     if (p === '/api/chat' && M === 'POST') {
       const d = await readBody(req);
       const target = String(d.username || '').trim().toLowerCase();
@@ -1911,7 +1941,7 @@ const server = http.createServer(async (req, res) => {
         if (d.lang !== 'py' && d.lang !== 'js') return json(res, 400, { error: 'lang ต้องเป็น py หรือ js' });
         if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'บอทสูงสุด ' + maxBotsFor(me) });
         const b = createBot(me, d.name, d.lang, typeof d.code === 'string' ? d.code : '');
-        await saveNow();  // ⭐ save ทันที
+        await saveNow();
         return json(res, 200, pub(b, true));
       }
     }
@@ -1925,13 +1955,13 @@ const server = http.createServer(async (req, res) => {
       const d = await readBody(req);
       if (typeof d.name === 'string' && d.name.trim()) b.name = d.name.trim().slice(0, 40);
       if (typeof d.code === 'string') {
-        b.code = d.code;  // ⭐ เก็บใน state ด้วย
+        b.code = d.code;
         try { fs.writeFileSync(codeFile(b), d.code); } catch (e) { console.error('write code:', e.message); }
         fixPerm(b);
       }
       if (typeof d.token === 'string' && d.token.trim()) b.token = d.token.trim();
       if (!b.publicId) b.publicId = genBotId();
-      await saveNow();  // ⭐ save ทันที
+      await saveNow();
       return json(res, 200, pub(b, true));
     }
     if (!sub && M === 'DELETE') {
@@ -1989,6 +2019,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// ============ SHUTDOWN ============
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -1999,7 +2030,6 @@ function shutdown() {
   try { writeSDataDisk(); } catch (e) { console.error('writeSDataDisk:', e.message); }
   for (const c of Object.values(procs)) { try { c.kill('SIGTERM'); } catch {} }
   for (const i of Object.values(installs)) { try { if (i.child) i.child.kill('SIGKILL'); } catch {} }
-  // รอ 4 วินาทีให้ flushRedis เสร็จก่อนออก
   setTimeout(() => process.exit(0), 4000);
 }
 process.on('SIGTERM', shutdown);
@@ -2007,8 +2037,8 @@ process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
+// ============ BOOT ============
 (async () => {
-  // ---- Redis load ----
   if (hasRedis) {
     console.log('🔌 Upstash Redis detected, loading state...');
     try {
@@ -2030,7 +2060,7 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     console.log('⚠️  ไม่มี UPSTASH_REDIS → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
   }
 
-  // ---- migrations ----
+  // migrations
   for (const u of Object.keys(state.users)) {
     const usr = state.users[u];
     if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
@@ -2048,7 +2078,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     if (!b.publicId) b.publicId = genBotId();
     if (b.expiresAt === undefined) b.expiresAt = 0;
     if (b.code === undefined) {
-      // migration: อ่านจากไฟล์เดิม (ถ้ามี) มาเก็บใน state
       try { b.code = fs.readFileSync(codeFile(b), 'utf8'); } catch { b.code = ''; }
     }
   }
@@ -2056,7 +2085,7 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   for (const p of Object.values(hub.posts)) if (!Array.isArray(p.comments)) p.comments = [];
   if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
 
-  // ⭐ Restore bot code files จาก state (สำคัญ! ถ้าไม่มี Volume ไฟล์จะหาย)
+  // ⭐ Restore bot code files จาก state
   let restored = 0;
   for (const b of Object.values(bots)) {
     const file = codeFile(b);
@@ -2070,6 +2099,16 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     }
   }
   if (restored) console.log('↩️  Restored ' + restored + ' bot code file(s) from Redis state');
+
+  // คำนวณ blob usage
+  if (blobBuckets.length) {
+    const usedPerBucket = {};
+    for (const m of Object.values(hub.media)) {
+      if (typeof m.bucketId === 'number' && m.size) usedPerBucket[m.bucketId] = (usedPerBucket[m.bucketId] || 0) + m.size;
+    }
+    for (const bk of blobBuckets) bk.used = usedPerBucket[bk.id] || 0;
+    console.log('📊 Blob usage: ' + blobBuckets.map(b => '#' + b.id + '=' + (b.used / 1048576).toFixed(1) + 'MB').join(' '));
+  }
 
   snapshot();
   setInterval(snapshot, 6 * 3600 * 1000);
@@ -2096,16 +2135,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
   for (const b of Object.values(bots)) fixPerm(b);
 
-  if (blobBuckets.length) {
-    const usedPerBucket = {};
-    for (const m of Object.values(hub.media)) {
-      if (typeof m.bucketId === 'number' && m.size) usedPerBucket[m.bucketId] = (usedPerBucket[m.bucketId] || 0) + m.size;
-    }
-    for (const bk of blobBuckets) bk.used = usedPerBucket[bk.id] || 0;
-    console.log('📊 Blob usage: ' + blobBuckets.map(b => '#' + b.id + '=' + (b.used / 1048576).toFixed(1) + 'MB').join(' '));
-  }
-
-  // ---- restart desired bots ----
   let i = 0;
   for (const b of Object.values(bots)) {
     if (b.desired) {
