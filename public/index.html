@@ -204,7 +204,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .codebox{margin:12px 0;padding:12px;max-height:260px;overflow:auto;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#eaeaea}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:18px;background:#fff;color:#000;font-weight:700;text-align:center;box-shadow:0 8px 40px rgba(255,255,255,.25)}
-/* Chat */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:760px){.chatwrap{grid-template-columns:300px 1fr}#cBack{display:none}}
 @media(max-width:759px){.chatwrap.open #cListBox{display:none}.chatwrap:not(.open) #cBox{display:none}}
@@ -245,34 +244,28 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .chatinput .comp .btn{width:44px;padding:0}
 .plusmenu{display:flex;gap:6px;padding:6px 10px 0;flex-wrap:wrap}
 .plusmenu .btn{min-height:36px;font-size:13px}
-/* Admin */
 .adcard{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;background:rgba(0,0,0,.5)}
 .adhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .adbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .adbody label{font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;display:block;margin-bottom:4px}
 .adfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-/* Profile */
 .profile-avatar{width:96px;height:96px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:38px;font-weight:900;text-transform:uppercase;overflow:hidden;position:relative;flex:none}
 .profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-/* ID box */
 .idbox{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.05);border:1px dashed var(--line2);border-radius:10px;margin-top:8px}
 .idbox code{flex:1;font:16px ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:2px;color:#fff;word-break:break-all}
 .idbox .btn{flex:none}
-/* Lookup */
 .lookup-result{margin-top:14px}
 .lr-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .lr-head b{font-size:18px}
 .timer-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .warn-box{margin-top:10px;padding:10px 14px;border:1px solid rgba(255,200,0,.4);border-radius:10px;background:rgba(255,200,0,.08);color:#ffd966;font-size:13px}
 .ok-box{margin-top:10px;padding:10px 14px;border:1px solid rgba(80,200,120,.4);border-radius:10px;background:rgba(50,180,100,.08);color:#7ee0a0;font-size:13px}
-/* Friends */
 .friend-row{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
 .friend-row:last-child{border-bottom:0}
 .friend-row .info{flex:1;min-width:0}
 .friend-row .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .friend-row .info small{color:var(--mut);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .friend-row .actions{display:flex;gap:6px;flex:none}
-/* Comments */
 .cmt{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:10px}
 .cmt:first-child{border-top:0}
 .cmt .cm{flex:1;min-width:0}
@@ -285,9 +278,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .cmtform textarea{flex:1;min-height:42px;max-height:100px;padding:10px 12px;resize:none;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
 .cmtform .btn{width:44px;padding:0}
 .cmtform .plusbtn{width:44px;height:42px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:#fff;font-size:20px;cursor:pointer}
-/* Report */
 .report-preview{max-width:260px;border-radius:10px;margin-top:8px;display:block}
-/* Storage */
 .stor-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
 .stor-stat{padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.4);text-align:center}
 .stor-stat .big{font-size:24px;font-weight:900;margin-top:2px;text-shadow:0 0 14px rgba(255,255,255,.25)}
@@ -423,7 +414,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </div>
 
-    <!-- ===== Home ===== -->
+    <!-- Home -->
     <section id="pg-home" class="page">
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
@@ -456,7 +447,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Profile ===== -->
+    <!-- Profile -->
     <section id="pg-profile" class="page hide">
       <div class="ph"><h2>โปรไฟล์ของฉัน</h2><p>ตั้งค่าโปรไฟล์ ผูกอีเมล เปลี่ยนรหัส</p></div>
       <div class="panel pad">
@@ -506,7 +497,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Trial ===== -->
+    <!-- Trial -->
     <section id="pg-trial" class="page hide">
       <div class="hero panel">
         <div class="kicker" style="color:#ff7a7c">TRIAL EXPIRED</div>
@@ -526,7 +517,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Run ===== -->
+    <!-- Run -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์</p></div>
       <div id="tabs"></div>
@@ -599,7 +590,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </section>
     </section>
 
-    <!-- ===== Market ===== -->
+    <!-- Market -->
     <section id="pg-market" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
@@ -615,7 +606,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <div class="grid" id="posts"></div>
     </section>
 
-    <!-- ===== Upload ===== -->
+    <!-- Upload -->
     <section id="pg-upload" class="page hide">
       <div class="ph"><h2>อัปโหลดโค้ดบอท</h2></div>
       <div class="panel pad">
@@ -649,7 +640,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Sites ===== -->
+    <!-- Sites -->
     <section id="pg-sites" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>เว็บสาธารณะ</h2></div>
@@ -728,7 +719,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Friends ===== -->
+    <!-- Friends -->
     <section id="pg-friends" class="page hide">
       <div class="ph"><h2>เพื่อน</h2><p>เพิ่มเพื่อนเพื่อแชทคุยกัน</p></div>
 
@@ -752,7 +743,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Chat ===== -->
+    <!-- Chat -->
     <section id="pg-chat" class="page hide">
       <div class="ph"><h2>แชท</h2><p>คุยกับเพื่อน ส่งข้อความ รูป วิดีโอ และไฟล์</p></div>
       <div class="chatwrap" id="chatwrap">
@@ -788,7 +779,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <input type="file" id="fileIn" class="hide">
     </section>
 
-    <!-- ===== Report ===== -->
+    <!-- Report -->
     <section id="pg-report" class="page hide">
       <div class="ph"><h2>แจ้งปัญหา</h2><p>เจอ bug? ระบบมีปัญหา? แจ้งให้แอดมินทราบได้เลย</p></div>
       <div class="panel pad" style="margin-bottom:12px">
@@ -819,7 +810,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== Admin ===== -->
+    <!-- Admin -->
     <section id="pg-admin" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แผงแอดมิน</h2><p>ค้นหา Public ID หรือจัดการผู้ใช้</p></div>
@@ -829,7 +820,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         </div>
       </div>
 
-      <!-- Storage panel -->
       <div class="panel pad" style="margin-bottom:12px">
         <div class="row" style="justify-content:space-between;align-items:center">
           <div>
@@ -902,7 +892,7 @@ const CHIPS = {
   js: ['@discordjs/voice', '@discordjs/opus', 'axios', 'dotenv', 'ffmpeg-static', 'play-dl', 'moment', 'node-fetch@2']
 };
 
-/* ---------- Global state ---------- */
+/* Global state */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
 let authToken = localStorage.getItem('authToken') || '';
 let myInfo = null;
@@ -915,7 +905,6 @@ let friends = [], frRequests = [], frSent = [], lastFriendsKey = '', lastChatKey
 let lookupBotId = '';
 let _chatIdCache = {};
 
-/* ---------- API ---------- */
 async function api(method, url, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
@@ -974,16 +963,8 @@ function toast(msg) {
   clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.add('hide'), Math.min(9000, 2800 + String(msg).length * 45));
 }
-function openModal(html) {
-  $('#mbody').innerHTML = html;
-  $('#modal').classList.remove('hide');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal() {
-  $('#modal').classList.add('hide');
-  $('#mbody').innerHTML = '';
-  document.body.style.overflow = '';
-}
+function openModal(html) { $('#mbody').innerHTML = html; $('#modal').classList.remove('hide'); document.body.style.overflow = 'hidden'; }
+function closeModal() { $('#modal').classList.add('hide'); $('#mbody').innerHTML = ''; document.body.style.overflow = ''; }
 let __confirmFinish = null;
 function askConfirm(msg, okText) {
   return new Promise(function (resolve) {
@@ -997,13 +978,7 @@ function askConfirm(msg, okText) {
       resolve(v);
     }
     __confirmFinish = finish;
-    openModal(
-      '<h2 style="margin-top:14px">ยืนยันการทำงาน</h2>' +
-      '<div class="mut" style="margin:8px 0 18px;white-space:pre-wrap;word-break:break-word">' + esc(msg) + '</div>' +
-      '<div class="row" style="justify-content:flex-end;margin-bottom:4px">' +
-      '<button class="btn" id="cfNo">ยกเลิก</button>' +
-      '<button class="btn solid" id="cfYes">' + esc(okText || 'ยืนยัน') + '</button></div>'
-    );
+    openModal('<h2 style="margin-top:14px">ยืนยันการทำงาน</h2><div class="mut" style="margin:8px 0 18px;white-space:pre-wrap;word-break:break-word">' + esc(msg) + '</div><div class="row" style="justify-content:flex-end;margin-bottom:4px"><button class="btn" id="cfNo">ยกเลิก</button><button class="btn solid" id="cfYes">' + esc(okText || 'ยืนยัน') + '</button></div>');
     $('#mback').onclick = function () { finish(false); };
     $('#mclose').onclick = function () { finish(false); };
     $('#cfNo').onclick = function () { finish(false); };
@@ -1032,7 +1007,7 @@ function fmtBytes(n) {
   return (n / 1073741824).toFixed(2) + ' GB';
 }
 
-/* ---------- Auth ---------- */
+/* Auth */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
@@ -1045,9 +1020,7 @@ async function authGo() {
   $('#aerr').textContent = '';
   $('#aGo').disabled = true;
   try {
-    const d = await api('POST', '/api/' + (mode === 'login' ? 'login' : 'register'), {
-      username: $('#au').value.trim(), password: $('#ap').value
-    });
+    const d = await api('POST', '/api/' + (mode === 'login' ? 'login' : 'register'), { username: $('#au').value.trim(), password: $('#ap').value });
     $('#ap').value = '';
     if (d.token) { authToken = d.token; try { localStorage.setItem('authToken', authToken); } catch {} }
     if (d.info) enter(d.info);
@@ -1094,9 +1067,7 @@ function enter(info) {
   let pg = localStorage.getItem('pg:' + me) || 'home';
   if (pg === 'site') pg = 'sites';
   if (pg === 'admin' && !isAdm) pg = 'home';
-  if (myInfo && myInfo.trialExpired && !isAdm) {
-    if (pg === 'run' || pg === 'sites' || pg === 'site' || pg === 'upload') pg = 'trial';
-  }
+  if (myInfo && myInfo.trialExpired && !isAdm) { if (pg === 'run' || pg === 'sites' || pg === 'site' || pg === 'upload') pg = 'trial'; }
   setPage(pg);
   loadFriendsList().catch(() => {});
   timer = setInterval(tick, 2000);
@@ -1126,7 +1097,7 @@ async function logout() {
   toAuth();
 }
 
-/* ---------- Menu / page ---------- */
+/* Menu / page */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   const isAdm = myInfo && myInfo.admin;
@@ -1164,7 +1135,7 @@ async function tick() {
   busy = false;
 }
 
-/* ---------- Stats ---------- */
+/* Stats */
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
@@ -1172,18 +1143,13 @@ async function loadStats() {
   set('#sMembers', d.users); set('#sPosts', d.posts);
 }
 
-/* ---------- Profile ---------- */
+/* Profile */
 async function loadProfile() {
   try {
     const p = await api('GET', '/api/profile');
     $('#pUsername').textContent = '@' + p.username;
-    if (p.avatar) {
-      $('#pAvatar').innerHTML = '<img src="/media/' + p.avatar + '" alt="">';
-      $('#pAvatarX').classList.remove('hide');
-    } else {
-      $('#pAvatar').innerHTML = '<span id="pAvatarLetter">' + esc((p.displayName || p.username || '?').trim().slice(0, 1).toUpperCase()) + '</span>';
-      $('#pAvatarX').classList.add('hide');
-    }
+    if (p.avatar) { $('#pAvatar').innerHTML = '<img src="/media/' + p.avatar + '" alt="">'; $('#pAvatarX').classList.remove('hide'); }
+    else { $('#pAvatar').innerHTML = '<span id="pAvatarLetter">' + esc((p.displayName || p.username || '?').trim().slice(0, 1).toUpperCase()) + '</span>'; $('#pAvatarX').classList.add('hide'); }
     $('#pRole').textContent = p.admin ? 'ผู้ดูแลระบบ' : (p.paid ? 'สมาชิก (PAID)' : 'สมาชิกทั่วไป');
     $('#pName').value = p.displayName || '';
     $('#pBio').value = p.bio || '';
@@ -1206,20 +1172,10 @@ function renderTrialTag(p) {
 function renderEmailBox(p) {
   const box = $('#pEmailBox');
   if (p.hasEmail && p.emailVerified) {
-    box.innerHTML =
-      '<div class="ok-box" style="margin:0">✓ ผูกอีเมลแล้ว: <b>' + esc(p.email) + '</b></div>' +
-      (p.trialExpired ? '<div class="warn-box">หมดเวลาทดลอง — <a style="color:#fff;text-decoration:underline" href="https://discord.gg/dTz2njT9fZ" target="_blank" rel="noopener">discord.gg/dTz2njT9fZ</a></div>' : (p.trialEnds ? '<div class="foot">เหลือเวลาทดลองอีก ' + Math.max(0, Math.ceil((p.trialEnds - Date.now()) / 86400000)) + ' วัน</div>' : '')) +
-      '<div class="row" style="margin-top:10px"><button class="btn sm" id="pChangeEmail"><svg class="ic"><use href="#i-mail"/></svg><span>เปลี่ยนอีเมล</span></button></div>';
+    box.innerHTML = '<div class="ok-box" style="margin:0">✓ ผูกอีเมลแล้ว: <b>' + esc(p.email) + '</b></div>' + (p.trialExpired ? '<div class="warn-box">หมดเวลาทดลอง — <a style="color:#fff;text-decoration:underline" href="https://discord.gg/dTz2njT9fZ" target="_blank" rel="noopener">discord.gg/dTz2njT9fZ</a></div>' : (p.trialEnds ? '<div class="foot">เหลือเวลาทดลองอีก ' + Math.max(0, Math.ceil((p.trialEnds - Date.now()) / 86400000)) + ' วัน</div>' : '')) + '<div class="row" style="margin-top:10px"><button class="btn sm" id="pChangeEmail"><svg class="ic"><use href="#i-mail"/></svg><span>เปลี่ยนอีเมล</span></button></div>';
     $('#pChangeEmail').onclick = () => showLinkEmailForm(p.email);
   } else if (p.hasEmail && !p.emailVerified) {
-    box.innerHTML =
-      '<div class="notice">อีเมล <b>' + esc(p.email) + '</b> ยังไม่ยืนยัน</div>' +
-      '<label class="l">รหัสยืนยัน</label>' +
-      '<input class="inp" id="pCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="text-align:center;font-size:22px;letter-spacing:8px;font-weight:700">' +
-      '<div class="row" style="margin-top:10px">' +
-      '<button class="btn solid" id="pVerify">ยืนยัน</button>' +
-      '<button class="btn" id="pResend">ส่งรหัสใหม่</button>' +
-      '<button class="btn" id="pChangeEmail">เปลี่ยนอีเมล</button></div>';
+    box.innerHTML = '<div class="notice">อีเมล <b>' + esc(p.email) + '</b> ยังไม่ยืนยัน</div><label class="l">รหัสยืนยัน</label><input class="inp" id="pCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="text-align:center;font-size:22px;letter-spacing:8px;font-weight:700"><div class="row" style="margin-top:10px"><button class="btn solid" id="pVerify">ยืนยัน</button><button class="btn" id="pResend">ส่งรหัสใหม่</button><button class="btn" id="pChangeEmail">เปลี่ยนอีเมล</button></div>';
     bindEmailVerify();
     $('#pChangeEmail').onclick = () => showLinkEmailForm(p.email);
   } else {
@@ -1229,11 +1185,7 @@ function renderEmailBox(p) {
 }
 function showLinkEmailForm(current) {
   const box = $('#pEmailBox');
-  box.innerHTML =
-    '<div class="notice">ผูกอีเมลเพื่อเริ่มทดลองใช้ 3 วัน</div>' +
-    '<label class="l">อีเมล</label>' +
-    '<input class="inp" id="pEmailIn" type="email" autocomplete="email" placeholder="you@example.com" value="' + esc(current || '') + '">' +
-    '<div style="margin-top:10px"><button class="btn solid" id="pLink"><svg class="ic"><use href="#i-mail"/></svg><span>ผูกอีเมลและส่งรหัส</span></button></div>';
+  box.innerHTML = '<div class="notice">ผูกอีเมลเพื่อเริ่มทดลองใช้ 3 วัน</div><label class="l">อีเมล</label><input class="inp" id="pEmailIn" type="email" autocomplete="email" placeholder="you@example.com" value="' + esc(current || '') + '"><div style="margin-top:10px"><button class="btn solid" id="pLink"><svg class="ic"><use href="#i-mail"/></svg><span>ผูกอีเมลและส่งรหัส</span></button></div>';
   $('#pLink').onclick = async () => {
     const em = $('#pEmailIn').value.trim();
     if (!em) return toast('กรอกอีเมลก่อน');
@@ -1254,13 +1206,10 @@ function bindEmailVerify() {
   };
   $('#pVerify').onclick = go;
   $('#pCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
-  $('#pResend').onclick = async () => {
-    try { const d = await api('POST', '/api/resend'); toast(d.dev ? 'รหัส log ที่เซิร์ฟเวอร์' : 'ส่งใหม่แล้ว'); }
-    catch (e) { toast(e.message); }
-  };
+  $('#pResend').onclick = async () => { try { const d = await api('POST', '/api/resend'); toast(d.dev ? 'รหัส log ที่เซิร์ฟเวอร์' : 'ส่งใหม่แล้ว'); } catch (e) { toast(e.message); } };
 }
 
-/* ---------- Bots ---------- */
+/* Bots */
 function renderTabs() {
   const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang + (b.expiresAt || 0)).join(',');
   if (key === lastTabsKey) return;
@@ -1307,20 +1256,14 @@ function updateStatus() {
   $('#info').textContent = b.status === 'running' && b.startedAt ? 'รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
   if (b.publicId) { $('#botPublicId').textContent = b.publicId; $('#copyBotId').onclick = () => copyText(b.publicId); }
   else $('#botPublicId').textContent = '-';
-  if (b.expiresAt) {
-    const left = b.expiresAt - Date.now();
-    if (left > 0) $('#botTimerInfo').textContent = '⏱ หมดเวลาอีก: ' + fmtTimeLeft(left);
-    else $('#botTimerInfo').innerHTML = '<span class="err">⏱ หมดเวลาแล้ว</span>';
-  } else $('#botTimerInfo').textContent = '⏱ ไม่จำกัดเวลา';
+  if (b.expiresAt) { const left = b.expiresAt - Date.now(); if (left > 0) $('#botTimerInfo').textContent = '⏱ หมดเวลาอีก: ' + fmtTimeLeft(left); else $('#botTimerInfo').innerHTML = '<span class="err">⏱ หมดเวลาแล้ว</span>'; }
+  else $('#botTimerInfo').textContent = '⏱ ไม่จำกัดเวลา';
   const eb = $('#errbox');
   if (b.status === 'error') { eb.style.display = 'flex'; $('#errtxt').textContent = b.lastExit || 'บอทหยุดเพราะ error'; }
   else eb.style.display = 'none';
   const run = $('#runBtn');
   const want = b.status === 'running' ? 'r' : 'p';
-  if (run.dataset.k !== want) {
-    run.dataset.k = want;
-    run.innerHTML = want === 'r' ? ic('restart') + '<span>บันทึก + รันใหม่</span>' : ic('play', 1) + '<span>รันบอท</span>';
-  }
+  if (run.dataset.k !== want) { run.dataset.k = want; run.innerHTML = want === 'r' ? ic('restart') + '<span>บันทึก + รันใหม่</span>' : ic('play', 1) + '<span>รันบอท</span>'; }
   $('#token').placeholder = b.hasToken ? 'ตั้งไว้แล้ว (เว้นว่าง = ใช้ของเดิม)' : 'ใส่โทเคนที่นี่';
   renderLibs(b);
 }
@@ -1365,8 +1308,6 @@ async function saveBot() {
   $('#token').value = ''; setDirty(false);
   return d;
 }
-
-/* ---------- Libs ---------- */
 async function installLibs() {
   const text = $('#libIn').value;
   if (!text.trim()) return toast('ใส่ชื่อไลบรารีก่อน');
@@ -1397,12 +1338,10 @@ function handleApiError(e) {
   return true;
 }
 
-/* ---------- Market ---------- */
+/* Market */
 function cardHtml(p) {
   const cover = p.cover ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="cv ph">' + ic('img') + '</div>';
-  return '<div class="card" data-id="' + p.id + '">' + cover +
-    '<div class="ov"><span class="tag">' + (p.lang === 'py' ? 'PY' : 'JS') + '</span><span class="tag ' + (p.price ? 'paid' : 'free') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span></div>' +
-    '<div class="cb"><b>' + esc(p.title) + '</b><small>โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</small>' + (p.commentCount ? '<small>💬 ' + p.commentCount + ' คอมเมนต์</small>' : '') + '</div></div>';
+  return '<div class="card" data-id="' + p.id + '">' + cover + '<div class="ov"><span class="tag">' + (p.lang === 'py' ? 'PY' : 'JS') + '</span><span class="tag ' + (p.price ? 'paid' : 'free') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span></div><div class="cb"><b>' + esc(p.title) + '</b><small>โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</small>' + (p.commentCount ? '<small>💬 ' + p.commentCount + ' คอมเมนต์</small>' : '') + '</div></div>';
 }
 async function loadPosts() { posts = (await api('GET', '/api/posts')).posts; renderPosts(); }
 function renderPosts() {
@@ -1416,27 +1355,14 @@ async function openPost(id) {
   try {
     const p = await api('GET', '/api/posts/' + id);
     const cover = p.cover ? '<div class="mcover" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="mcover">' + ic('img') + '</div>';
-    let h = cover + '<h2>' + esc(p.title) + '</h2>' +
-      '<div class="row" style="margin-bottom:6px"><span class="tag">' + (p.lang === 'py' ? 'Python' : 'JavaScript') + '</span>' +
-      '<span class="tag ' + (p.price ? 'paid' : '') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span>' +
-      '<span class="mut">โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</span></div>';
+    let h = cover + '<h2>' + esc(p.title) + '</h2>' + '<div class="row" style="margin-bottom:6px"><span class="tag">' + (p.lang === 'py' ? 'Python' : 'JavaScript') + '</span><span class="tag ' + (p.price ? 'paid' : '') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span><span class="mut">โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</span></div>';
     if (!p.locked) h += '<pre class="codebox" id="pcode"></pre>';
     else h += '<div class="lock">โค้ดนี้เสียเงิน ติดต่อคนขายผ่านคอมเมนต์ด้านล่าง</div>';
     h += '<div class="row">';
-    if (!p.locked) h += '<button class="btn" id="pCopy">' + ic('copy') + '<span>คัดลอกโค้ด</span></button>' + '<button class="btn solid" id="pUse">' + ic('run') + '<span>ใช้เป็นบอทของฉัน</span></button>';
+    if (!p.locked) h += '<button class="btn" id="pCopy">' + ic('copy') + '<span>คัดลอกโค้ด</span></button><button class="btn solid" id="pUse">' + ic('run') + '<span>ใช้เป็นบอทของฉัน</span></button>';
     if (p.mine) h += '<button class="btn danger" id="pDel">' + ic('trash') + '<span>ลบโพสต์</span></button>';
     h += '</div>';
-    h += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">' +
-      '<div class="row" style="justify-content:space-between;margin-bottom:8px"><b>💬 คอมเมนต์</b><span class="mut" id="cmtCount">-</span></div>' +
-      '<div id="cmtBox"></div>' +
-      '<div class="cmtform">' +
-      '<button class="plusbtn" id="cmtPlus" aria-label="แนบรูป">' + ic('img') + '</button>' +
-      '<textarea id="cmtInput" rows="1" maxlength="500" placeholder="เขียนคอมเมนต์ (ไม่เกิน 500 ตัวอักษร)"></textarea>' +
-      '<button class="btn solid" id="cmtSend" aria-label="ส่ง">' + ic('send') + '</button>' +
-      '</div>' +
-      '<input type="file" id="cmtFile" accept="image/*" class="hide">' +
-      '<div class="att hide" id="cmtAtt"><svg class="ic"><use href="#i-clip"/></svg><span id="cmtAttName"></span><button class="btn" id="cmtAttX" style="min-height:30px;width:34px;padding:0">' + ic('x') + '</button></div>' +
-      '</div>';
+    h += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b>💬 คอมเมนต์</b><span class="mut" id="cmtCount">-</span></div><div id="cmtBox"></div><div class="cmtform"><button class="plusbtn" id="cmtPlus" aria-label="แนบรูป">' + ic('img') + '</button><textarea id="cmtInput" rows="1" maxlength="500" placeholder="เขียนคอมเมนต์ (ไม่เกิน 500 ตัวอักษร)"></textarea><button class="btn solid" id="cmtSend" aria-label="ส่ง">' + ic('send') + '</button></div><input type="file" id="cmtFile" accept="image/*" class="hide"><div class="att hide" id="cmtAtt"><svg class="ic"><use href="#i-clip"/></svg><span id="cmtAttName"></span><button class="btn" id="cmtAttX" style="min-height:30px;width:34px;padding:0">' + ic('x') + '</button></div></div>';
     openModal(h);
     if (!p.locked) { $('#pcode').textContent = p.code; $('#pCopy').onclick = () => copyText(p.code); $('#pUse').onclick = () => usePost(p.id); }
     if ($('#pDel')) $('#pDel').onclick = () => deletePost(p.id);
@@ -1478,12 +1404,7 @@ async function loadComments(postId) {
     box.innerHTML = d.comments.map((c) => {
       let media = '';
       if (c.media && c.media.kind === 'image') media = '<img src="/media/' + c.media.id + '" data-full="' + c.media.id + '" alt="">';
-      return '<div class="cmt" data-cid="' + c.id + '">' +
-        '<div class="av" style="width:34px;height:34px;font-size:14px">' + esc(c.from.slice(0,1).toUpperCase()) + '</div>' +
-        '<div class="cm"><b>@' + esc(c.from) + '</b><span class="t">' + hhmm(c.t) + '</span>' +
-        (c.text ? '<div class="body">' + esc(c.text) + '</div>' : '') + media +
-        ((c.from === me || (myInfo && myInfo.admin)) ? '<div class="row" style="margin-top:6px"><button class="btn sm" data-del="' + c.id + '">' + ic('trash') + '<span>ลบ</span></button></div>' : '') +
-        '</div></div>';
+      return '<div class="cmt" data-cid="' + c.id + '"><div class="av" style="width:34px;height:34px;font-size:14px">' + esc(c.from.slice(0,1).toUpperCase()) + '</div><div class="cm"><b>@' + esc(c.from) + '</b><span class="t">' + hhmm(c.t) + '</span>' + (c.text ? '<div class="body">' + esc(c.text) + '</div>' : '') + media + ((c.from === me || (myInfo && myInfo.admin)) ? '<div class="row" style="margin-top:6px"><button class="btn sm" data-del="' + c.id + '">' + ic('trash') + '<span>ลบ</span></button></div>' : '') + '</div></div>';
     }).join('');
     box.querySelectorAll('img[data-full]').forEach((img) => { img.onclick = () => openModal('<img alt="" src="/media/' + img.dataset.full + '" style="width:100%;border-radius:10px;margin-top:30px">'); });
     box.querySelectorAll('[data-del]').forEach((btn) => {
@@ -1503,10 +1424,7 @@ async function usePost(id) {
     localStorage.setItem('cur:' + me, b.id);
     await setPage('run');
     if (b.publicId) {
-      openModal('<h2>เพิ่มบอทสำเร็จ</h2><div class="mut">Public ID ของบอทคุณ</div>' +
-        '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(b.publicId) + '</code>' +
-        '<button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div>' +
-        '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>');
+      openModal('<h2>เพิ่มบอทสำเร็จ</h2><div class="mut">Public ID ของบอทคุณ</div><div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(b.publicId) + '</code><button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div><div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>');
       $('#cpid').onclick = () => copyText(b.publicId);
       $('#ok').onclick = closeModal;
     } else toast('เพิ่มเป็นบอทของคุณแล้ว');
@@ -1518,7 +1436,7 @@ async function deletePost(id) {
   catch (e) { toast(e.message); }
 }
 
-/* ---------- Upload post ---------- */
+/* Upload post */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -1554,7 +1472,7 @@ async function doPublish() {
   publishing = false; $('#upGo').disabled = false;
 }
 
-/* ---------- Sites ---------- */
+/* Sites */
 function buildSitePage(m, title, html, css, js) {
   if (m === 'full') return html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>\n' + css + '\n</style></head><body>\n' + html + '\n<scr' + 'ipt>\n' + js + '\n</scr' + 'ipt></body></html>';
@@ -1572,9 +1490,7 @@ const siteUrl = (slug) => location.origin + '/s/' + slug;
 async function loadSites() { sites = (await api('GET', '/api/sites')).sites; renderSites(); }
 function siteCard(x) {
   const letter = esc(String(x.title || '?').trim().slice(0, 1).toUpperCase() || '?');
-  return '<div class="card" data-slug="' + x.slug + '"><div class="cv ph stile"><span>' + letter + '</span></div>' +
-    '<div class="ov"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '</div>' +
-    '<div class="cb"><b>' + esc(x.title) + '</b><small>โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</small></div></div>';
+  return '<div class="card" data-slug="' + x.slug + '"><div class="cv ph stile"><span>' + letter + '</span></div><div class="ov"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '</div><div class="cb"><b>' + esc(x.title) + '</b><small>โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</small></div></div>';
 }
 function renderSites() {
   const list = sites.filter((x) => sFilter === 'all' || x.mine);
@@ -1587,13 +1503,9 @@ function openSiteModal(slug) {
   const x = sites.find((s) => s.slug === slug);
   if (!x) return;
   const url = siteUrl(x.slug);
-  let h = '<h2>' + esc(x.title) + '</h2>' +
-    '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '<span class="mut">โดย ' + esc(x.owner) + '</span></div>' +
-    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
-  if (x.publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(x.publicId) + '</code>' + '<button class="btn sm" id="mCopyId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
-  h += '<div class="row" style="margin-top:12px">' +
-    '<a class="btn solid" href="/s/' + x.slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
-    '<button class="btn" id="mCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>';
+  let h = '<h2>' + esc(x.title) + '</h2>' + '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '<span class="mut">โดย ' + esc(x.owner) + '</span></div>' + '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
+  if (x.publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(x.publicId) + '</code><button class="btn sm" id="mCopyId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
+  h += '<div class="row" style="margin-top:12px">' + '<a class="btn solid" href="/s/' + x.slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' + '<button class="btn" id="mCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>';
   if (x.mine) h += '<button class="btn" id="mEdit">' + ic('set') + '<span>แก้ไข</span></button>' + '<button class="btn danger" id="mDel">' + ic('trash') + '<span>ลบ</span></button>';
   h += '</div>';
   openModal(h);
@@ -1607,11 +1519,7 @@ async function deleteSite(slug) {
   try { await api('DELETE', '/api/sites/' + slug); closeModal(); siteDirty = false; lastSitesKey = ''; if (page === 'site') await setPage('sites'); else await loadSites(); toast('ลบเว็บแล้ว'); }
   catch (e) { toast(e.message); }
 }
-function saveTabValue() {
-  if (siteTab === 'html') sHtml = $('#sCode').value;
-  else if (siteTab === 'css') sCss = $('#sCode').value;
-  else if (siteTab === 'js') sJs = $('#sCode').value;
-}
+function saveTabValue() { if (siteTab === 'html') sHtml = $('#sCode').value; else if (siteTab === 'css') sCss = $('#sCode').value; else if (siteTab === 'js') sJs = $('#sCode').value; }
 const TAB_HINT = { html: 'เขียน HTML (ส่วนใน body)', css: 'เขียน CSS', js: 'เขียน JavaScript', full: 'วาง HTML ทั้งหน้า' };
 function setSiteTab(t) {
   saveTabValue(); siteTab = t;
@@ -1674,7 +1582,7 @@ async function saveSite() {
 function showSiteLink(slug, isPublic, publicId) {
   const url = siteUrl(slug);
   let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่าง') + '</h2>' + '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
-  if (publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(publicId) + '</code>' + '<button class="btn sm" id="lkId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
+  if (publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(publicId) + '</code><button class="btn sm" id="lkId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
   h += '<div class="row" style="margin-top:12px">' + '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' + '<button class="btn" id="lkCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button></div>';
   openModal(h);
   $('#lkCopy').onclick = () => copyText(url);
@@ -1712,7 +1620,7 @@ async function loadSiteData() {
   } catch (e) { $('#sdInfo').textContent = e.message; }
 }
 
-/* ---------- Friends ---------- */
+/* Friends */
 async function loadFriendsList() {
   try {
     const d = await api('GET', '/api/friends');
@@ -1738,17 +1646,9 @@ function renderFriends() {
   if (key === lastFriendsKey) return;
   lastFriendsKey = key;
   $('#frReqCount').textContent = '(' + frRequests.length + ')';
-  $('#frRequests').innerHTML = frRequests.map((r) =>
-    '<div class="friend-row"><div class="av">' + avatarImg(r.username, r.avatar) + '</div>' +
-    '<div class="info"><b>@' + esc(r.username) + '</b>' + (r.displayName ? '<small>' + esc(r.displayName) + '</small>' : '') + '</div>' +
-    '<div class="actions">' + '<button class="btn sm ok" data-acc="' + esc(r.username) + '">รับ</button>' + '<button class="btn sm danger" data-rej="' + esc(r.username) + '">ปฏิเสธ</button>' + '</div></div>'
-  ).join('') || '<div class="mut" style="padding:14px;text-align:center">ไม่มีคำขอใหม่</div>';
+  $('#frRequests').innerHTML = frRequests.map((r) => '<div class="friend-row"><div class="av">' + avatarImg(r.username, r.avatar) + '</div><div class="info"><b>@' + esc(r.username) + '</b>' + (r.displayName ? '<small>' + esc(r.displayName) + '</small>' : '') + '</div><div class="actions">' + '<button class="btn sm ok" data-acc="' + esc(r.username) + '">รับ</button>' + '<button class="btn sm danger" data-rej="' + esc(r.username) + '">ปฏิเสธ</button>' + '</div></div>').join('') || '<div class="mut" style="padding:14px;text-align:center">ไม่มีคำขอใหม่</div>';
   $('#frListCount').textContent = '(' + friends.length + ')';
-  $('#frList').innerHTML = friends.map((f) =>
-    '<div class="friend-row"><div class="av">' + avatarImg(f.username, f.avatar) + '</div>' +
-    '<div class="info"><b>' + esc(f.displayName || '@' + f.username) + '</b>' + (f.displayName ? '<small>@' + esc(f.username) + '</small>' : '') + (f.last ? '<small>' + esc(f.last.text || '') + '</small>' : '') + '</div>' +
-    '<div class="actions">' + '<button class="btn sm solid" data-chat="' + esc(f.username) + '">แชท</button>' + '<button class="btn sm danger" data-rem="' + esc(f.username) + '">ลบ</button>' + '</div></div>'
-  ).join('') || '<div class="mut" style="padding:14px;text-align:center">ยังไม่มีเพื่อน</div>';
+  $('#frList').innerHTML = friends.map((f) => '<div class="friend-row"><div class="av">' + avatarImg(f.username, f.avatar) + '</div><div class="info"><b>' + esc(f.displayName || '@' + f.username) + '</b>' + (f.displayName ? '<small>@' + esc(f.username) + '</small>' : '') + (f.last ? '<small>' + esc(f.last.text || '') + '</small>' : '') + '</div><div class="actions">' + '<button class="btn sm solid" data-chat="' + esc(f.username) + '">แชท</button>' + '<button class="btn sm danger" data-rem="' + esc(f.username) + '">ลบ</button>' + '</div></div>').join('') || '<div class="mut" style="padding:14px;text-align:center">ยังไม่มีเพื่อน</div>';
   $('#frRequests').querySelectorAll('[data-acc]').forEach((b) => b.onclick = () => acceptFriend(b.dataset.acc));
   $('#frRequests').querySelectorAll('[data-rej]').forEach((b) => b.onclick = () => rejectFriend(b.dataset.rej));
   $('#frList').querySelectorAll('[data-chat]').forEach((b) => b.onclick = () => openChatWith(b.dataset.chat));
@@ -1780,16 +1680,14 @@ async function doSearchFriends() {
       else if (u.isPending) btn = '<button class="btn sm" disabled>รอการยืนยัน</button>';
       else if (u.isIncoming) btn = '<button class="btn sm ok" data-acc="' + esc(u.username) + '">รับคำขอ</button>';
       else btn = '<button class="btn sm solid" data-add="' + esc(u.username) + '">เพิ่มเพื่อน</button>';
-      return '<div class="friend-row"><div class="av">' + avatarImg(u.username, u.avatar) + '</div>' +
-        '<div class="info"><b>@' + esc(u.username) + '</b>' + (u.displayName ? '<small>' + esc(u.displayName) + '</small>' : '') + '</div>' +
-        '<div class="actions">' + btn + '</div></div>';
+      return '<div class="friend-row"><div class="av">' + avatarImg(u.username, u.avatar) + '</div><div class="info"><b>@' + esc(u.username) + '</b>' + (u.displayName ? '<small>' + esc(u.displayName) + '</small>' : '') + '</div><div class="actions">' + btn + '</div></div>';
     }).join('');
     box.querySelectorAll('[data-add]').forEach((b) => b.onclick = () => addFriend(b.dataset.add));
     box.querySelectorAll('[data-acc]').forEach((b) => b.onclick = () => acceptFriend(b.dataset.acc));
   } catch (e) { box.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
 }
 
-/* ---------- Chat with friends ---------- */
+/* Chat */
 function renderChatList() {
   const key = JSON.stringify(friends) + '|' + curChat;
   if (key === lastChatKey) return;
@@ -1797,10 +1695,7 @@ function renderChatList() {
   $('#cList').innerHTML = friends.map((f) => {
     let last = '';
     if (f.last) last = f.last.text || '';
-    return '<div class="ci' + (curChat === f.username ? ' on' : '') + '" data-id="' + esc(f.username) + '">' +
-      '<div class="av">' + avatarImg(f.username, f.avatar) + '</div>' +
-      '<div class="m"><b>' + esc(f.displayName || '@' + f.username) + '</b>' + '<small>' + esc(last.slice(0, 50)) + '</small></div>' +
-      (f.unread ? '<span class="ub">' + f.unread + '</span>' : '') + '</div>';
+    return '<div class="ci' + (curChat === f.username ? ' on' : '') + '" data-id="' + esc(f.username) + '"><div class="av">' + avatarImg(f.username, f.avatar) + '</div><div class="m"><b>' + esc(f.displayName || '@' + f.username) + '</b><small>' + esc(last.slice(0, 50)) + '</small></div>' + (f.unread ? '<span class="ub">' + f.unread + '</span>' : '') + '</div>';
   }).join('') || '<div class="empty">ยังไม่มีเพื่อน — ไปที่เมนู "เพื่อน" เพื่อเพิ่ม</div>';
   $('#cList').querySelectorAll('.ci').forEach((el) => { el.onclick = () => openChat(el.dataset.id); });
 }
@@ -1837,18 +1732,20 @@ async function loadChatThread() {
   } catch (e) {}
   chatBusy = false;
 }
+// ⭐ แก้ msgNode: เพิ่ม ?t=TOKEN
 function msgNode(m) {
   const div = document.createElement('div');
   div.className = 'msg ' + (m.from === me ? 'me' : 'them');
   let h = '';
   if (m.media) {
     const id = m.media.id;
-    if (m.media.kind === 'image') h += '<img loading="lazy" alt="" src="/media/' + id + '" data-full="' + id + '">';
-    else if (m.media.kind === 'video') h += '<video controls preload="metadata" playsinline src="/media/' + id + '"></video>';
+    const tk = authToken ? '?t=' + authToken : '';
+    if (m.media.kind === 'image') h += '<img loading="lazy" alt="" src="/media/' + id + tk + '" data-full="' + id + tk + '">';
+    else if (m.media.kind === 'video') h += '<video controls preload="metadata" playsinline src="/media/' + id + tk + '"></video>';
     else {
       const name = m.media.name ? decodeURIComponent(m.media.name) : 'file';
       const sz = m.media.size ? ' (' + (m.media.size / 1024).toFixed(1) + ' KB)' : '';
-      h += '<a class="filelink" href="/media/' + id + '" download>' + ic('file') + '<span>' + esc(name) + sz + '</span></a>';
+      h += '<a class="filelink" href="/media/' + id + tk + '" download>' + ic('file') + '<span>' + esc(name) + sz + '</span></a>';
     }
   }
   if (m.text) h += '<div class="tx"></div>';
@@ -1891,7 +1788,7 @@ async function sendChatMsg() {
   sendingMsg = false; $('#sendBtn').disabled = false;
 }
 
-/* ---------- Report ---------- */
+/* Report */
 let reportImgFile = null;
 function bindReport() {
   const el = document.getElementById('rpText');
@@ -1944,7 +1841,7 @@ function bindReport() {
   };
 }
 
-/* ---------- Admin ---------- */
+/* Admin */
 async function loadAdmin() {
   const listEl = document.getElementById('adList');
   if (!listEl) return;
@@ -1959,24 +1856,7 @@ async function loadAdmin() {
       else if (u.trialEnds) badge.push('<span class="tag">เหลือ ' + Math.max(0, Math.ceil((u.trialEnds - Date.now()) / 86400000)) + ' วัน</span>');
       if (!u.emailVerified && u.email) badge.push('<span class="tag">ยังไม่ยืนยันอีเมล</span>');
       if (!u.email) badge.push('<span class="tag">ยังไม่ผูกอีเมล</span>');
-      return '<div class="adcard" data-u="' + esc(u.username) + '">' +
-        '<div class="adhead">' +
-        '<div style="min-width:0;flex:1"><b>@' + esc(u.username) + '</b> ' + badge.join(' ') +
-        (u.displayName ? '<div class="mut" style="font-size:12px;margin-top:3px">' + esc(u.displayName) + '</div>' : '') +
-        '<div class="mut" style="font-size:12px">' + esc(u.email || '(ไม่มีอีเมล)') + '</div>' +
-        '<div class="mut" style="font-size:12px">บอท ' + u.bots + ' · เว็บ ' + u.sites + ' · โพสต์ ' + u.posts + ' · เพื่อน ' + u.friends + '</div></div>' +
-        '<label style="display:flex;gap:6px;align-items:center;font-size:13px;flex:none"><input type="checkbox" class="adChk" style="width:20px;height:20px"> จัดการ</label>' +
-        '</div>' +
-        '<div class="adbody" style="display:none">' +
-        '<div><label>โควต้าบอท</label><input class="inp" type="number" min="0" max="999" value="' + u.maxBots + '" data-f="maxBots"></div>' +
-        '<div><label>โควต้าเว็บ</label><input class="inp" type="number" min="0" max="999" value="' + u.maxSites + '" data-f="maxSites"></div>' +
-        '</div>' +
-        '<div class="adfoot" style="display:none">' +
-        '<button class="btn solid" data-act="save">บันทึกโควต้า</button>' +
-        '<button class="btn" data-act="extend">+30 วัน</button>' +
-        '<button class="btn" data-act="toggle-paid">' + (u.paid ? 'ยกเลิก PAID' : 'ตั้งเป็น PAID') + '</button>' +
-        '<button class="btn danger" data-act="delete">ลบบัญชี</button>' +
-        '</div></div>';
+      return '<div class="adcard" data-u="' + esc(u.username) + '"><div class="adhead"><div style="min-width:0;flex:1"><b>@' + esc(u.username) + '</b> ' + badge.join(' ') + (u.displayName ? '<div class="mut" style="font-size:12px;margin-top:3px">' + esc(u.displayName) + '</div>' : '') + '<div class="mut" style="font-size:12px">' + esc(u.email || '(ไม่มีอีเมล)') + '</div><div class="mut" style="font-size:12px">บอท ' + u.bots + ' · เว็บ ' + u.sites + ' · โพสต์ ' + u.posts + ' · เพื่อน ' + u.friends + '</div></div><label style="display:flex;gap:6px;align-items:center;font-size:13px;flex:none"><input type="checkbox" class="adChk" style="width:20px;height:20px"> จัดการ</label></div><div class="adbody" style="display:none"><div><label>โควต้าบอท</label><input class="inp" type="number" min="0" max="999" value="' + u.maxBots + '" data-f="maxBots"></div><div><label>โควต้าเว็บ</label><input class="inp" type="number" min="0" max="999" value="' + u.maxSites + '" data-f="maxSites"></div></div><div class="adfoot" style="display:none"><button class="btn solid" data-act="save">บันทึกโควต้า</button><button class="btn" data-act="extend">+30 วัน</button><button class="btn" data-act="toggle-paid">' + (u.paid ? 'ยกเลิก PAID' : 'ตั้งเป็น PAID') + '</button><button class="btn danger" data-act="delete">ลบบัญชี</button></div></div>';
     }).join('') || '<div class="mut">ไม่มีผู้ใช้</div>';
     listEl.querySelectorAll('.adChk').forEach((chk) => {
       chk.addEventListener('change', () => {
@@ -2013,7 +1893,7 @@ async function loadAdmin() {
   } catch (e) { listEl.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
 }
 
-/* ---------- Admin: Storage ---------- */
+/* Admin: Storage */
 async function loadStorage() {
   const box = document.getElementById('storageBox');
   if (!box) return;
@@ -2021,17 +1901,12 @@ async function loadStorage() {
   try {
     const d = await api('GET', '/api/admin/storage');
     renderStorage(d);
-  } catch (e) {
-    box.innerHTML = '<div class="err" style="margin-top:12px">' + esc(e.message) + '</div>';
-  }
+  } catch (e) { box.innerHTML = '<div class="err" style="margin-top:12px">' + esc(e.message) + '</div>'; }
 }
 function barClass(pct) { if (pct >= 95) return 'danger'; if (pct >= 80) return 'warn'; return ''; }
 function renderStorage(d) {
   const box = document.getElementById('storageBox');
-  if (!d.totalBuckets) {
-    box.innerHTML = '<div class="warn-box">⚠️ ยังไม่ได้ตั้งค่า UPSTASH_BLOB_TOKENS — ไม่มี bucket ที่ใช้งานได้</div>';
-    return;
-  }
+  if (!d.totalBuckets) { box.innerHTML = '<div class="warn-box">⚠️ ยังไม่ได้ตั้งค่า UPSTASH_BLOB_TOKENS — ไม่มี bucket ที่ใช้งานได้</div>'; return; }
   const overallCls = barClass(d.overallPercent);
   let h = '<div class="stor-hero">';
   h += '<div class="stor-stat"><div class="lbl">โทเค็น (Bucket)</div><div class="big">' + d.totalBuckets + '</div></div>';
@@ -2040,14 +1915,12 @@ function renderStorage(d) {
   h += '<div class="stor-stat"><div class="lbl">พื้นที่รวม</div><div class="big">' + fmtBytes(d.totalLimit) + '</div></div>';
   h += '</div>';
   h += '<div class="stor-overall">';
-  h += '<div class="stor-overall-head">';
-  h += '<b>ภาพรวมทั้งหมด</b>';
-  h += '<div class="row" style="gap:6px">';
+  h += '<div class="stor-overall-head"><b>ภาพรวมทั้งหมด</b><div class="row" style="gap:6px">';
   if (d.fullCount) h += '<span class="info-pill danger">🔴 เต็ม ' + d.fullCount + ' อัน</span>';
   if (d.nearlyCount) h += '<span class="info-pill warn">🟡 ใกล้เต็ม ' + d.nearlyCount + ' อัน</span>';
   if (!d.fullCount && !d.nearlyCount) h += '<span class="info-pill ok">🟢 ทุกอันยังว่าง</span>';
   h += '</div></div>';
-  h += '<div class="stor-bar"><div class="fill ' + overallCls + '" style="width:' + d.overallPercent.toFixed(1) + '%"></div>' + '<div class="pct">' + d.overallPercent.toFixed(1) + '%</div></div>';
+  h += '<div class="stor-bar"><div class="fill ' + overallCls + '" style="width:' + d.overallPercent.toFixed(1) + '%"></div><div class="pct">' + d.overallPercent.toFixed(1) + '%</div></div>';
   h += '<div class="foot">ใช้ไป ' + fmtBytes(d.totalUsed) + ' จาก ' + fmtBytes(d.totalLimit) + '</div>';
   h += '</div>';
   h += '<b style="display:block;margin-top:18px">รายละเอียดแต่ละโทเค็น</b>';
@@ -2059,12 +1932,7 @@ function renderStorage(d) {
     if (b.full) badge = '<span class="badge-sm full">FULL</span>';
     else if (b.nearlyFull) badge = '<span class="badge-sm warn">NEAR</span>';
     else badge = '<span class="badge-sm ok">OK</span>';
-    h += '<div class="bucket-card ' + cls + '">';
-    h += '<div class="bh"><span class="name">#' + b.id + '</span>' + badge + '</div>';
-    h += '<div class="bucket-bar"><div class="fill ' + fillCls + '" style="width:' + b.percent.toFixed(1) + '%"></div></div>';
-    h += '<div class="meta"><span>' + fmtBytes(b.used) + ' / ' + fmtBytes(b.limit) + '</span><span>' + b.percent.toFixed(1) + '%</span></div>';
-    h += '<div class="meta"><span>📁 ' + b.files + ' ไฟล์</span><span>' + (b.full ? '⚠️ เต็ม' : (b.nearlyFull ? '⚠️ ใกล้เต็ม' : 'พร้อมใช้')) + '</span></div>';
-    h += '</div>';
+    h += '<div class="bucket-card ' + cls + '"><div class="bh"><span class="name">#' + b.id + '</span>' + badge + '</div><div class="bucket-bar"><div class="fill ' + fillCls + '" style="width:' + b.percent.toFixed(1) + '%"></div></div><div class="meta"><span>' + fmtBytes(b.used) + ' / ' + fmtBytes(b.limit) + '</span><span>' + b.percent.toFixed(1) + '%</span></div><div class="meta"><span>📁 ' + b.files + ' ไฟล์</span><span>' + (b.full ? '⚠️ เต็ม' : (b.nearlyFull ? '⚠️ ใกล้เต็ม' : 'พร้อมใช้')) + '</span></div></div>';
   });
   h += '</div>';
   h += '<div class="notice" style="margin-top:14px">';
@@ -2075,7 +1943,7 @@ function renderStorage(d) {
   box.innerHTML = h;
 }
 
-/* ---------- Admin: Lookup ---------- */
+/* Admin: Lookup */
 async function doLookup() {
   const id = ($('#lookupId').value || '').trim().toUpperCase();
   if (!id) return toast('ใส่ ID ก่อน');
@@ -2094,28 +1962,16 @@ function renderLookup(d) {
   h += '</div>';
   if (d.type === 'bot') {
     const b = d.bot;
-    h += '<div class="adcard">';
-    h += '<div class="row" style="gap:8px"><span class="badge ' + b.status + '"><span class="dot ' + b.status + '"></span>' + (b.status === 'running' ? 'กำลังรัน' : b.status === 'error' ? 'ผิดพลาด' : 'หยุดอยู่') + '</span><span class="tag">' + (b.lang === 'py' ? 'Python' : 'JavaScript') + '</span></div>';
+    h += '<div class="adcard"><div class="row" style="gap:8px"><span class="badge ' + b.status + '"><span class="dot ' + b.status + '"></span>' + (b.status === 'running' ? 'กำลังรัน' : b.status === 'error' ? 'ผิดพลาด' : 'หยุดอยู่') + '</span><span class="tag">' + (b.lang === 'py' ? 'Python' : 'JavaScript') + '</span></div>';
     if (b.expiresAt) { const left = b.expiresAt - Date.now(); h += '<div class="warn-box">⏱ ' + (left > 0 ? 'หมดเวลาอีก ' + fmtTimeLeft(left) : '<b>หมดเวลาแล้ว</b>') + '</div>'; }
     else h += '<div class="foot">⏱ ไม่จำกัดเวลา</div>';
-    h += '<div class="timer-row">';
-    h += '<button class="btn sm" data-timer="24">+1 วัน</button>';
-    h += '<button class="btn sm" data-timer="48">+2 วัน</button>';
-    h += '<button class="btn sm" data-timer="168">+7 วัน</button>';
-    h += '<button class="btn sm" data-timer="0">ไม่จำกัด</button>';
-    h += '</div>';
+    h += '<div class="timer-row"><button class="btn sm" data-timer="24">+1 วัน</button><button class="btn sm" data-timer="48">+2 วัน</button><button class="btn sm" data-timer="168">+7 วัน</button><button class="btn sm" data-timer="0">ไม่จำกัด</button></div>';
     h += '<label class="l" style="margin-top:10px">กำหนดเอง (ชั่วโมง)</label>';
     h += '<div class="row"><input class="inp" id="timerHours" type="number" min="0" max="8760" placeholder="เช่น 12" style="max-width:120px"><button class="btn sm" id="timerSet">ตั้ง</button></div>';
-    h += '<div class="adfoot">';
-    h += '<button class="btn ok" data-bot="start">' + ic('play', 1) + '<span>เริ่ม</span></button>';
-    h += '<button class="btn danger" data-bot="stop">' + ic('stop') + '<span>หยุด</span></button>';
-    h += '<button class="btn" data-bot="logs">' + ic('log') + '<span>ดู Log</span></button>';
-    h += '</div><div id="lookupLogs" style="margin-top:10px"></div></div>';
+    h += '<div class="adfoot"><button class="btn ok" data-bot="start">' + ic('play', 1) + '<span>เริ่ม</span></button><button class="btn danger" data-bot="stop">' + ic('stop') + '<span>หยุด</span></button><button class="btn" data-bot="logs">' + ic('log') + '<span>ดู Log</span></button></div><div id="lookupLogs" style="margin-top:10px"></div></div>';
   } else {
     const x = d.site;
-    h += '<div class="adcard"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span> ' + (x.public ? '<span class="tag ok">สาธารณะ</span>' : '<span class="tag danger">ร่าง</span>') +
-      '<div class="foot" style="margin-top:6px">ลิงก์: <a style="color:#fff" href="/s/' + x.slug + '" target="_blank">/s/' + x.slug + '</a></div>' +
-      '<div class="foot">เว็บรวมของเจ้าของ: ' + (d.sitesCount || 0) + ' เว็บ</div></div>';
+    h += '<div class="adcard"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span> ' + (x.public ? '<span class="tag ok">สาธารณะ</span>' : '<span class="tag danger">ร่าง</span>') + '<div class="foot" style="margin-top:6px">ลิงก์: <a style="color:#fff" href="/s/' + x.slug + '" target="_blank">/s/' + x.slug + '</a></div><div class="foot">เว็บรวมของเจ้าของ: ' + (d.sitesCount || 0) + ' เว็บ</div></div>';
   }
   h += '</div>';
   box.innerHTML = h;
@@ -2150,7 +2006,7 @@ function renderLookup(d) {
   });
 }
 
-/* ---------- Bind ---------- */
+/* Bind */
 function safe(label, fn) { try { fn(); } catch (e) { console.error('[' + label + ']', e); if (window.__alexaFatal) window.__alexaFatal('ส่วน "' + label + '" เริ่มไม่ได้: ' + e.message); } }
 function tabInsert(e) { if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; t.dispatchEvent(new Event('input')); } }
 
@@ -2231,10 +2087,7 @@ safe('run', function () {
       setDirty(false); cur = null; shownId = null;
       await select(d.id); setView('code');
       if (d.publicId) {
-        openModal('<h2>สร้างบอทสำเร็จ</h2><div class="mut">Public ID ของบอทคุณ</div>' +
-          '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(d.publicId) + '</code>' +
-          '<button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div>' +
-          '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>');
+        openModal('<h2>สร้างบอทสำเร็จ</h2><div class="mut">Public ID ของบอทคุณ</div><div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(d.publicId) + '</code><button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div><div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>');
         $('#cpid').onclick = () => copyText(d.publicId);
         $('#ok').onclick = closeModal;
       }
