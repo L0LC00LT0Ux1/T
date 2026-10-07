@@ -34,13 +34,11 @@ const ROOM_MAX = parseInt(process.env.ROOM_MAX_CLIENTS || '40', 10);
 const SITE_ROOMS_MAX = 20;
 const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 
-// Chat/file limits
 const MSG_MAX = 500;
 const CHAT_IMG_MAX = 5 * 1024 * 1024;
 const CHAT_VID_MAX = 10 * 1024 * 1024;
 const CHAT_FILE_MAX = 10 * 1024 * 1024;
 
-// Discord webhook
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK
   || 'https://discord.com/api/webhooks/1541593046813118495/hCm3CkixqczVAeVpOu2X45EZ2wkGj84aO8XuEjoO9sAO8dqwRiwpAu_PeqFpmuLIjhqE';
 
@@ -48,7 +46,7 @@ const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
 const BOT_EXPIRED_MSG = 'บอทนี้หมดเวลาแล้ว กรุณาต่อเวลาใหม่';
 
-// ---------- ID generators ----------
+// ---------- ID gen ----------
 function genPublicId(existing) {
   for (let i = 0; i < 20; i++) {
     const id = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -101,7 +99,7 @@ function scheduleRedisSave(key, getter, delay) {
   redisTimers[key] = setTimeout(async () => {
     delete redisTimers[key];
     try { await redisSet(key, JSON.stringify(getter())); } catch (e) { console.error('redis flush ' + key + ':', e.message); }
-  }, delay || 5000);
+  }, delay || 500);
 }
 async function flushRedis() {
   for (const k of Object.keys(redisTimers)) { clearTimeout(redisTimers[k]); delete redisTimers[k]; }
@@ -130,7 +128,7 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
 if (blobBuckets.length) console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
 else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
 
-// ---------- storage dirs ----------
+// ---------- dirs ----------
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
 const DATA_DIR = process.env.DATA_DIR || volPath || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
@@ -213,15 +211,26 @@ const state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMI
 }
 const bots = state.bots;
 
-function save() {
+// ---- SAVE (debounce 300ms) ----
+function saveDisk() {
   try {
     const tmp = STATE_FILE + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(state, null, 1), { mode: 0o600 });
+    fs.writeFileSync(tmp, JSON.stringify(state), { mode: 0o600 });
     backupOnce(STATE_FILE);
     fs.renameSync(tmp, STATE_FILE);
     try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
   } catch (e) {}
-  scheduleRedisSave('alexa:state', () => state, 5000);
+}
+function save() {
+  saveDisk();
+  scheduleRedisSave('alexa:state', () => state, 300);
+}
+// saveNow = save ทันที (ไม่มี debounce) — ใช้ตอนสร้าง/แก้/รันบอท
+async function saveNow() {
+  saveDisk();
+  if (redisTimers['alexa:state']) { clearTimeout(redisTimers['alexa:state']); delete redisTimers['alexa:state']; }
+  if (!hasRedis) return;
+  await redisSet('alexa:state', JSON.stringify(state));
 }
 
 // ---------- hub ----------
@@ -231,17 +240,27 @@ let hub = { posts: {}, chats: {}, media: {}, sites: {} };
   if (r) { hub = Object.assign(hub, r.data); if (r.from !== HUB_FILE) console.error('hub backup used'); }
 }
 let hubTimer = null;
-function writeHub() {
+function writeHubDisk() {
   try {
     const tmp = HUB_FILE + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(hub), { mode: 0o600 });
     backupOnce(HUB_FILE); fs.renameSync(tmp, HUB_FILE);
   } catch (e) {}
-  scheduleRedisSave('alexa:hub', () => hub, 5000);
+}
+function writeHub() {
+  writeHubDisk();
+  scheduleRedisSave('alexa:hub', () => hub, 300);
 }
 function saveHub() {
   if (hubTimer) return;
-  hubTimer = setTimeout(() => { hubTimer = null; try { writeHub(); } catch (e) { console.error('saveHub:', e.message); } }, 400);
+  hubTimer = setTimeout(() => { hubTimer = null; try { writeHub(); } catch (e) { console.error('saveHub:', e.message); } }, 300);
+}
+async function saveHubNow() {
+  if (hubTimer) { clearTimeout(hubTimer); hubTimer = null; }
+  writeHubDisk();
+  if (redisTimers['alexa:hub']) { clearTimeout(redisTimers['alexa:hub']); delete redisTimers['alexa:hub']; }
+  if (!hasRedis) return;
+  await redisSet('alexa:hub', JSON.stringify(hub));
 }
 
 // ---------- sitedata ----------
@@ -251,17 +270,20 @@ let sdata = { sites: {} };
   if (r && r.data && r.data.sites) { sdata = r.data; if (r.from !== SITEDATA_FILE) console.error('sitedata backup used'); }
 }
 let sdTimer = null;
-function writeSData() {
+function writeSDataDisk() {
   try {
     const tmp = SITEDATA_FILE + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(sdata), { mode: 0o600 });
     backupOnce(SITEDATA_FILE); fs.renameSync(tmp, SITEDATA_FILE);
   } catch (e) {}
-  scheduleRedisSave('alexa:sitedata', () => sdata, 5000);
+}
+function writeSData() {
+  writeSDataDisk();
+  scheduleRedisSave('alexa:sitedata', () => sdata, 300);
 }
 function saveSData() {
   if (sdTimer) return;
-  sdTimer = setTimeout(() => { sdTimer = null; try { writeSData(); } catch (e) { console.error('saveSData:', e.message); } }, 1500);
+  sdTimer = setTimeout(() => { sdTimer = null; try { writeSData(); } catch (e) { console.error('saveSData:', e.message); } }, 300);
 }
 
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -286,17 +308,6 @@ function canCreate(user) {
 }
 function maxBotsFor(u) { const x = getUser(u); return isAdmin(u) ? 999 : (x?.maxBots ?? DEFAULT_MAX_BOTS); }
 function maxSitesFor(u) { const x = getUser(u); return isAdmin(u) ? 999 : (x?.maxSites ?? DEFAULT_MAX_SITES); }
-function pubUser(u) {
-  const x = getUser(u);
-  if (!x) return null;
-  return {
-    username: u,
-    displayName: x.displayName || '',
-    bio: x.bio || '',
-    avatar: x.avatar || '',
-    admin: isAdmin(u)
-  };
-}
 function pubMe(u) {
   const x = getUser(u);
   if (!x) return null;
@@ -327,28 +338,20 @@ async function sendEmail(to, subject, html) {
 }
 function genCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
-// ---------- Discord webhook ----------
+// ---------- discord webhook ----------
 async function sendToDiscord(embed) {
   try {
     const r = await fetch(DISCORD_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'ALEXA HUB Report',
-        avatar_url: 'https://cdn-icons-png.flaticon.com/512/564/564619.png',
-        embeds: [embed]
-      })
+      body: JSON.stringify({ username: 'ALEXA HUB Report', avatar_url: 'https://cdn-icons-png.flaticon.com/512/564/564619.png', embeds: [embed] })
     });
-    if (!r.ok) {
-      const t = await r.text();
-      console.error('Discord webhook error:', r.status, t.slice(0, 200));
-      return { ok: false, msg: 'HTTP ' + r.status };
-    }
+    if (!r.ok) { const t = await r.text(); console.error('Discord webhook err:', r.status, t.slice(0, 200)); return { ok: false, msg: 'HTTP ' + r.status }; }
     return { ok: true };
   } catch (e) { console.error('Discord webhook:', e.message); return { ok: false, msg: e.message }; }
 }
 
-// ---------- process mgmt ----------
+// ---------- procs ----------
 const procs = {};
 const installs = {};
 let activeInstalls = 0;
@@ -364,7 +367,21 @@ function addLog(id, k, data) {
   if (arr.length > 400) arr.splice(0, arr.length - 400);
 }
 const codeFile = (b) => path.join(BOTS_DIR, b.id, b.lang === 'py' ? 'bot.py' : 'bot.js');
-const readCode = (b) => { try { return fs.readFileSync(codeFile(b), 'utf8'); } catch { return ''; } };
+// readCode: fallback ไปใช้ b.code ถ้าไฟล์ไม่มี
+const readCode = (b) => {
+  try { return fs.readFileSync(codeFile(b), 'utf8'); }
+  catch { return b.code || ''; }
+};
+// ensureBotFile: เขียนไฟล์จาก b.code ถ้าไฟล์หาย
+function ensureBotFile(b) {
+  if (!b) return;
+  const dir = path.join(BOTS_DIR, b.id);
+  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+  const file = codeFile(b);
+  if (!fs.existsSync(file)) {
+    try { fs.writeFileSync(file, b.code || ''); console.log('  ↩️  Restored code file for bot ' + b.id); } catch (e) { console.error('ensureBotFile:', e.message); }
+  }
+}
 const pub = (b, full) => Object.assign({
   id: b.id, publicId: b.publicId || '', name: b.name, lang: b.lang, status: b.status, owner: b.owner,
   startedAt: b.startedAt || 0, lastExit: b.lastExit || '', hasToken: !!b.token,
@@ -394,14 +411,12 @@ function createBot(owner, name, lang, code, expiresAt) {
     name: String(name || 'บอทใหม่').trim().slice(0, 40) || 'บอทใหม่',
     token: '', libs: [], desired: false, status: 'stopped',
     startedAt: 0, lastExit: '', created: Date.now(),
-    expiresAt: expiresAt || 0
+    expiresAt: expiresAt || 0,
+    code: typeof code === 'string' ? code : ''  // ⭐ เก็บ code ใน state
   };
   bots[id] = b;
-  try {
-    fs.mkdirSync(path.join(BOTS_DIR, id), { recursive: true });
-    fs.writeFileSync(codeFile(b), code || '');
-  } catch (e) { console.error('createBot fs:', e.message); }
-  fixPerm(b); save();
+  ensureBotFile(b);
+  fixPerm(b);
   return b;
 }
 const botCount = (u) => Object.values(bots).filter((b) => b.owner === u).length;
@@ -413,9 +428,10 @@ function startBot(id) {
   if (!owner) { b.status = 'error'; b.desired = false; b.lastExit = 'บอทนี้ไม่มีเจ้าของ'; save(); addLog(id, 'err', 'บอทนี้ไม่มีเจ้าของ'); return; }
   if (trialExpired(owner)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; save(); addLog(id, 'err', 'ไม่สามารถรันได้: ' + TRIAL_MSG); return; }
   if (botExpired(b)) { b.status = 'stopped'; b.desired = false; b.lastExit = BOT_EXPIRED_MSG; save(); addLog(id, 'err', 'ไม่สามารถรันได้: ' + BOT_EXPIRED_MSG); return; }
+  // ⭐ Restore code file ก่อนถ้าไฟล์หาย
+  ensureBotFile(b);
   const file = codeFile(b); const dir = path.dirname(file);
   try { fs.mkdirSync(dir, { recursive: true }); } catch {}
-  if (!fs.existsSync(file)) { try { fs.writeFileSync(file, ''); } catch {} }
   fixPerm(b);
   const env = {
     PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
@@ -444,7 +460,7 @@ function startBot(id) {
   };
   child.on('error', (e) => {
     let msg = 'สตาร์ทไม่ได้: ' + e.message;
-    if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้บนโฮสต์นี้)';
+    if (ISOLATE && (e.code === 'EPERM' || e.code === 'EACCES')) msg += ' (ระบบแยกผู้ใช้ใช้ไม่ได้)';
     done('error', msg);
   });
   child.on('exit', (code, sig) => {
@@ -465,7 +481,7 @@ function stopBot(id) {
   });
 }
 
-// ---------- lib parse/install ----------
+// ---------- lib parse ----------
 function validSpec(s) {
   return typeof s === 'string' && s.length <= 200 &&
     /^[A-Za-z0-9@][A-Za-z0-9@\/._:+#^~<>=!*|,%?&\[\]-]*$/.test(s) && !/^file:/i.test(s);
@@ -476,10 +492,7 @@ function keyOf(lang, spec) {
   const m = /^(@[^/@]+\/[^@]+|[^@]+)/.exec(spec);
   return m ? m[1].toLowerCase() : spec;
 }
-const CMD_WORDS = {
-  py: new Set(['sudo', 'python', 'python3', 'py', 'pip', 'pip3', '-m', 'install']),
-  js: new Set(['sudo', 'npm', 'npx', 'yarn', 'pnpm', 'bun', 'install', 'i', 'add'])
-};
+const CMD_WORDS = { py: new Set(['sudo', 'python', 'python3', 'py', 'pip', 'pip3', '-m', 'install']), js: new Set(['sudo', 'npm', 'npx', 'yarn', 'pnpm', 'bun', 'install', 'i', 'add']) };
 const FLAG_WITH_ARG = new Set(['-r', '--requirement', '-c', '--constraint', '-i', '--index-url', '--extra-index-url', '-f', '--find-links', '-t', '--target', '--prefix', '--registry', '--cache', '--root', '--proxy']);
 function splitCommas(tok) {
   const out = []; let depth = 0, cur = '';
@@ -595,9 +608,7 @@ function getCookie(req, name) {
   const c = req.headers.cookie || '';
   for (const part of c.split(';')) {
     const i = part.indexOf('=');
-    if (i > 0 && part.slice(0, i).trim() === name) {
-      try { return decodeURIComponent(part.slice(i + 1).trim()); } catch { return ''; }
-    }
+    if (i > 0 && part.slice(0, i).trim() === name) { try { return decodeURIComponent(part.slice(i + 1).trim()); } catch { return ''; } }
   }
   return '';
 }
@@ -625,9 +636,7 @@ function userOf(req) {
 
 const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 const loginFails = new Map(), regCount = new Map(), msgRate = new Map(), emailSends = new Map(), reportRate = new Map();
-function tooMany(map, ip, max, win) {
-  const f = map.get(ip); return !!f && Date.now() - f.t < win && f.n >= max;
-}
+function tooMany(map, ip, max, win) { const f = map.get(ip); return !!f && Date.now() - f.t < win && f.n >= max; }
 function bump(map, ip, win) {
   const f = map.get(ip);
   if (!f || Date.now() - f.t >= win) map.set(ip, { n: 1, t: Date.now() });
@@ -647,10 +656,7 @@ const pubPost = (p, me) => ({
 });
 const pubComment = (c) => ({ id: c.id, from: c.from, text: c.text, media: c.media || null, t: c.t });
 
-const MIME = {
-  'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp',
-  'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov'
-};
+const MIME = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' };
 function extFor(ct, origName) {
   if (MIME[ct]) return MIME[ct];
   const m = /\.([a-z0-9]{1,8})$/i.exec(String(origName || ''));
@@ -658,16 +664,8 @@ function extFor(ct, origName) {
   const sub = String(ct).split('/')[1] || 'bin';
   return sub.replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'bin';
 }
-function kindFor(ct) {
-  if (ct.startsWith('image/')) return 'image';
-  if (ct.startsWith('video/')) return 'video';
-  return 'file';
-}
-function limitForKind(kind) {
-  if (kind === 'image') return CHAT_IMG_MAX;
-  if (kind === 'video') return CHAT_VID_MAX;
-  return CHAT_FILE_MAX;
-}
+function kindFor(ct) { if (ct.startsWith('image/')) return 'image'; if (ct.startsWith('video/')) return 'video'; return 'file'; }
+function limitForKind(kind) { if (kind === 'image') return CHAT_IMG_MAX; if (kind === 'video') return CHAT_VID_MAX; return CHAT_FILE_MAX; }
 
 function saveStream(req, fp, limit) {
   return new Promise((resolve, reject) => {
@@ -675,47 +673,41 @@ function saveStream(req, fp, limit) {
     let n = 0, failed = false;
     const fail = (e) => { if (failed) return; failed = true; ws.destroy(); fs.unlink(fp, () => {}); reject(e); };
     req.pipe(ws);
-    req.on('data', (c) => { n += c.length; if (n > limit && !failed) { req.unpipe(ws); fail(Object.assign(new Error('ไฟล์ใหญ่เกิน ' + Math.round(limit / 1048576) + ' MB'), { status: 413 })); req.resume(); } });
+    req.on('data', (c) => { n += c.length; if (n > limit && !failed) { req.unpipe(ws); fail(Object.assign(new Error('ไฟล์ใหญ่เกิน'), { status: 413 })); req.resume(); } });
     ws.on('finish', () => { if (failed) return; if (n === 0) { fs.unlink(fp, () => {}); return reject(Object.assign(new Error('ไฟล์ว่างเปล่า'), { status: 400 })); } resolve(n); });
     ws.on('error', fail); req.on('error', fail);
-    req.on('aborted', () => fail(new Error('การอัปโหลดถูกยกเลิก')));
+    req.on('aborted', () => fail(new Error('ถูกยกเลิก')));
   });
 }
 function readStreamToBuffer(req, limit) {
   return new Promise((resolve, reject) => {
     const chunks = []; let n = 0;
-    req.on('data', (c) => { n += c.length; if (n > limit) { req.destroy(); return reject(Object.assign(new Error('ไฟล์ใหญ่เกิน ' + Math.round(limit / 1048576) + ' MB'), { status: 413 })); } chunks.push(c); });
+    req.on('data', (c) => { n += c.length; if (n > limit) { req.destroy(); return reject(Object.assign(new Error('ไฟล์ใหญ่เกิน'), { status: 413 })); } chunks.push(c); });
     req.on('end', () => { if (n === 0) return reject(Object.assign(new Error('ไฟล์ว่างเปล่า'), { status: 400 })); resolve(Buffer.concat(chunks)); });
     req.on('error', reject);
-    req.on('aborted', () => reject(new Error('การอัปโหลดถูกยกเลิก')));
+    req.on('aborted', () => reject(new Error('ถูกยกเลิก')));
   });
 }
-
 async function putMedia(buf, ext, ct) {
   const id = crypto.randomBytes(12).toString('hex');
   if (blobBuckets.length) {
     blobBuckets.sort((a, b) => a.used - b.used);
-    let uploaded = false, lastErr = null, path = `media/${id}.${ext}`, bucketId = -1;
+    let uploaded = false, lastErr = null, upath = `media/${id}.${ext}`, bucketId = -1;
     for (const bk of blobBuckets) {
-      try {
-        await bk.bucket.put(path, buf, { contentType: ct });
-        bk.used += buf.length;
-        bucketId = bk.id; uploaded = true; break;
-      } catch (e) { console.error('put failed #' + bk.id + ':', e.message); lastErr = e; }
+      try { await bk.bucket.put(upath, buf, { contentType: ct }); bk.used += buf.length; bucketId = bk.id; uploaded = true; break; }
+      catch (e) { console.error('put failed #' + bk.id + ':', e.message); lastErr = e; }
     }
     if (!uploaded) throw new Error('put failed all buckets' + (lastErr ? ': ' + lastErr.message : ''));
-    return { id, size: buf.length, upstashPath: path, bucketId };
+    return { id, size: buf.length, upstashPath: upath, bucketId };
   } else {
     const fp = path.join(MEDIA_DIR, id + '.' + ext);
     fs.writeFileSync(fp, buf);
     return { id, size: buf.length, upstashPath: null, bucketId: -1 };
   }
 }
-
 async function serveMedia(req, res, id, me) {
   const m = own(hub.media, id);
   if (!m) return json(res, 404, { error: 'ไม่เจอไฟล์' });
-  // Scope check: cover = anyone, avatar = anyone, chat/comment = participants
   if (m.scope === 'chat') {
     const c = own(hub.chats, m.chatId);
     if (!c || !c.members.includes(me)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
@@ -743,13 +735,7 @@ async function serveMedia(req, res, id, me) {
     code = 206;
   }
   const isDownload = m.kind === 'file';
-  const h = {
-    'Content-Type': m.mime || 'application/octet-stream',
-    'Accept-Ranges': 'bytes',
-    'Content-Length': end - start + 1,
-    'Cache-Control': 'private, max-age=86400',
-    'X-Content-Type-Options': 'nosniff'
-  };
+  const h = { 'Content-Type': m.mime || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' };
   if (isDownload) h['Content-Disposition'] = 'attachment; filename="file.' + m.ext + '"';
   if (code === 206) h['Content-Range'] = 'bytes ' + start + '-' + end + '/' + size;
   res.writeHead(code, h);
@@ -764,15 +750,12 @@ const CID_RE = /^[a-f0-9]{32}$/;
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 const SANDBOX_FLAGS = 'allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-pointer-lock';
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
 const pubSite = (x, me) => ({ slug: x.slug, publicId: x.publicId || '', owner: x.owner, title: x.title, mode: x.mode, public: !!x.public, views: x.views || 0, created: x.created, updated: x.updated, mine: x.owner === me });
 
 function buildSitePage(s) {
   if (s.mode === 'full') return s.html;
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>' + escHtml(s.title) + '</title><style>\n' + s.css + '\n</style></head><body>\n' +
-    s.html + '\n<script>\n' + s.js + '\n</script></body></html>';
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + escHtml(s.title) + '</title><style>\n' + s.css + '\n</style></head><body>\n' + s.html + '\n<script>\n' + s.js + '\n</script></body></html>';
 }
 const SDK_TAG = '<script src="/s/_sdk.js"></script>';
 function injectSdk(html) {
@@ -825,7 +808,6 @@ function alexaSdk() {
   setTimeout(function () {
     if (decided) return;
     decided = true; online = false; cid = 'local' + rnd(20);
-    try { console.info('[alexa] โหมดออฟไลน์'); } catch (e) {}
     resolveReady();
   }, 2200);
   function Room(name, opts) {
@@ -871,7 +853,7 @@ function alexaSdk() {
     if (op === 'get') return Promise.resolve(has(st, k) ? JSON.parse(st[k]) : null);
     if (op === 'set') { st[k] = JSON.stringify(a.value === undefined ? null : a.value); return Promise.resolve(true); }
     if (op === 'del') { delete st[k]; return Promise.resolve(true); }
-    if (op === 'incr') { var cur = has(st, k) ? JSON.parse(st[k]) : 0; if (typeof cur !== 'number') return Promise.reject(new Error('คีย์นี้ไม่ใช่ตัวเลข')); cur += (a.by === undefined ? 1 : Number(a.by)); st[k] = JSON.stringify(cur); return Promise.resolve(cur); }
+    if (op === 'incr') { var cur = has(st, k) ? JSON.parse(st[k]) : 0; if (typeof cur !== 'number') return Promise.reject(new Error('ไม่ใช่ตัวเลข')); cur += (a.by === undefined ? 1 : Number(a.by)); st[k] = JSON.stringify(cur); return Promise.resolve(cur); }
     if (op === 'list') { var p = String(a.prefix || ''); return Promise.resolve(Object.keys(st).filter(function (x) { return x.slice(2).indexOf(p) === 0; }).sort().map(function (x) { return { key: x.slice(2), value: JSON.parse(st[x]) }; })); }
     if (op === 'clear') { local[scope] = {}; return Promise.resolve(true); }
     return Promise.reject(new Error('คำสั่งไม่ถูกต้อง'));
@@ -918,7 +900,7 @@ function alexaHost() {
   function join(m) {
     var room = String(m.room || '');
     if (!ROOM_RE.test(room)) throw new Error('ชื่อห้องไม่ถูกต้อง');
-    if (!sources[room] && Object.keys(sources).length >= 5) throw new Error('เข้าห้องได้พร้อมกันไม่เกิน 5 ห้อง');
+    if (!sources[room] && Object.keys(sources).length >= 5) throw new Error('เข้าห้องได้ไม่เกิน 5 ห้อง');
     closeRoom(room);
     var url = base + '/events?cid=' + cid + '&room=' + encodeURIComponent(room) + '&name=' + encodeURIComponent(String(m.name || '').slice(0, 24));
     var es = new EventSource(url);
@@ -927,7 +909,7 @@ function alexaHost() {
       es.addEventListener(ev, function (e) { var data; try { data = JSON.parse(e.data); } catch (x) { return; } toFrame({ type: 'room', room: room, ev: ev, data: data }); });
     });
     es.addEventListener('fatal', function (e) { var d = {}; try { d = JSON.parse(e.data); } catch (x) {} toFrame({ type: 'room', room: room, ev: 'error', data: { error: d.error || 'เข้าห้องไม่ได้' } }); closeRoom(room); });
-    es.onerror = function () { if (es.readyState === 2) { toFrame({ type: 'room', room: room, ev: 'error', data: { error: 'เชื่อมต่อห้องไม่ได้' } }); delete sources[room]; } };
+    es.onerror = function () { if (es.readyState === 2) { toFrame({ type: 'room', room: room, ev: 'error', data: { error: 'เชื่อมต่อไม่ได้' } }); delete sources[room]; } };
   }
   window.addEventListener('message', function (e) {
     var f = frame(); if (!f || e.source !== f.contentWindow) return;
@@ -959,8 +941,7 @@ function serveSite(req, res, slug, raw) {
   const isPublicVisible = site && site.public && !ownerExpired;
   if (!site || (!isPublicVisible && viewer !== site.owner)) {
     res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-store' });
-    return res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ไม่พบเว็บ</title>' +
-      '<body style="background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:20vh 20px"><h2>ไม่พบเว็บนี้</h2><p><a style="color:#fff" href="/">ALEXA HUB</a></p></body>');
+    return res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ไม่พบเว็บ</title><body style="background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:20vh 20px"><h2>ไม่พบเว็บนี้</h2><p><a style="color:#fff" href="/">ALEXA HUB</a></p></body>');
   }
   if (raw) {
     const dest = req.headers['sec-fetch-dest'];
@@ -971,14 +952,7 @@ function serveSite(req, res, slug, raw) {
   if (viewer !== site.owner) { site.views = (site.views || 0) + 1; saveHub(); }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'", 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-store' });
   const bar = SITE_BANNER ? '<div class="bar"><a href="/">ALEXA HUB</a><span>เว็บนี้สร้างโดยสมาชิก @' + escHtml(site.owner) + '</span></div>' : '';
-  res.end('<!doctype html><html lang="th"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' +
-    '<title>' + escHtml(site.title) + '</title><style>' +
-    'html,body{margin:0;height:100%;background:#000}' +
-    'iframe{position:fixed;left:0;right:0;bottom:0;top:0;width:100%;height:100%;border:0;background:#fff}' +
-    (SITE_BANNER ? 'body.b iframe{top:34px;height:calc(100% - 34px)}.bar{position:fixed;left:0;right:0;top:0;height:34px;z-index:2;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:0 12px;background:#0b0b0b;border-bottom:1px solid #333;font:13px system-ui,sans-serif;color:#eee}.bar a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.2em;white-space:nowrap}.bar span{color:#9a9a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' : '') +
-    '</style><script src="/s/_host.js"></script></head><body' + (SITE_BANNER ? ' class="b"' : '') + '>' + bar +
-    '<iframe id="f" src="/s/' + site.slug + '/raw" sandbox="' + SANDBOX_FLAGS + '" allow="fullscreen; autoplay; gamepad" referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
+  res.end('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>' + escHtml(site.title) + '</title><style>html,body{margin:0;height:100%;background:#000}iframe{position:fixed;left:0;right:0;bottom:0;top:0;width:100%;height:100%;border:0;background:#fff}' + (SITE_BANNER ? 'body.b iframe{top:34px;height:calc(100% - 34px)}.bar{position:fixed;left:0;right:0;top:0;height:34px;z-index:2;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:0 12px;background:#0b0b0b;border-bottom:1px solid #333;font:13px system-ui,sans-serif;color:#eee}.bar a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.2em}.bar span{color:#9a9a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' : '') + '</style><script src="/s/_host.js"></script></head><body' + (SITE_BANNER ? ' class="b"' : '') + '>' + bar + '<iframe id="f" src="/s/' + site.slug + '/raw" sandbox="' + SANDBOX_FLAGS + '" allow="fullscreen; autoplay; gamepad" referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
 }
 
 const rooms = new Map();
@@ -1020,7 +994,7 @@ function sapiEvents(req, res, url, site, ip) {
   const nick = String(url.searchParams.get('name') || '').replace(/[\r\n]/g, ' ').slice(0, 24);
   if (!CID_RE.test(cid) || !ROOM_RE.test(roomName)) return json(res, 400, { error: 'ข้อมูลห้องไม่ถูกต้อง' });
   const fatal = (msg) => { res.writeHead(200, SSE_HEADERS); res.end('event: fatal\ndata: ' + JSON.stringify({ error: msg }) + '\n\n'); };
-  if (sseCount >= MAX_SSE) return fatal('เซิร์ฟเวอร์มีผู้ออนไลน์เต็มแล้ว');
+  if (sseCount >= MAX_SSE) return fatal('เต็ม');
   if ((sseByIp.get(ip) || 0) >= 40) return fatal('เชื่อมต่อจากเครื่องนี้มากเกินไป');
   const key = site.slug + '|' + roomName;
   let room = rooms.get(key);
@@ -1078,7 +1052,7 @@ function dbExec(slug, cid, scope, op, d) {
     return { result: out };
   }
   if (op === 'del') { const st = store(false); if (st && hasOwn(st, k)) { delete st[k]; if (scope === 'mine' && !Object.keys(st).length && site()) delete site().priv[cid]; saveSData(); } return { result: true }; }
-  if (op === 'clear') { if (scope !== 'mine') return { status: 403, error: 'ล้างข้อมูลร่วมได้เฉพาะเจ้าของเว็บ' }; const s = site(); if (s && s.priv[cid]) { delete s.priv[cid]; saveSData(); } return { result: true }; }
+  if (op === 'clear') { if (scope !== 'mine') return { status: 403, error: 'ล้างได้เฉพาะเจ้าของ' }; const s = site(); if (s && s.priv[cid]) { delete s.priv[cid]; saveSData(); } return { result: true }; }
   if (op === 'set' || op === 'incr') {
     let value;
     if (op === 'incr') {
@@ -1097,7 +1071,7 @@ function dbExec(slug, cid, scope, op, d) {
     bytes += k.length + vs.length;
     if (bytes > SITE_DB_BYTES || keys > SITE_KEYS_MAX) return { status: 413, error: 'ที่เก็บข้อมูลเต็ม' };
     if (scope === 'mine') {
-      if (stNow && !existed && Object.keys(stNow).length >= 100) return { status: 400, error: 'เก็บส่วนตัวได้ไม่เกิน 100 คีย์' };
+      if (stNow && !existed && Object.keys(stNow).length >= 100) return { status: 400, error: 'ส่วนตัวได้ไม่เกิน 100 คีย์' };
       if (!stNow && s && Object.keys(s.priv).length >= 500) return { status: 429, error: 'มีผู้ใช้เก็บข้อมูลส่วนตัวมากเกินไป' };
     }
     const st = store(true);
@@ -1118,7 +1092,7 @@ async function handleSapi(req, res, url, slug, kind) {
   const owner = getUser(site.owner);
   if (owner && trialExpired(owner) && userOf(req) !== site.owner) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
   const ip = ipOf(req);
-  if (sapiLimited(ip)) return json(res, 429, { error: 'ส่งคำขอถี่เกินไป' });
+  if (sapiLimited(ip)) return json(res, 429, { error: 'ถี่เกินไป' });
   if (kind === 'events') {
     if (req.method !== 'GET') return json(res, 405, { error: 'method not allowed' });
     return sapiEvents(req, res, url, site, ip);
@@ -1134,7 +1108,7 @@ async function handleSapi(req, res, url, slug, kind) {
     if (!client) return json(res, 409, { error: 'ยังไม่ได้เข้าห้อง' });
     if (!takeToken('s|' + site.slug + '|' + cid, 30, 60)) return json(res, 429, { error: 'ส่งถี่เกินไป' });
     const data = d.data === undefined ? null : d.data;
-    if (JSON.stringify(data).length > 8192) return json(res, 413, { error: 'ข้อความใหญ่เกิน 8 KB' });
+    if (JSON.stringify(data).length > 8192) return json(res, 413, { error: 'ใหญ่เกิน 8 KB' });
     const msg = { from: client.pid, name: client.name, data, t: Date.now() };
     if (d.keep) { room.history.push(msg); if (room.history.length > 50) room.history.shift(); }
     roomBroadcast(room, 'msg', msg, d.self === false ? cid : null);
@@ -1142,7 +1116,7 @@ async function handleSapi(req, res, url, slug, kind) {
   }
   const op = String(d.op || '');
   if (op === 'whoami') return json(res, 200, { result: pidOf(site.slug, cid) });
-  if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'เรียกที่เก็บข้อมูลถี่เกินไป' });
+  if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'ถี่เกินไป' });
   const scope = d.scope === 'mine' ? 'mine' : 'shared';
   const out = dbExec(site.slug, cid, scope, op, d);
   if (out.error) return json(res, out.status || 400, { error: out.error });
@@ -1156,22 +1130,17 @@ function json(res, code, obj, headers) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let s = '', n = 0;
-    req.on('data', (c) => { n += c.length; if (n > 1e6) { reject(Object.assign(new Error('ข้อมูลใหญ่เกินไป'), { status: 413 })); req.destroy(); return; } s += c; });
-    req.on('end', () => { try { resolve(s ? JSON.parse(s) : {}); } catch { reject(Object.assign(new Error('ข้อมูลไม่ถูกต้อง'), { status: 400 })); } });
+    req.on('data', (c) => { n += c.length; if (n > 1e6) { reject(Object.assign(new Error('ใหญ่เกินไป'), { status: 413 })); req.destroy(); return; } s += c; });
+    req.on('end', () => { try { resolve(s ? JSON.parse(s) : {}); } catch { reject(Object.assign(new Error('JSON เสีย'), { status: 400 })); } });
     req.on('error', reject);
   });
 }
 
-// ---------- friend helpers ----------
+// ---------- friends ----------
 function ensureFriendArrays(x) {
   if (!Array.isArray(x.friends)) x.friends = [];
   if (!Array.isArray(x.friendReqIn)) x.friendReqIn = [];
   if (!Array.isArray(x.friendReqOut)) x.friendReqOut = [];
-}
-function areFriends(a, b) {
-  const x = getUser(a); if (!x) return false;
-  ensureFriendArrays(x);
-  return x.friends.includes(b);
 }
 function findOrCreateChat(a, b) {
   const id = chatId(a, b);
@@ -1197,7 +1166,7 @@ async function deleteUserData(username) {
     if (p.cover) {
       const m = hub.media[p.cover];
       if (m) {
-        if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch (e) {} } }
+        if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
         else fs.unlink(path.join(MEDIA_DIR, p.cover + '.' + m.ext), () => {});
         delete hub.media[p.cover];
       }
@@ -1212,11 +1181,10 @@ async function deleteUserData(username) {
   }
   for (const [id, m] of Object.entries(hub.media)) {
     if (m.owner !== u) continue;
-    if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch (e) {} } }
+    if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
     else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
     delete hub.media[id];
   }
-  // Remove from other users' friend lists
   for (const uu of Object.keys(state.users)) {
     const x = state.users[uu];
     ensureFriendArrays(x);
@@ -1226,7 +1194,7 @@ async function deleteUserData(username) {
   }
   delete state.users[u];
   for (const [k, s] of Object.entries(state.sessions)) if (s.user === u) delete state.sessions[k];
-  save(); saveHub(); saveSData();
+  await saveNow(); await saveHubNow(); writeSDataDisk();
 }
 
 function findByPublicId(id) {
@@ -1237,7 +1205,7 @@ function findByPublicId(id) {
   return null;
 }
 
-// ---------- HTTP server ----------
+// ================= HTTP SERVER =================
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
@@ -1260,17 +1228,17 @@ const server = http.createServer(async (req, res) => {
 
     // ===== Register =====
     if (p === '/api/register' && M === 'POST') {
-      if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัครอยู่' });
+      if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัคร' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป' });
       const d = await readBody(req);
       const u = String(d.username || '').trim().toLowerCase();
       const pw = String(d.password || '');
       const em = String(d.email || '').trim().toLowerCase();
-      if (!USERNAME_RE.test(u) || u === '__proto__') return json(res, 400, { error: 'ชื่อผู้ใช้ 3-20 ตัว a-z 0-9 _' });
-      if (pw.length < 6 || pw.length > 100) return json(res, 400, { error: 'รหัสผ่าน 6-100 ตัว' });
+      if (!USERNAME_RE.test(u) || u === '__proto__') return json(res, 400, { error: 'ชื่อ 3-20 ตัว a-z 0-9 _' });
+      if (pw.length < 6 || pw.length > 100) return json(res, 400, { error: 'รหัส 6-100 ตัว' });
       if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return json(res, 400, { error: 'อีเมลไม่ถูกต้อง' });
-      if (getUser(u)) return json(res, 409, { error: 'ชื่อนี้มีคนใช้แล้ว' });
-      if (em) for (const x of Object.values(state.users)) if (x.email === em) return json(res, 409, { error: 'อีเมลนี้ถูกใช้แล้ว' });
+      if (getUser(u)) return json(res, 409, { error: 'ชื่อซ้ำ' });
+      if (em) for (const x of Object.values(state.users)) if (x.email === em) return json(res, 409, { error: 'อีเมลซ้ำ' });
       const salt = crypto.randomBytes(16).toString('hex');
       const hash = (await scrypt(pw, salt, 64)).toString('hex');
       const code = genCode();
@@ -1283,35 +1251,33 @@ const server = http.createServer(async (req, res) => {
         maxBots: DEFAULT_MAX_BOTS, maxSites: DEFAULT_MAX_SITES,
         trialEnds: 0, paid: false
       };
-      if (Object.keys(state.users).length === 1) {
-        for (const b of Object.values(bots)) if (!b.owner) { b.owner = u; fixPerm(b); }
-      }
+      if (Object.keys(state.users).length === 1) for (const b of Object.values(bots)) if (!b.owner) { b.owner = u; fixPerm(b); }
       bump(regCount, ip, 3600000);
-      save();
+      await saveNow();
       let sent = { ok: true, dev: true };
-      if (em) sent = await sendEmail(em, 'ALEXA HUB - รหัสยืนยันอีเมล', '<h2>ยินดีต้อนรับสู่ ALEXA HUB</h2><p>รหัสยืนยันของคุณคือ:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1><p>รหัสนี้มีอายุ 15 นาที</p>');
+      if (em) sent = await sendEmail(em, 'ALEXA HUB - ยืนยันอีเมล', '<h2>ALEXA HUB</h2><p>รหัส:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1><p>อายุ 15 นาที</p>');
       const tok = newSession(u);
       const resp = { user: u, needsVerify: !!em, token: tok, info: pubMe(u) };
       if (em && !sent.ok && !sent.dev) resp.emailError = sent.msg;
       return json(res, 200, resp, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ===== Verify email =====
+    // ===== Verify =====
     if (p === '/api/verify' && M === 'POST') {
       const me = userOf(req);
       if (!me) return json(res, 401, { error: 'unauthorized' });
       const user = getUser(me);
       if (!user) return json(res, 401, { error: 'unauthorized' });
-      if (!user.email) return json(res, 400, { error: 'ยังไม่มีอีเมลผูกอยู่' });
+      if (!user.email) return json(res, 400, { error: 'ไม่มีอีเมล' });
       if (user.emailVerified) return json(res, 200, { ok: true, already: true });
       const d = await readBody(req);
       const code = String(d.code || '').trim();
-      if (!/^\d{6}$/.test(code)) return json(res, 400, { error: 'รหัสต้องเป็นตัวเลข 6 หลัก' });
+      if (!/^\d{6}$/.test(code)) return json(res, 400, { error: 'ต้อง 6 หลัก' });
       if (!user.emailCode || !user.emailCodeExp || Date.now() > user.emailCodeExp) return json(res, 400, { error: 'รหัสหมดอายุ' });
       if (code !== user.emailCode) return json(res, 400, { error: 'รหัสไม่ถูกต้อง' });
       user.emailVerified = true; user.emailCode = ''; user.emailCodeExp = 0;
       if (!user.trialEnds || user.trialEnds < Date.now()) user.trialEnds = Date.now() + TRIAL_MS;
-      save();
+      await saveNow();
       return json(res, 200, { ok: true, trialEnds: user.trialEnds });
     }
 
@@ -1320,24 +1286,24 @@ const server = http.createServer(async (req, res) => {
       if (!me) return json(res, 401, { error: 'unauthorized' });
       const user = getUser(me);
       if (!user || !user.email) return json(res, 400, { error: 'ไม่พบอีเมล' });
-      if (user.emailVerified) return json(res, 400, { error: 'ไม่จำเป็นต้องยืนยัน' });
-      if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'ขอรหัสบ่อยเกินไป รอ 10 นาที' });
+      if (user.emailVerified) return json(res, 400, { error: 'ยืนยันแล้ว' });
+      if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'รอ 10 นาที' });
       const code = genCode();
       user.emailCode = code; user.emailCodeExp = Date.now() + 15 * 60 * 1000;
-      save(); bump(emailSends, ip, 600000);
-      const sent = await sendEmail(user.email, 'ALEXA HUB - รหัสยืนยันอีเมล (ส่งซ้ำ)', '<p>รหัสยืนยันของคุณคือ:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>');
+      await saveNow(); bump(emailSends, ip, 600000);
+      const sent = await sendEmail(user.email, 'ALEXA HUB - ยืนยันอีเมล', '<p>รหัส:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>');
       return json(res, 200, { ok: true, dev: !!sent.dev });
     }
 
     if (p === '/api/login' && M === 'POST') {
-      if (tooMany(loginFails, ip, 10, 600000)) return json(res, 429, { error: 'ลองผิดบ่อยเกินไป รอ 10 นาที' });
+      if (tooMany(loginFails, ip, 10, 600000)) return json(res, 429, { error: 'ลองผิดบ่อย รอ 10 นาที' });
       const d = await readBody(req);
       const u = String(d.username || '').trim().toLowerCase();
       const pw = String(d.password || '');
       const user = getUser(u);
       const hash = await scrypt(pw, user ? user.salt : '0'.repeat(32), 64);
       const ok = user && crypto.timingSafeEqual(hash, Buffer.from(user.hash, 'hex'));
-      if (!ok) { bump(loginFails, ip, 600000); return json(res, 401, { error: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' }); }
+      if (!ok) { bump(loginFails, ip, 600000); return json(res, 401, { error: 'ชื่อหรือรหัสไม่ถูกต้อง' }); }
       loginFails.delete(ip);
       const tok = newSession(u);
       return json(res, 200, { user: u, token: tok, info: pubMe(u) }, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
@@ -1371,23 +1337,21 @@ const server = http.createServer(async (req, res) => {
       const d = await readBody(req);
       if (typeof d.displayName === 'string') meUser.displayName = d.displayName.trim().slice(0, 40);
       if (typeof d.bio === 'string') meUser.bio = d.bio.trim().slice(0, 300);
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
-    // อัปโหลดรูปโปรไฟล์ (รูป 5MB)
     if (p === '/api/profile/avatar' && M === 'POST') {
       const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-      if (!ct.startsWith('image/')) return json(res, 400, { error: 'ต้องเป็นรูปภาพ' });
+      if (!ct.startsWith('image/')) return json(res, 400, { error: 'ต้องเป็นรูป' });
       const len = parseInt(req.headers['content-length'] || '0', 10) || 0;
-      if (len > CHAT_IMG_MAX) return json(res, 413, { error: 'รูปใหญ่เกิน ' + (CHAT_IMG_MAX / 1048576) + ' MB' }, { Connection: 'close' });
+      if (len > CHAT_IMG_MAX) return json(res, 413, { error: 'รูปใหญ่เกิน 5 MB' }, { Connection: 'close' });
       let buf;
       try { buf = await readStreamToBuffer(req, CHAT_IMG_MAX); }
       catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
       const ext = extFor(ct);
       let r;
       try { r = await putMedia(buf, ext, ct); }
-      catch (e) { console.error('avatar put:', e); return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
-      // ลบรูปเก่า
+      catch (e) { return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
       const old = meUser.avatar;
       if (old && hub.media[old]) {
         const om = hub.media[old];
@@ -1397,73 +1361,62 @@ const server = http.createServer(async (req, res) => {
       }
       hub.media[r.id] = { owner: me, mime: ct, ext, kind: 'image', scope: 'avatar', size: r.size, upstashPath: r.upstashPath, bucketId: r.bucketId, t: Date.now() };
       meUser.avatar = r.id;
-      save(); saveHub();
+      await saveNow(); await saveHubNow();
       return json(res, 200, { ok: true, avatar: r.id });
     }
-    // เปลี่ยนรหัสผ่าน
     if (p === '/api/profile/password' && M === 'POST') {
       const d = await readBody(req);
       const cur = String(d.current || '');
       const n1 = String(d.new1 || '');
       const n2 = String(d.new2 || '');
       if (!cur) return json(res, 400, { error: 'ใส่รหัสปัจจุบัน' });
-      if (n1.length < 6 || n1.length > 100) return json(res, 400, { error: 'รหัสใหม่ต้อง 6-100 ตัว' });
-      if (n1 !== n2) return json(res, 400, { error: 'รหัสใหม่ทั้ง 2 ช่องไม่ตรงกัน' });
+      if (n1.length < 6 || n1.length > 100) return json(res, 400, { error: 'รหัสใหม่ 6-100 ตัว' });
+      if (n1 !== n2) return json(res, 400, { error: 'รหัสใหม่ไม่ตรงกัน' });
       const hash = await scrypt(cur, meUser.salt, 64);
       if (!crypto.timingSafeEqual(hash, Buffer.from(meUser.hash, 'hex'))) return json(res, 401, { error: 'รหัสปัจจุบันไม่ถูกต้อง' });
       const salt = crypto.randomBytes(16).toString('hex');
       const newHash = (await scrypt(n1, salt, 64)).toString('hex');
-      meUser.salt = salt;
-      meUser.hash = newHash;
-      save();
+      meUser.salt = salt; meUser.hash = newHash;
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (p === '/api/profile/email' && M === 'POST') {
-      if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'ส่งรหัสบ่อยเกินไป รอ 10 นาที' });
+      if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'รอ 10 นาที' });
       const d = await readBody(req);
       const em = String(d.email || '').trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return json(res, 400, { error: 'อีเมลไม่ถูกต้อง' });
-      for (const [k, x] of Object.entries(state.users)) if (k !== me && x.email === em) return json(res, 409, { error: 'อีเมลนี้ถูกใช้แล้ว' });
+      for (const [k, x] of Object.entries(state.users)) if (k !== me && x.email === em) return json(res, 409, { error: 'อีเมลซ้ำ' });
       const code = genCode();
       meUser.email = em; meUser.emailVerified = false;
       meUser.emailCode = code; meUser.emailCodeExp = Date.now() + 15 * 60 * 1000;
-      save(); bump(emailSends, ip, 600000);
-      const sent = await sendEmail(em, 'ALEXA HUB - รหัสยืนยันอีเมล', '<h2>ยืนยันอีเมลของคุณ</h2><p>รหัส 6 หลัก:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1><p>รหัสนี้มีอายุ 15 นาที</p>');
+      await saveNow(); bump(emailSends, ip, 600000);
+      const sent = await sendEmail(em, 'ALEXA HUB - ยืนยันอีเมล', '<h2>ยืนยันอีเมล</h2><p>รหัส:</p><h1 style="font-size:32px;letter-spacing:8px">' + code + '</h1>');
       return json(res, 200, { ok: true, dev: !!sent.dev, error: sent.ok ? '' : sent.msg });
     }
 
     // ===== Report =====
     if (p === '/api/report' && M === 'POST') {
-      if (tooMany(reportRate, ip, 5, 600000)) return json(res, 429, { error: 'ส่งเรื่องบ่อยเกินไป รอ 10 นาที' });
+      if (tooMany(reportRate, ip, 5, 600000)) return json(res, 429, { error: 'ส่งบ่อยเกินไป' });
       const d = await readBody(req);
       const text = String(d.text || '').trim().slice(0, 2000);
-      if (text.length < 5) return json(res, 400, { error: 'กรุณาอธิบายปัญหาอย่างน้อย 5 ตัวอักษร' });
+      if (text.length < 5) return json(res, 400, { error: 'อธิบายอย่างน้อย 5 ตัวอักษร' });
       const mediaId = d.mediaId ? String(d.mediaId) : '';
-      // สร้าง embed
       const fields = [
         { name: '👤 ผู้แจ้ง', value: '`@' + me + '`' + (meUser.displayName ? ' (' + meUser.displayName + ')' : ''), inline: true },
         { name: '🕐 เวลา', value: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }), inline: true }
       ];
-      // ใส่ publicId ของบอท/เว็บที่กำลังดูอยู่ (ถ้ามี)
       if (d.botId) fields.push({ name: '🤖 บอท ID', value: '`' + String(d.botId).slice(0, 20) + '`', inline: true });
       if (d.siteId) fields.push({ name: '🌐 เว็บ ID', value: '`' + String(d.siteId).slice(0, 20) + '`', inline: true });
       fields.push({ name: '📝 รายละเอียด', value: text.slice(0, 1024) });
-      const embed = {
-        title: '🚨 มีผู้แจ้งปัญหาใหม่',
-        color: 0xff4d4f,
-        fields,
-        footer: { text: '🎁 รางวัลสำหรับผู้เจอปัญหา: บอทฟรี 3 วัน — ติดต่อ Discord: discord.gg/dTz2njT9fZ' },
-        timestamp: new Date().toISOString()
-      };
+      const embed = { title: '🚨 มีผู้แจ้งปัญหาใหม่', color: 0xff4d4f, fields, footer: { text: '🎁 รางวัลผู้เจอปัญหา: บอทฟรี 3 วัน — discord.gg/dTz2njT9fZ' }, timestamp: new Date().toISOString() };
       if (mediaId && hub.media[mediaId] && hub.media[mediaId].owner === me) {
         const m = hub.media[mediaId];
-        // ถ้าเป็นรูป ให้ใส่ image, ถ้าเป็นอย่างอื่นให้ใส่ URL
-        if (m.kind === 'image') embed.image = { url: req.headers.host ? 'https://' + req.headers.host + '/media/' + mediaId : '/media/' + mediaId };
+        if (m.kind === 'image') embed.image = { url: (req.headers.host ? 'https://' + req.headers.host : '') + '/media/' + mediaId };
         else fields.push({ name: '📎 ไฟล์แนบ', value: (req.headers.host ? 'https://' + req.headers.host : '') + '/media/' + mediaId });
       }
       const sent = await sendToDiscord(embed);
       bump(reportRate, ip, 600000);
-      if (!sent.ok) return json(res, 500, { error: 'ส่งไป Discord ไม่สำเร็จ: ' + (sent.msg || 'unknown') });
+      if (!sent.ok) return json(res, 500, { error: 'ส่งไม่สำเร็จ: ' + (sent.msg || 'unknown') });
       return json(res, 200, { ok: true });
     }
 
@@ -1474,7 +1427,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/admin/toggle' && M === 'POST') {
       if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
-      state.adminUi = !state.adminUi; save();
+      state.adminUi = !state.adminUi; await saveNow();
       return json(res, 200, { adminUi: !!state.adminUi });
     }
     if (p === '/api/admin/users' && M === 'GET') {
@@ -1484,8 +1437,7 @@ const server = http.createServer(async (req, res) => {
         return {
           username: u, email: x.email || '', emailVerified: !!x.emailVerified,
           admin: isAdmin(u), paid: !!x.paid, displayName: x.displayName || '',
-          created: x.created, trialEnds: x.trialEnds || 0,
-          trialExpired: trialExpired(x),
+          created: x.created, trialEnds: x.trialEnds || 0, trialExpired: trialExpired(x),
           maxBots: x.maxBots ?? DEFAULT_MAX_BOTS, maxSites: x.maxSites ?? DEFAULT_MAX_SITES,
           bots: botCount(u), sites: Object.values(hub.sites).filter((s) => s.owner === u).length,
           posts: Object.values(hub.posts).filter((s) => s.owner === u).length,
@@ -1508,7 +1460,7 @@ const server = http.createServer(async (req, res) => {
         x.trialEnds = base + d.extendDays * 24 * 3600 * 1000;
       }
       if (typeof d.setTrialEnds === 'number') x.trialEnds = d.setTrialEnds;
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (p === '/api/admin/delete-user' && M === 'POST') {
@@ -1524,23 +1476,15 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
       const d = await readBody(req);
       const found = findByPublicId(d.id);
-      if (!found) return json(res, 404, { error: 'ไม่พบ ID นี้ในระบบ' });
+      if (!found) return json(res, 404, { error: 'ไม่พบ ID' });
       const owner = getUser(found.data.owner);
       if (found.type === 'bot') {
         const b = found.data;
-        return json(res, 200, {
-          type: 'bot', owner: b.owner,
-          ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null,
-          bot: pub(b, true), running: !!procs[b.id]
-        });
+        return json(res, 200, { type: 'bot', owner: b.owner, ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null, bot: pub(b, true), running: !!procs[b.id] });
       } else {
         const x = found.data;
         const mySites = Object.values(hub.sites).filter((s) => s.owner === x.owner).length;
-        return json(res, 200, {
-          type: 'site', owner: x.owner,
-          ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null,
-          site: pubSite(x, me), html: x.html, css: x.css, js: x.js, sitesCount: mySites
-        });
+        return json(res, 200, { type: 'site', owner: x.owner, ownerInfo: owner ? { email: owner.email || '', displayName: owner.displayName || '' } : null, site: pubSite(x, me), html: x.html, css: x.css, js: x.js, sitesCount: mySites });
       }
     }
     if (p === '/api/admin/set-bot-timer' && M === 'POST') {
@@ -1548,14 +1492,14 @@ const server = http.createServer(async (req, res) => {
       const d = await readBody(req);
       const found = findByPublicId(d.id);
       if (!found) return json(res, 404, { error: 'ไม่พบ ID' });
-      if (found.type !== 'bot') return json(res, 400, { error: 'ID นี้ไม่ใช่บอท' });
+      if (found.type !== 'bot') return json(res, 400, { error: 'ไม่ใช่บอท' });
       const b = found.data;
       const hours = Number(d.hours);
-      if (!Number.isFinite(hours) || hours < 0 || hours > 8760) return json(res, 400, { error: 'จำนวนชั่วโมงไม่ถูกต้อง' });
+      if (!Number.isFinite(hours) || hours < 0 || hours > 8760) return json(res, 400, { error: 'ชั่วโมงไม่ถูกต้อง' });
       const fromNow = d.extend ? Math.max(Date.now(), b.expiresAt || Date.now()) : Date.now();
       b.expiresAt = hours === 0 ? 0 : fromNow + hours * 3600 * 1000;
-      save(); addLog(b.id, 'sys', 'แอดมินตั้งเวลา: ' + (hours === 0 ? 'ไม่จำกัด' : hours + ' ชม.'));
-      if (botExpired(b) && procs[b.id]) { addLog(b.id, 'err', 'หมดเวลา → หยุดบอท'); stopBot(b.id).catch(() => {}); }
+      await saveNow(); addLog(b.id, 'sys', 'แอดมินตั้งเวลา: ' + (hours === 0 ? 'ไม่จำกัด' : hours + ' ชม.'));
+      if (botExpired(b) && procs[b.id]) { addLog(b.id, 'err', 'หมดเวลา → หยุด'); stopBot(b.id).catch(() => {}); }
       return json(res, 200, { ok: true, expiresAt: b.expiresAt });
     }
     if (p === '/api/admin/bot-stop' && M === 'POST') {
@@ -1613,9 +1557,7 @@ const server = http.createServer(async (req, res) => {
         let text = '';
         if (last) text = last.text || (last.media ? '[' + (last.media.kind === 'image' ? 'รูป' : last.media.kind === 'video' ? 'วิดีโอ' : 'ไฟล์') + ']' : '');
         return {
-          username: f,
-          displayName: u ? u.displayName || '' : '',
-          avatar: u ? u.avatar || '' : '',
+          username: f, displayName: u ? u.displayName || '' : '', avatar: u ? u.avatar || '' : '',
           last: last ? { from: last.from, text: text.slice(0, 60), t: last.t } : null,
           updated: c ? c.updated : 0,
           unread: c ? Math.max(0, c.msgs.length - (c.read[me] || 0)) : 0
@@ -1652,31 +1594,30 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/friends/add' && M === 'POST') {
       const d = await readBody(req);
       const target = String(d.username || '').trim().toLowerCase();
-      if (!USERNAME_RE.test(target)) return json(res, 400, { error: 'ชื่อผู้ใช้ไม่ถูกต้อง' });
+      if (!USERNAME_RE.test(target)) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง' });
       if (target === me) return json(res, 400, { error: 'เพิ่มตัวเองไม่ได้' });
       const tu = getUser(target);
       if (!tu) return json(res, 404, { error: 'ไม่พบผู้ใช้' });
       ensureFriendArrays(tu);
-      if (meUser.friends.includes(target)) return json(res, 400, { error: 'เป็นเพื่อนกันอยู่แล้ว' });
-      if (meUser.friendReqOut.includes(target)) return json(res, 400, { error: 'ส่งคำขอไปแล้ว รอการยืนยัน' });
-      // ถ้ามีคำขอจากอีกฝ่าย → รับเลย
+      if (meUser.friends.includes(target)) return json(res, 400, { error: 'เป็นเพื่อนแล้ว' });
+      if (meUser.friendReqOut.includes(target)) return json(res, 400, { error: 'ส่งแล้ว' });
       if (meUser.friendReqIn.includes(target)) {
         meUser.friendReqIn = meUser.friendReqIn.filter((u) => u !== target);
         tu.friendReqOut = tu.friendReqOut.filter((u) => u !== me);
         meUser.friends.push(target);
         tu.friends.push(me);
-        save();
+        await saveNow();
         return json(res, 200, { ok: true, accepted: true });
       }
       meUser.friendReqOut.push(target);
       tu.friendReqIn.push(me);
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (p === '/api/friends/accept' && M === 'POST') {
       const d = await readBody(req);
       const target = String(d.username || '').trim().toLowerCase();
-      if (!meUser.friendReqIn.includes(target)) return json(res, 400, { error: 'ไม่มีคำขอจากคนนี้' });
+      if (!meUser.friendReqIn.includes(target)) return json(res, 400, { error: 'ไม่มีคำขอ' });
       const tu = getUser(target);
       if (!tu) return json(res, 404, { error: 'ไม่พบผู้ใช้' });
       ensureFriendArrays(tu);
@@ -1684,7 +1625,7 @@ const server = http.createServer(async (req, res) => {
       tu.friendReqOut = tu.friendReqOut.filter((u) => u !== me);
       if (!meUser.friends.includes(target)) meUser.friends.push(target);
       if (!tu.friends.includes(me)) tu.friends.push(me);
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (p === '/api/friends/reject' && M === 'POST') {
@@ -1693,7 +1634,7 @@ const server = http.createServer(async (req, res) => {
       meUser.friendReqIn = meUser.friendReqIn.filter((u) => u !== target);
       const tu = getUser(target);
       if (tu) { ensureFriendArrays(tu); tu.friendReqOut = tu.friendReqOut.filter((u) => u !== me); }
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (p === '/api/friends/remove' && M === 'POST') {
@@ -1702,11 +1643,11 @@ const server = http.createServer(async (req, res) => {
       meUser.friends = meUser.friends.filter((u) => u !== target);
       const tu = getUser(target);
       if (tu) { ensureFriendArrays(tu); tu.friends = tu.friends.filter((u) => u !== me); }
-      save();
+      await saveNow();
       return json(res, 200, { ok: true });
     }
 
-    // ===== Chat with friend =====
+    // ===== Chat =====
     if (p === '/api/chat' && M === 'POST') {
       const d = await readBody(req);
       const target = String(d.username || '').trim().toLowerCase();
@@ -1725,24 +1666,20 @@ const server = http.createServer(async (req, res) => {
         const msgs = c.msgs.slice(since).map((m, i) => Object.assign({ i: since + i }, m));
         if ((c.read[me] || 0) !== c.msgs.length) { c.read[me] = c.msgs.length; saveHub(); }
         const oUser = getUser(other);
-        return json(res, 200, {
-          msgs, total: c.msgs.length, other,
-          otherDisplay: oUser ? oUser.displayName || '' : '',
-          otherAvatar: oUser ? oUser.avatar || '' : ''
-        });
+        return json(res, 200, { msgs, total: c.msgs.length, other, otherDisplay: oUser ? oUser.displayName || '' : '', otherAvatar: oUser ? oUser.avatar || '' : '' });
       }
       if (chatm[2] === 'messages' && M === 'POST') {
-        if (msgLimited(me)) return json(res, 429, { error: 'ส่งถี่เกินไป' });
+        if (msgLimited(me)) return json(res, 429, { error: 'ถี่เกินไป' });
         const d = await readBody(req);
         let text = typeof d.text === 'string' ? d.text.slice(0, MSG_MAX) : '';
         let media = null;
         if (d.mediaId) {
           const m = own(hub.media, String(d.mediaId));
-          if (!m || m.owner !== me || m.scope !== 'chat' || m.chatId !== c.id) return json(res, 400, { error: 'ไฟล์แนบไม่ถูกต้อง' });
+          if (!m || m.owner !== me || m.scope !== 'chat' || m.chatId !== c.id) return json(res, 400, { error: 'ไฟล์ไม่ถูกต้อง' });
           media = { id: String(d.mediaId), kind: m.kind, name: m.originalName || '', size: m.size, mime: m.mime };
         }
-        if (!text.trim() && !media) return json(res, 400, { error: 'ข้อความว่างเปล่า' });
-        if (c.msgs.length >= 5000) return json(res, 400, { error: 'แชทเต็มแล้ว' });
+        if (!text.trim() && !media) return json(res, 400, { error: 'ว่างเปล่า' });
+        if (c.msgs.length >= 5000) return json(res, 400, { error: 'แชทเต็ม' });
         c.msgs.push({ t: Date.now(), from: me, text, media });
         c.updated = Date.now(); c.read[me] = c.msgs.length;
         saveHub();
@@ -1751,39 +1688,36 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ===== Upload (chat media) =====
+    // ===== Upload =====
     if (p === '/api/upload' && M === 'POST') {
       const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
       const kind = kindFor(ct);
       const limit = limitForKind(kind);
       const len = parseInt(req.headers['content-length'] || '0', 10) || 0;
-      if (len > limit) return json(res, 413, { error: 'ไฟล์ใหญ่เกิน ' + (limit / 1048576) + ' MB' }, { Connection: 'close' });
+      if (len > limit) return json(res, 413, { error: 'ใหญ่เกิน ' + (limit / 1048576) + ' MB' }, { Connection: 'close' });
       let scope = 'cover', chatIdParam = '';
       const qChat = url.searchParams.get('chat');
       if (qChat) {
         const c = own(hub.chats, String(qChat));
         if (!c || !c.members.includes(me)) return json(res, 404, { error: 'ไม่เจอแชท' });
         scope = 'chat'; chatIdParam = c.id;
-      } else if (url.searchParams.get('scope') === 'report') {
-        scope = 'report';
-      } else if (url.searchParams.get('scope') === 'comment') {
-        scope = 'comment';
-      }
+      } else if (url.searchParams.get('scope') === 'report') scope = 'report';
+      else if (url.searchParams.get('scope') === 'comment') scope = 'comment';
       const used = Object.values(hub.media).filter((x) => x.owner === me).reduce((a, x) => a + x.size, 0);
-      if (used + len > QUOTA) return json(res, 413, { error: 'พื้นที่อัปโหลดเต็ม' }, { Connection: 'close' });
+      if (used + len > QUOTA) return json(res, 413, { error: 'เต็ม' }, { Connection: 'close' });
       let buf;
       try { buf = await readStreamToBuffer(req, limit); }
       catch (e) { return json(res, e.status || 400, { error: e.message }, { Connection: 'close' }); }
       const ext = extFor(ct);
       let r;
       try { r = await putMedia(buf, ext, ct); }
-      catch (e) { console.error('put:', e); return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
+      catch (e) { return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
       hub.media[r.id] = {
         owner: me, mime: ct, ext, kind, scope, chatId: chatIdParam || undefined,
-        originalName: String(req.headers['x-file-name'] || '').slice(0, 100),
+        originalName: String(decodeURIComponent(String(req.headers['x-file-name'] || ''))).slice(0, 100),
         size: r.size, upstashPath: r.upstashPath, bucketId: r.bucketId, t: Date.now()
       };
-      saveHub();
+      await saveHubNow();
       return json(res, 200, { id: r.id, kind });
     }
 
@@ -1799,23 +1733,23 @@ const server = http.createServer(async (req, res) => {
         const d = await readBody(req);
         const title = String(d.title || '').trim().slice(0, 60);
         const code = typeof d.code === 'string' ? d.code : '';
-        if (!title) return json(res, 400, { error: 'ใส่ชื่อโค้ดด้วย' });
+        if (!title) return json(res, 400, { error: 'ใส่ชื่อโค้ด' });
         if (d.lang !== 'py' && d.lang !== 'js') return json(res, 400, { error: 'เลือกภาษา' });
-        if (!code.trim()) return json(res, 400, { error: 'ใส่โค้ดด้วย' });
+        if (!code.trim()) return json(res, 400, { error: 'ใส่โค้ด' });
         if (code.length > 200000) return json(res, 400, { error: 'โค้ดยาวเกินไป' });
         let price = 0;
-        if (d.paid) { price = Math.floor(Number(d.price)); if (!(price >= 1 && price <= 1000000)) return json(res, 400, { error: 'ราคา 1 - 1,000,000' }); }
+        if (d.paid) { price = Math.floor(Number(d.price)); if (!(price >= 1 && price <= 1000000)) return json(res, 400, { error: 'ราคา 1-1,000,000' }); }
         let cover = '';
         if (d.cover) {
           cover = String(d.cover);
           const m = own(hub.media, cover);
           if (!m || m.owner !== me || m.scope !== 'cover' || m.kind !== 'image') return json(res, 400, { error: 'รูปปกไม่ถูกต้อง' });
-          if (Object.values(hub.posts).some((x) => x.cover === cover)) return json(res, 400, { error: 'รูปปกถูกใช้แล้ว' });
+          if (Object.values(hub.posts).some((x) => x.cover === cover)) return json(res, 400, { error: 'รูปปกซ้ำ' });
         }
-        if (Object.values(hub.posts).filter((x) => x.owner === me).length >= MAX_POSTS) return json(res, 400, { error: 'โพสต์ได้สูงสุด ' + MAX_POSTS + ' โพสต์ต่อคน' });
+        if (Object.values(hub.posts).filter((x) => x.owner === me).length >= MAX_POSTS) return json(res, 400, { error: 'โพสต์สูงสุด ' + MAX_POSTS });
         const id = crypto.randomBytes(6).toString('hex');
         hub.posts[id] = { id, owner: me, title, lang: d.lang, cover, code, price, created: Date.now(), comments: [] };
-        saveHub();
+        await saveHubNow();
         return json(res, 200, pubPost(hub.posts[id], me));
       }
     }
@@ -1825,30 +1759,24 @@ const server = http.createServer(async (req, res) => {
       if (!post) return json(res, 404, { error: 'ไม่เจอโพสต์' });
       const open = post.price === 0 || post.owner === me;
 
-      // comments
       if (pm[2] === 'comments') {
         if (!Array.isArray(post.comments)) post.comments = [];
-        if (M === 'GET') {
-          return json(res, 200, { comments: post.comments.map(pubComment) });
-        }
+        if (M === 'GET') return json(res, 200, { comments: post.comments.map(pubComment) });
         if (M === 'POST') {
-          if (msgLimited(me)) return json(res, 429, { error: 'ส่งถี่เกินไป' });
+          if (msgLimited(me)) return json(res, 429, { error: 'ถี่เกินไป' });
           const d = await readBody(req);
           const text = typeof d.text === 'string' ? d.text.trim().slice(0, 500) : '';
           let media = null;
           if (d.mediaId) {
             const m = own(hub.media, String(d.mediaId));
-            if (!m || m.owner !== me || m.scope !== 'comment') return json(res, 400, { error: 'ไฟล์แนบไม่ถูกต้อง' });
+            if (!m || m.owner !== me || m.scope !== 'comment') return json(res, 400, { error: 'ไฟล์ไม่ถูกต้อง' });
             media = { id: String(d.mediaId), kind: m.kind };
           }
-          if (!text && !media) return json(res, 400, { error: 'ข้อความว่างเปล่า' });
+          if (!text && !media) return json(res, 400, { error: 'ว่างเปล่า' });
           if (post.comments.length >= 500) return json(res, 400, { error: 'คอมเมนต์เต็ม' });
-          const cm = {
-            id: crypto.randomBytes(5).toString('hex'),
-            from: me, text, media, t: Date.now()
-          };
+          const cm = { id: crypto.randomBytes(5).toString('hex'), from: me, text, media, t: Date.now() };
           post.comments.push(cm);
-          saveHub();
+          await saveHubNow();
           return json(res, 200, { ok: true, comment: pubComment(cm) });
         }
         if (M === 'DELETE') {
@@ -1857,15 +1785,13 @@ const server = http.createServer(async (req, res) => {
           const before = post.comments.length;
           post.comments = post.comments.filter((c) => c.id !== cid || (c.from !== me && !isAdmin(me)));
           if (post.comments.length === before) return json(res, 404, { error: 'ไม่พบคอมเมนต์' });
-          saveHub();
+          await saveHubNow();
           return json(res, 200, { ok: true });
         }
         return json(res, 405, { error: 'method not allowed' });
       }
 
-      if (!pm[2] && M === 'GET') {
-        return json(res, 200, Object.assign(pubPost(post, me), { locked: !open }, open ? { code: post.code } : {}));
-      }
+      if (!pm[2] && M === 'GET') return json(res, 200, Object.assign(pubPost(post, me), { locked: !open }, open ? { code: post.code } : {}));
       if (!pm[2] && M === 'DELETE') {
         if (post.owner !== me) return json(res, 403, { error: 'ลบได้เฉพาะของตัวเอง' });
         if (post.cover) {
@@ -1876,15 +1802,16 @@ const server = http.createServer(async (req, res) => {
             delete hub.media[post.cover];
           }
         }
-        delete hub.posts[post.id]; saveHub();
+        delete hub.posts[post.id]; await saveHubNow();
         return json(res, 200, { ok: true });
       }
       if (pm[2] === 'use' && M === 'POST') {
         const chk = canCreate(meUser);
         if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
-        if (!open) return json(res, 403, { error: 'โค้ดนี้เสียเงิน ติดต่อคนขายก่อน' });
-        if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'สร้างบอทได้สูงสุด ' + maxBotsFor(me) + ' ตัว' });
+        if (!open) return json(res, 403, { error: 'โค้ดเสียเงิน' });
+        if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'บอทสูงสุด ' + maxBotsFor(me) });
         const b = createBot(me, post.title, post.lang, post.code);
+        await saveNow();
         return json(res, 200, pub(b));
       }
       return json(res, 405, { error: 'method not allowed' });
@@ -1908,14 +1835,14 @@ const server = http.createServer(async (req, res) => {
         if (v.error) return json(res, 400, { error: v.error });
         let slug = String(d.slug || '').trim().toLowerCase();
         if (!slug) { do { slug = crypto.randomBytes(4).toString('hex'); } while (own(hub.sites, slug)); }
-        if (!SLUG_RE.test(slug)) return json(res, 400, { error: 'ลิงก์ a-z 0-9 - ยาว 3-30' });
-        if (own(hub.sites, slug)) return json(res, 409, { error: 'ลิงก์นี้มีคนใช้แล้ว' });
+        if (!SLUG_RE.test(slug)) return json(res, 400, { error: 'ลิงก์ 3-30 ตัว a-z 0-9 -' });
+        if (own(hub.sites, slug)) return json(res, 409, { error: 'ลิงก์ซ้ำ' });
         const myCount = Object.values(hub.sites).filter((x) => x.owner === me).length;
-        if (myCount >= maxSitesFor(me)) return json(res, 400, { error: 'สร้างเว็บได้สูงสุด ' + maxSitesFor(me) + ' เว็บ' });
+        if (myCount >= maxSitesFor(me)) return json(res, 400, { error: 'เว็บสูงสุด ' + maxSitesFor(me) });
         const now = Date.now();
         const publicId = genSiteId();
         hub.sites[slug] = Object.assign({ slug, publicId, owner: me, views: 0, created: now, updated: now }, v);
-        saveHub();
+        await saveHubNow();
         return json(res, 200, pubSite(hub.sites[slug], me));
       }
     }
@@ -1941,7 +1868,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (M === 'DELETE') {
           const d = await readBody(req);
-          if (d.all) { delete sdata.sites[site.slug]; saveSData(); return json(res, 200, { ok: true }); }
+          if (d.all) { delete sdata.sites[site.slug]; writeSDataDisk(); return json(res, 200, { ok: true }); }
           const out = dbExec(site.slug, '', 'shared', 'del', { key: d.key });
           if (out.error) return json(res, out.status || 400, { error: out.error });
           return json(res, 200, { ok: true });
@@ -1958,14 +1885,14 @@ const server = http.createServer(async (req, res) => {
         if (v.error) return json(res, 400, { error: v.error });
         Object.assign(site, v, { updated: Date.now() });
         if (!site.publicId) site.publicId = genSiteId();
-        saveHub();
+        await saveHubNow();
         if (!site.public) closeSiteRooms(site.slug);
         return json(res, 200, pubSite(site, me));
       }
       if (M === 'DELETE') {
         delete hub.sites[site.slug]; delete sdata.sites[site.slug];
         closeSiteRooms(site.slug);
-        saveHub(); saveSData();
+        await saveHubNow(); writeSDataDisk();
         return json(res, 200, { ok: true });
       }
       return json(res, 405, { error: 'method not allowed' });
@@ -1982,8 +1909,9 @@ const server = http.createServer(async (req, res) => {
         if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
         const d = await readBody(req);
         if (d.lang !== 'py' && d.lang !== 'js') return json(res, 400, { error: 'lang ต้องเป็น py หรือ js' });
-        if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'สร้างบอทได้สูงสุด ' + maxBotsFor(me) + ' ตัว' });
+        if (botCount(me) >= maxBotsFor(me)) return json(res, 400, { error: 'บอทสูงสุด ' + maxBotsFor(me) });
         const b = createBot(me, d.name, d.lang, typeof d.code === 'string' ? d.code : '');
+        await saveNow();  // ⭐ save ทันที
         return json(res, 200, pub(b, true));
       }
     }
@@ -1996,17 +1924,22 @@ const server = http.createServer(async (req, res) => {
       if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       const d = await readBody(req);
       if (typeof d.name === 'string' && d.name.trim()) b.name = d.name.trim().slice(0, 40);
-      if (typeof d.code === 'string') { try { fs.writeFileSync(codeFile(b), d.code); } catch (e) { console.error('write code:', e.message); } fixPerm(b); }
+      if (typeof d.code === 'string') {
+        b.code = d.code;  // ⭐ เก็บใน state ด้วย
+        try { fs.writeFileSync(codeFile(b), d.code); } catch (e) { console.error('write code:', e.message); }
+        fixPerm(b);
+      }
       if (typeof d.token === 'string' && d.token.trim()) b.token = d.token.trim();
       if (!b.publicId) b.publicId = genBotId();
-      save();
+      await saveNow();  // ⭐ save ทันที
       return json(res, 200, pub(b, true));
     }
     if (!sub && M === 'DELETE') {
-      if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่' });
+      if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้ง' });
       await stopBot(id);
       try { fs.rmSync(path.join(BOTS_DIR, id), { recursive: true, force: true }); } catch {}
-      delete bots[id]; delete logs[id]; save();
+      delete bots[id]; delete logs[id];
+      await saveNow();
       return json(res, 200, { ok: true });
     }
     if (sub === 'start' && M === 'POST') {
@@ -2015,11 +1948,13 @@ const server = http.createServer(async (req, res) => {
       if (botExpired(b)) return json(res, 403, { error: BOT_EXPIRED_MSG, expired: true });
       await stopBot(id);
       startBot(id);
+      await saveNow();
       return json(res, 200, pub(b));
     }
     if (sub === 'stop' && M === 'POST') {
       await stopBot(id);
-      if (b.status === 'error') { b.status = 'stopped'; save(); }
+      if (b.status === 'error') { b.status = 'stopped'; }
+      await saveNow();
       return json(res, 200, pub(b));
     }
     if (sub === 'logs' && M === 'GET') return json(res, 200, { logs: logs[id] || [] });
@@ -2028,20 +1963,20 @@ const server = http.createServer(async (req, res) => {
       if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       const d = await readBody(req);
       if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่' });
-      if (activeInstalls >= MAX_INSTALLS) return json(res, 429, { error: 'เซิร์ฟเวอร์กำลังติดตั้งให้คนอื่น' });
+      if (activeInstalls >= MAX_INSTALLS) return json(res, 429, { error: 'รอสักครู่' });
       const o = {};
       let parsed = [], ignored = [];
       if (d.reinstall) o.reinstall = true;
       else if (typeof d.remove === 'string') {
-        if (!(b.libs || []).includes(d.remove)) return json(res, 404, { error: 'ไม่เจอไลบรารีนี้' });
+        if (!(b.libs || []).includes(d.remove)) return json(res, 404, { error: 'ไม่เจอไลบรารี' });
         o.remove = d.remove;
       } else {
         const raw = typeof d.text === 'string' ? d.text : (Array.isArray(d.add) ? d.add.map(String).join(' ') : '');
         const ps = parseSpecs(b.lang, raw);
         if (ps.bad.length) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + ps.bad.slice(0, 5).join(', ') });
         if (!ps.specs.length) return json(res, 400, { error: 'ไม่พบชื่อไลบรารี' });
-        if (ps.specs.length > 40) return json(res, 400, { error: 'ติดตั้งครั้งละไม่เกิน 40' });
-        if ((b.libs || []).length + ps.specs.length > 100) return json(res, 400, { error: 'มีไลบรารีมากเกิน 100' });
+        if (ps.specs.length > 40) return json(res, 400, { error: 'ครั้งละไม่เกิน 40' });
+        if ((b.libs || []).length + ps.specs.length > 100) return json(res, 400, { error: 'มากเกิน 100' });
         o.add = ps.specs; parsed = ps.specs; ignored = ps.ignored;
       }
       libJob(id, o).catch((e) => { console.error(e); addLog(id, 'err', 'ติดตั้งผิดพลาด: ' + e.message); });
@@ -2050,20 +1985,22 @@ const server = http.createServer(async (req, res) => {
     return json(res, 405, { error: 'method not allowed' });
   } catch (e) {
     console.error(e);
-    try { json(res, e.status || 500, { error: e.status ? e.message : 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์' }); } catch {}
+    try { json(res, e.status || 500, { error: e.status ? e.message : 'เกิดข้อผิดพลาด' }); } catch {}
   }
 });
 
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  console.log('🛑 Shutting down — flushing to Redis...');
   flushRedis().catch(() => {});
-  try { save(); } catch (e) { console.error('save:', e.message); }
-  try { if (hubTimer) clearTimeout(hubTimer); writeHub(); } catch (e) { console.error('writeHub:', e.message); }
-  try { if (sdTimer) clearTimeout(sdTimer); writeSData(); } catch (e) { console.error('writeSData:', e.message); }
+  try { saveDisk(); } catch (e) { console.error('saveDisk:', e.message); }
+  try { writeHubDisk(); } catch (e) { console.error('writeHubDisk:', e.message); }
+  try { writeSDataDisk(); } catch (e) { console.error('writeSDataDisk:', e.message); }
   for (const c of Object.values(procs)) { try { c.kill('SIGTERM'); } catch {} }
   for (const i of Object.values(installs)) { try { if (i.child) i.child.kill('SIGKILL'); } catch {} }
-  setTimeout(() => process.exit(0), 2500);
+  // รอ 4 วินาทีให้ flushRedis เสร็จก่อนออก
+  setTimeout(() => process.exit(0), 4000);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
@@ -2071,6 +2008,7 @@ process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
 (async () => {
+  // ---- Redis load ----
   if (hasRedis) {
     console.log('🔌 Upstash Redis detected, loading state...');
     try {
@@ -2084,15 +2022,15 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
         if (rs.nextUid) state.nextUid = rs.nextUid;
         if (rs.adminUi !== undefined) state.adminUi = rs.adminUi;
         console.log('✓ state loaded from Redis (' + Object.keys(state.users).length + ' users, ' + Object.keys(state.bots).length + ' bots)');
-      } else console.log('• Redis ไม่มี state เก่า → เริ่มใหม่');
-      if (rh && typeof rh === 'object') { Object.assign(hub, rh); console.log('✓ hub loaded from Redis'); }
-      if (rd && typeof rd === 'object' && rd.sites) { sdata.sites = rd.sites; console.log('✓ sitedata loaded from Redis'); }
+      } else console.log('• Redis ไม่มี state เก่า');
+      if (rh && typeof rh === 'object') { Object.assign(hub, rh); console.log('✓ hub loaded'); }
+      if (rd && typeof rd === 'object' && rd.sites) { sdata.sites = rd.sites; console.log('✓ sitedata loaded'); }
     } catch (e) { console.error('Redis boot error:', e.message); }
   } else {
-    console.log('⚠️  ไม่มี UPSTASH_REDIS_REST_URL/TOKEN → ใช้ไฟล์ในเครื่อง');
+    console.log('⚠️  ไม่มี UPSTASH_REDIS → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
   }
 
-  // migrations
+  // ---- migrations ----
   for (const u of Object.keys(state.users)) {
     const usr = state.users[u];
     if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
@@ -2109,10 +2047,29 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   for (const b of Object.values(bots)) {
     if (!b.publicId) b.publicId = genBotId();
     if (b.expiresAt === undefined) b.expiresAt = 0;
+    if (b.code === undefined) {
+      // migration: อ่านจากไฟล์เดิม (ถ้ามี) มาเก็บใน state
+      try { b.code = fs.readFileSync(codeFile(b), 'utf8'); } catch { b.code = ''; }
+    }
   }
   for (const x of Object.values(hub.sites)) if (!x.publicId) x.publicId = genSiteId();
   for (const p of Object.values(hub.posts)) if (!Array.isArray(p.comments)) p.comments = [];
   if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
+
+  // ⭐ Restore bot code files จาก state (สำคัญ! ถ้าไม่มี Volume ไฟล์จะหาย)
+  let restored = 0;
+  for (const b of Object.values(bots)) {
+    const file = codeFile(b);
+    if (!fs.existsSync(file) && b.code) {
+      try {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, b.code);
+        fixPerm(b);
+        restored++;
+      } catch (e) { console.error('restore code for ' + b.id + ':', e.message); }
+    }
+  }
+  if (restored) console.log('↩️  Restored ' + restored + ' bot code file(s) from Redis state');
 
   snapshot();
   setInterval(snapshot, 6 * 3600 * 1000);
@@ -2132,7 +2089,7 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     for (const b of Object.values(bots)) {
       const o = getUser(b.owner);
       if (b.status === 'running' && o && trialExpired(o)) { addLog(b.id, 'err', 'หมดทดลอง: หยุดบอท'); stopBot(b.id).catch(() => {}); }
-      else if (b.status === 'running' && botExpired(b)) { addLog(b.id, 'err', 'หมดเวลาที่แอดมินตั้ง: หยุดบอท'); stopBot(b.id).catch(() => {}); }
+      else if (b.status === 'running' && botExpired(b)) { addLog(b.id, 'err', 'หมดเวลา: หยุดบอท'); stopBot(b.id).catch(() => {}); }
     }
   }, 60 * 1000);
 
@@ -2148,16 +2105,22 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     console.log('📊 Blob usage: ' + blobBuckets.map(b => '#' + b.id + '=' + (b.used / 1048576).toFixed(1) + 'MB').join(' '));
   }
 
+  // ---- restart desired bots ----
   let i = 0;
   for (const b of Object.values(bots)) {
     if (b.desired) {
       const o = getUser(b.owner);
       if (o && trialExpired(o)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; continue; }
       if (botExpired(b)) { b.status = 'stopped'; b.desired = false; b.lastExit = BOT_EXPIRED_MSG; continue; }
-      setTimeout(() => { addLog(b.id, 'sys', 'รีสตาร์ท - เปิดบอทอัตโนมัติ'); startBot(b.id); }, 800 + i++ * 1500);
-    } else if (b.status === 'running') b.status = 'stopped';
+      setTimeout(() => {
+        addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทอัตโนมัติ');
+        startBot(b.id);
+      }, 800 + i++ * 1500);
+    } else if (b.status === 'running') {
+      b.status = 'stopped';
+    }
   }
-  save();
+  await saveNow();
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log('Alexa Hub @ ' + PORT + ' | ADMIN=' + ADMIN_USER + ' | Volume=' + (PERSISTENT ? 'yes' : 'NO') +
