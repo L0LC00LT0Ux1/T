@@ -124,8 +124,21 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
     blobBuckets.push({ bucket: bk, id: i, used: 0 });
   } catch (e) { console.error('❌ Blob init error #' + i + ':', e.message); }
 }
-if (blobBuckets.length) console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
-else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
+if (blobBuckets.length) {
+  console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
+  // ⭐ debug: แสดง method ที่มีในตัว bucket
+  try {
+    const sample = blobBuckets[0].bucket;
+    const methods = ['put', 'get', 'delete', 'list', 'head', 'copy', 'signedReadUrl', 'presign', 'url', 'download', 'upload'];
+    const found = methods.filter(m => typeof sample[m] === 'function');
+    console.log('🔍 Blob methods available: ' + found.join(', '));
+  } catch (e) {}
+} else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
+
+// helper: หา bucket จาก id (แก้ bug หลัง sort array)
+function getBucketById(id) {
+  return blobBuckets.find(b => b.id === id) || null;
+}
 
 // ============ DIRS ============
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
@@ -692,14 +705,29 @@ function readStreamToBuffer(req, limit) {
     req.on('aborted', () => reject(new Error('ถูกยกเลิก')));
   });
 }
+
+// ⭐ putMedia: หา bucket น้อยสุดโดยใช้ id เป็นหลัก (ไม่ sort array)
 async function putMedia(buf, ext, ct) {
   const id = crypto.randomBytes(12).toString('hex');
   if (blobBuckets.length) {
-    blobBuckets.sort((a, b) => a.used - b.used);
+    // หา bucket ที่ used น้อยสุด
+    let best = blobBuckets[0];
+    for (const bk of blobBuckets) if (bk.used < best.used) best = bk;
+    // เรียงลำดับการลอง: best ก่อน แล้วที่เหลือ
+    const tries = [best].concat(blobBuckets.filter(b => b !== best));
     let uploaded = false, lastErr = null, upath = `media/${id}.${ext}`, bucketId = -1;
-    for (const bk of blobBuckets) {
-      try { await bk.bucket.put(upath, buf, { contentType: ct }); bk.used += buf.length; bucketId = bk.id; uploaded = true; break; }
-      catch (e) { console.error('put failed #' + bk.id + ':', e.message); lastErr = e; }
+    for (const bk of tries) {
+      try {
+        await bk.bucket.put(upath, buf, { contentType: ct });
+        bk.used += buf.length;
+        bucketId = bk.id;
+        uploaded = true;
+        console.log('✓ Uploaded media/' + id + '.' + ext + ' to bucket #' + bk.id);
+        break;
+      } catch (e) {
+        console.error('❌ put failed on bucket #' + bk.id + ':', e.message);
+        lastErr = e;
+      }
     }
     if (!uploaded) throw new Error('put failed all buckets' + (lastErr ? ': ' + lastErr.message : ''));
     return { id, size: buf.length, upstashPath: upath, bucketId };
@@ -710,7 +738,41 @@ async function putMedia(buf, ext, ct) {
   }
 }
 
-// ⭐ serveMedia: proxy buffer ผ่าน server (ไม่ redirect) เพื่อให้แอปแสดงรูปได้
+// helper: แปลงผลลัพธ์จาก bucket.get() เป็น Buffer
+async function blobResultToBuffer(got) {
+  if (!got) return null;
+  if (Buffer.isBuffer(got)) return got;
+  if (typeof got.arrayBuffer === 'function') return Buffer.from(await got.arrayBuffer());
+  if (typeof got.text === 'function' && typeof got.size === 'number') return Buffer.from(await got.arrayBuffer());
+  if (got.body) {
+    const body = got.body;
+    if (Buffer.isBuffer(body)) return body;
+    if (typeof body.arrayBuffer === 'function') return Buffer.from(await body.arrayBuffer());
+    if (typeof body.getReader === 'function') {
+      const reader = body.getReader();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(Buffer.from(value));
+      }
+      return Buffer.concat(chunks);
+    }
+    if (typeof body.on === 'function') {
+      // Node stream
+      return new Promise((resolve, reject) => {
+        const chunks = [];
+        body.on('data', (c) => chunks.push(Buffer.from(c)));
+        body.on('end', () => resolve(Buffer.concat(chunks)));
+        body.on('error', reject);
+      });
+    }
+  }
+  if (typeof got === 'string') return Buffer.from(got, 'binary');
+  return null;
+}
+
+// ⭐ serveMedia: proxy ผ่าน server + ใช้ get() เป็นหลัก
 async function serveMedia(req, res, id, me) {
   const m = own(hub.media, id);
   if (!m) return json(res, 404, { error: 'ไม่เจอไฟล์' });
@@ -723,36 +785,56 @@ async function serveMedia(req, res, id, me) {
     if (!c || !c.members.includes(uid)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   }
 
-  // ⭐ ถ้าเก็บใน Upstash → proxy ผ่าน server เอง (ไม่ redirect)
   if (m.upstashPath) {
-    const bi = typeof m.bucketId === 'number' ? m.bucketId : 0;
-    const bk = blobBuckets[bi];
-    if (bk) {
-      try {
-        const url = await bk.bucket.signedReadUrl(m.upstashPath, { expiresIn: 300 });
-        const r = await fetch(url);
-        if (!r.ok) {
-          console.error('serveMedia fetch blob:', r.status);
-          return json(res, 502, { error: 'อ่านไฟล์ไม่ได้' });
-        }
-        const buf = Buffer.from(await r.arrayBuffer());
-        const h = {
-          'Content-Type': m.mime || 'application/octet-stream',
-          'Content-Length': buf.length,
-          'Cache-Control': 'public, max-age=86400',
-          'X-Content-Type-Options': 'nosniff'
-        };
-        if (m.kind === 'file') h['Content-Disposition'] = 'attachment; filename="file.' + m.ext + '"';
-        res.writeHead(200, h);
-        return res.end(buf);
-      } catch (e) {
-        console.error('serveMedia proxy error:', e.message);
-        return json(res, 500, { error: 'โหลดไฟล์ไม่ได้' });
-      }
+    const bid = typeof m.bucketId === 'number' ? m.bucketId : 0;
+    const bk = getBucketById(bid);
+    if (!bk) {
+      console.error('serveMedia: bucket id ' + bid + ' not found (have ' + blobBuckets.map(b => b.id).join(',') + ')');
+      return json(res, 500, { error: 'ไม่พบ bucket' });
     }
+    let buf = null;
+    // ลองใช้ get() ก่อน
+    try {
+      if (typeof bk.bucket.get === 'function') {
+        const got = await bk.bucket.get(m.upstashPath);
+        buf = await blobResultToBuffer(got);
+      }
+    } catch (e) { console.error('bucket.get error:', e.message); }
+    // fallback: signedReadUrl
+    if (!buf) {
+      try {
+        if (typeof bk.bucket.signedReadUrl === 'function') {
+          const url = await bk.bucket.signedReadUrl(m.upstashPath, { expiresIn: 300 });
+          const r = await fetch(url);
+          if (r.ok) buf = Buffer.from(await r.arrayBuffer());
+          else console.error('signedReadUrl fetch status:', r.status);
+        }
+      } catch (e) { console.error('signedReadUrl error:', e.message); }
+    }
+    // fallback: presign
+    if (!buf && typeof bk.bucket.presign === 'function') {
+      try {
+        const url = await bk.bucket.presign(m.upstashPath, { expiresIn: 300 });
+        const r = await fetch(url);
+        if (r.ok) buf = Buffer.from(await r.arrayBuffer());
+      } catch (e) { console.error('presign error:', e.message); }
+    }
+    if (!buf) {
+      console.error('serveMedia: cannot read ' + m.upstashPath + ' from bucket #' + bid);
+      return json(res, 500, { error: 'อ่านไฟล์จาก storage ไม่ได้' });
+    }
+    const h = {
+      'Content-Type': m.mime || 'application/octet-stream',
+      'Content-Length': buf.length,
+      'Cache-Control': 'public, max-age=86400',
+      'X-Content-Type-Options': 'nosniff'
+    };
+    if (m.kind === 'file') h['Content-Disposition'] = 'attachment; filename="file.' + m.ext + '"';
+    res.writeHead(200, h);
+    return res.end(buf);
   }
 
-  // Local fallback (กรณีไม่มี Blob)
+  // Local fallback
   const fp = path.join(MEDIA_DIR, id + '.' + m.ext);
   let size;
   try { size = fs.statSync(fp).size; } catch { return json(res, 404, { error: 'ไม่เจอไฟล์' }); }
@@ -1194,7 +1276,7 @@ async function deleteUserData(username) {
     if (p.cover) {
       const m = hub.media[p.cover];
       if (m) {
-        if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
+        if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
         else fs.unlink(path.join(MEDIA_DIR, p.cover + '.' + m.ext), () => {});
         delete hub.media[p.cover];
       }
@@ -1209,7 +1291,7 @@ async function deleteUserData(username) {
   }
   for (const [id, m] of Object.entries(hub.media)) {
     if (m.owner !== u) continue;
-    if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
+    if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
     else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
     delete hub.media[id];
   }
@@ -1251,7 +1333,7 @@ const server = http.createServer(async (req, res) => {
     const sapi = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/(events|send|db)$/);
     if (sapi) return await handleSapi(req, res, url, sapi[1], sapi[2]);
 
-    // Media - เข้าถึงได้ก่อน auth (ใช้ ?t=TOKEN สำหรับ chat)
+    // Media
     const mmPublic = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mmPublic && M === 'GET') return await serveMedia(req, res, mmPublic[1], userOf(req));
     if (p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
@@ -1296,7 +1378,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resp, { 'Set-Cookie': sessCookie(req, tok, SESSION_MS / 1000) });
     }
 
-    // ===== Verify =====
     if (p === '/api/verify' && M === 'POST') {
       const me = userOf(req);
       if (!me) return json(res, 401, { error: 'unauthorized' });
@@ -1356,7 +1437,6 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/me' && M === 'GET') return json(res, 200, pubMe(me));
 
-    // ===== Profile =====
     if (p === '/api/profile' && M === 'GET') {
       const x = meUser;
       return json(res, 200, {
@@ -1389,7 +1469,7 @@ const server = http.createServer(async (req, res) => {
       const old = meUser.avatar;
       if (old && hub.media[old]) {
         const om = hub.media[old];
-        if (om.upstashPath) { const bk = blobBuckets[om.bucketId || 0]; if (bk) { try { await bk.bucket.delete(om.upstashPath); } catch {} } }
+        if (om.upstashPath) { const bk = getBucketById(om.bucketId || 0); if (bk) { try { await bk.bucket.delete(om.upstashPath); } catch {} } }
         else fs.unlink(path.join(MEDIA_DIR, old + '.' + om.ext), () => {});
         delete hub.media[old];
       }
@@ -1428,7 +1508,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, dev: !!sent.dev, error: sent.ok ? '' : sent.msg });
     }
 
-    // ===== Report =====
     if (p === '/api/report' && M === 'POST') {
       if (tooMany(reportRate, ip, 5, 600000)) return json(res, 429, { error: 'ส่งบ่อยเกินไป' });
       const d = await readBody(req);
@@ -1585,6 +1664,30 @@ const server = http.createServer(async (req, res) => {
       const nearlyCount = bucketsInfo.filter(b => b.nearlyFull).length;
       const overallPct = totalLimit ? Math.min(100, (totalUsed / totalLimit) * 100) : 0;
       return json(res, 200, { totalBuckets, totalLimit, totalUsed, overallPercent: overallPct, fullCount, nearlyCount, totalFiles, buckets: bucketsInfo });
+    }
+    // ⭐ debug endpoint: ดูว่ามีไฟล์ใน storage จริงไหม
+    if (p === '/api/admin/blob-debug' && M === 'GET') {
+      if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
+      const out = { buckets: [], mediaCount: Object.keys(hub.media).length, mediaSample: [] };
+      for (const bk of blobBuckets) {
+        const info = { id: bk.id, used: bk.used, methods: [] };
+        const methods = ['put', 'get', 'delete', 'list', 'head', 'copy', 'signedReadUrl', 'presign', 'url', 'download', 'upload'];
+        for (const m of methods) if (typeof bk.bucket[m] === 'function') info.methods.push(m);
+        // ลอง list
+        try {
+          if (typeof bk.bucket.list === 'function') {
+            const listed = await bk.bucket.list({ limit: 10 });
+            info.listSample = listed;
+          }
+        } catch (e) { info.listError = e.message; }
+        out.buckets.push(info);
+      }
+      // sample 5 media
+      const allMedia = Object.entries(hub.media).slice(0, 5);
+      for (const [id, m] of allMedia) {
+        out.mediaSample.push({ id, kind: m.kind, bucketId: m.bucketId, path: m.upstashPath, size: m.size });
+      }
+      return json(res, 200, out);
     }
 
     // ===== Stats =====
@@ -1755,13 +1858,14 @@ const server = http.createServer(async (req, res) => {
       const ext = extFor(ct);
       let r;
       try { r = await putMedia(buf, ext, ct); }
-      catch (e) { return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
+      catch (e) { console.error('putMedia failed:', e.message); return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ: ' + e.message }); }
       hub.media[r.id] = {
         owner: me, mime: ct, ext, kind, scope, chatId: chatIdParam || undefined,
         originalName: String(decodeURIComponent(String(req.headers['x-file-name'] || ''))).slice(0, 100),
         size: r.size, upstashPath: r.upstashPath, bucketId: r.bucketId, t: Date.now()
       };
       await saveHubNow();
+      console.log('📤 Uploaded ' + r.id + ' (' + kind + ', ' + buf.length + ' bytes) to bucket #' + r.bucketId);
       return json(res, 200, { id: r.id, kind });
     }
 
@@ -1841,7 +1945,7 @@ const server = http.createServer(async (req, res) => {
         if (post.cover) {
           const m = own(hub.media, post.cover);
           if (m) {
-            if (m.upstashPath) { const bk = blobBuckets[m.bucketId || 0]; if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
+            if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
             else fs.unlink(path.join(MEDIA_DIR, post.cover + '.' + m.ext), () => {});
             delete hub.media[post.cover];
           }
@@ -2071,7 +2175,7 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
       if (rd && typeof rd === 'object' && rd.sites) { sdata.sites = rd.sites; console.log('✓ sitedata loaded'); }
     } catch (e) { console.error('Redis boot error:', e.message); }
   } else {
-    console.log('⚠️  ไม่มี UPSTASH_REDIS → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
+    console.log('⚠️  ไม่มี UPSTASH_REDIS → ใช้ไฟล์ในเครื่อง');
   }
 
   for (const u of Object.keys(state.users)) {
