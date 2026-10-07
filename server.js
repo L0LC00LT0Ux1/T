@@ -126,7 +126,6 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
 }
 if (blobBuckets.length) {
   console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
-  // ⭐ debug: แสดง method ที่มีในตัว bucket
   try {
     const sample = blobBuckets[0].bucket;
     const methods = ['put', 'get', 'delete', 'list', 'head', 'copy', 'signedReadUrl', 'presign', 'url', 'download', 'upload'];
@@ -706,14 +705,12 @@ function readStreamToBuffer(req, limit) {
   });
 }
 
-// ⭐ putMedia: หา bucket น้อยสุดโดยใช้ id เป็นหลัก (ไม่ sort array)
+// ⭐ putMedia: หา bucket น้อยสุดโดยใช้ id เป็นหลัก
 async function putMedia(buf, ext, ct) {
   const id = crypto.randomBytes(12).toString('hex');
   if (blobBuckets.length) {
-    // หา bucket ที่ used น้อยสุด
     let best = blobBuckets[0];
     for (const bk of blobBuckets) if (bk.used < best.used) best = bk;
-    // เรียงลำดับการลอง: best ก่อน แล้วที่เหลือ
     const tries = [best].concat(blobBuckets.filter(b => b !== best));
     let uploaded = false, lastErr = null, upath = `media/${id}.${ext}`, bucketId = -1;
     for (const bk of tries) {
@@ -738,12 +735,33 @@ async function putMedia(buf, ext, ct) {
   }
 }
 
+// ⭐ deleteMediaFile: ลบไฟล์ + คืนพื้นที่ used
+async function deleteMediaFile(mediaId) {
+  const m = own(hub.media, mediaId);
+  if (!m) return false;
+  try {
+    if (m.upstashPath) {
+      const bk = getBucketById(m.bucketId || 0);
+      if (bk) {
+        try {
+          await bk.bucket.delete(m.upstashPath);
+          bk.used = Math.max(0, (bk.used || 0) - (m.size || 0));
+          console.log('🗑️  Deleted ' + m.upstashPath + ' from bucket #' + bk.id + ' (-' + (m.size || 0) + ' bytes)');
+        } catch (e) { console.error('delete from bucket error:', e.message); }
+      }
+    } else {
+      fs.unlink(path.join(MEDIA_DIR, mediaId + '.' + m.ext), () => {});
+    }
+  } catch (e) { console.error('deleteMediaFile error:', e.message); }
+  delete hub.media[mediaId];
+  return true;
+}
+
 // helper: แปลงผลลัพธ์จาก bucket.get() เป็น Buffer
 async function blobResultToBuffer(got) {
   if (!got) return null;
   if (Buffer.isBuffer(got)) return got;
   if (typeof got.arrayBuffer === 'function') return Buffer.from(await got.arrayBuffer());
-  if (typeof got.text === 'function' && typeof got.size === 'number') return Buffer.from(await got.arrayBuffer());
   if (got.body) {
     const body = got.body;
     if (Buffer.isBuffer(body)) return body;
@@ -759,7 +777,6 @@ async function blobResultToBuffer(got) {
       return Buffer.concat(chunks);
     }
     if (typeof body.on === 'function') {
-      // Node stream
       return new Promise((resolve, reject) => {
         const chunks = [];
         body.on('data', (c) => chunks.push(Buffer.from(c)));
@@ -793,14 +810,12 @@ async function serveMedia(req, res, id, me) {
       return json(res, 500, { error: 'ไม่พบ bucket' });
     }
     let buf = null;
-    // ลองใช้ get() ก่อน
     try {
       if (typeof bk.bucket.get === 'function') {
         const got = await bk.bucket.get(m.upstashPath);
         buf = await blobResultToBuffer(got);
       }
     } catch (e) { console.error('bucket.get error:', e.message); }
-    // fallback: signedReadUrl
     if (!buf) {
       try {
         if (typeof bk.bucket.signedReadUrl === 'function') {
@@ -810,14 +825,6 @@ async function serveMedia(req, res, id, me) {
           else console.error('signedReadUrl fetch status:', r.status);
         }
       } catch (e) { console.error('signedReadUrl error:', e.message); }
-    }
-    // fallback: presign
-    if (!buf && typeof bk.bucket.presign === 'function') {
-      try {
-        const url = await bk.bucket.presign(m.upstashPath, { expiresIn: 300 });
-        const r = await fetch(url);
-        if (r.ok) buf = Buffer.from(await r.arrayBuffer());
-      } catch (e) { console.error('presign error:', e.message); }
     }
     if (!buf) {
       console.error('serveMedia: cannot read ' + m.upstashPath + ' from bucket #' + bid);
@@ -1273,14 +1280,7 @@ async function deleteUserData(username) {
   }
   for (const [id, p] of Object.entries(hub.posts)) {
     if (p.owner !== u) continue;
-    if (p.cover) {
-      const m = hub.media[p.cover];
-      if (m) {
-        if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
-        else fs.unlink(path.join(MEDIA_DIR, p.cover + '.' + m.ext), () => {});
-        delete hub.media[p.cover];
-      }
-    }
+    if (p.cover) await deleteMediaFile(p.cover);
     delete hub.posts[id];
   }
   for (const slug of Object.keys(hub.sites)) {
@@ -1291,9 +1291,7 @@ async function deleteUserData(username) {
   }
   for (const [id, m] of Object.entries(hub.media)) {
     if (m.owner !== u) continue;
-    if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
-    else fs.unlink(path.join(MEDIA_DIR, id + '.' + m.ext), () => {});
-    delete hub.media[id];
+    await deleteMediaFile(id);
   }
   for (const uu of Object.keys(state.users)) {
     const x = state.users[uu];
@@ -1467,12 +1465,7 @@ const server = http.createServer(async (req, res) => {
       try { r = await putMedia(buf, ext, ct); }
       catch (e) { return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
       const old = meUser.avatar;
-      if (old && hub.media[old]) {
-        const om = hub.media[old];
-        if (om.upstashPath) { const bk = getBucketById(om.bucketId || 0); if (bk) { try { await bk.bucket.delete(om.upstashPath); } catch {} } }
-        else fs.unlink(path.join(MEDIA_DIR, old + '.' + om.ext), () => {});
-        delete hub.media[old];
-      }
+      if (old && hub.media[old]) await deleteMediaFile(old);
       hub.media[r.id] = { owner: me, mime: ct, ext, kind: 'image', scope: 'avatar', size: r.size, upstashPath: r.upstashPath, bucketId: r.bucketId, t: Date.now() };
       meUser.avatar = r.id;
       await saveNow(); await saveHubNow();
@@ -1665,7 +1658,6 @@ const server = http.createServer(async (req, res) => {
       const overallPct = totalLimit ? Math.min(100, (totalUsed / totalLimit) * 100) : 0;
       return json(res, 200, { totalBuckets, totalLimit, totalUsed, overallPercent: overallPct, fullCount, nearlyCount, totalFiles, buckets: bucketsInfo });
     }
-    // ⭐ debug endpoint: ดูว่ามีไฟล์ใน storage จริงไหม
     if (p === '/api/admin/blob-debug' && M === 'GET') {
       if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
       const out = { buckets: [], mediaCount: Object.keys(hub.media).length, mediaSample: [] };
@@ -1673,7 +1665,6 @@ const server = http.createServer(async (req, res) => {
         const info = { id: bk.id, used: bk.used, methods: [] };
         const methods = ['put', 'get', 'delete', 'list', 'head', 'copy', 'signedReadUrl', 'presign', 'url', 'download', 'upload'];
         for (const m of methods) if (typeof bk.bucket[m] === 'function') info.methods.push(m);
-        // ลอง list
         try {
           if (typeof bk.bucket.list === 'function') {
             const listed = await bk.bucket.list({ limit: 10 });
@@ -1682,7 +1673,6 @@ const server = http.createServer(async (req, res) => {
         } catch (e) { info.listError = e.message; }
         out.buckets.push(info);
       }
-      // sample 5 media
       const allMedia = Object.entries(hub.media).slice(0, 5);
       for (const [id, m] of allMedia) {
         out.mediaSample.push({ id, kind: m.kind, bucketId: m.bucketId, path: m.upstashPath, size: m.size });
@@ -1942,14 +1932,7 @@ const server = http.createServer(async (req, res) => {
       if (!pm[2] && M === 'GET') return json(res, 200, Object.assign(pubPost(post, me), { locked: !open }, open ? { code: post.code } : {}));
       if (!pm[2] && M === 'DELETE') {
         if (post.owner !== me) return json(res, 403, { error: 'ลบได้เฉพาะของตัวเอง' });
-        if (post.cover) {
-          const m = own(hub.media, post.cover);
-          if (m) {
-            if (m.upstashPath) { const bk = getBucketById(m.bucketId || 0); if (bk) { try { await bk.bucket.delete(m.upstashPath); } catch {} } }
-            else fs.unlink(path.join(MEDIA_DIR, post.cover + '.' + m.ext), () => {});
-            delete hub.media[post.cover];
-          }
-        }
+        if (post.cover) await deleteMediaFile(post.cover);
         delete hub.posts[post.id]; await saveHubNow();
         return json(res, 200, { ok: true });
       }
