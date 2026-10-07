@@ -33,7 +33,7 @@
 </script>
 <title>Alexa Hub</title>
 <style>
-:root{--tx:#f2f2f2;--mut:#8a8a8a;--line:rgba(255,255,255,.16);--line2:rgba(255,255,255,.34);--panel:rgba(12,12,12,.78);--red:#ff4d4f}
+:root{--tx:#f2f2f2;--mut:#8a8a8a;--line:rgba(255,255,255,.16);--line2:rgba(255,255,255,.34);--panel:rgba(12,12,12,.78);--red:#ff4d4f;--grn:#4ade80}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
 body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif}
@@ -68,18 +68,22 @@ body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Seg
 .btn.solid:hover{background:#d9d9d9}
 .btn.danger{border-color:rgba(255,77,79,.55);color:#ff7a7c}
 .btn.danger:hover{background:rgba(255,77,79,.12)}
+.btn.ok{border-color:rgba(74,222,128,.55);color:#4ade80}
+.btn.ok:hover{background:rgba(74,222,128,.12)}
 .btn.wide{width:100%}
+.btn.sm{min-height:34px;padding:0 11px;font-size:13px}
 .btn[disabled]{opacity:.45;pointer-events:none}
 .inp{width:100%;min-height:42px;padding:0 12px;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
 .inp:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#aaa 50%),linear-gradient(135deg,#aaa 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
 select.inp option{background:#111;color:#fff}
 label.l{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);margin:16px 0 6px;text-transform:uppercase}
-.seg{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.5)}
-.seg button{flex:1;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.seg{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.5);flex-wrap:wrap}
+.seg button{flex:1;min-width:80px;min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .seg button.on{background:#fff;color:#000}
 .mut{color:var(--mut)}
 .err{color:#ff7a7c;min-height:22px;margin-top:10px;font-size:14px}
+.ok{color:#4ade80}
 .empty{padding:28px 16px;text-align:center;color:var(--mut)}
 .page{animation:fi .25s ease}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -176,6 +180,7 @@ textarea.code:focus{border-color:var(--line2)}
 .tag{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(0,0,0,.78);border:1px solid var(--line2)}
 .tag.paid{background:#fff;color:#000;border-color:#fff}
 .tag.danger{background:#ff4d4f;color:#fff;border-color:#ff4d4f}
+.tag.ok{background:#4ade80;color:#000;border-color:#4ade80}
 .cb{padding:10px 12px}
 .cb b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb small{color:var(--mut)}
@@ -242,6 +247,14 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .adbody label{font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;display:block;margin-bottom:4px}
 .adfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .profile-avatar{width:80px;height:80px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:32px;font-weight:900;text-transform:uppercase}
+.idbox{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.05);border:1px dashed var(--line2);border-radius:10px;margin-top:8px}
+.idbox code{flex:1;font:16px ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:2px;color:#fff;word-break:break-all}
+.idbox .btn{flex:none}
+.lookup-result{margin-top:14px}
+.lr-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.lr-head b{font-size:18px}
+.timer-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.warn-box{margin-top:10px;padding:10px 14px;border:1px solid rgba(255,200,0,.4);border-radius:10px;background:rgba(255,200,0,.08);color:#ffd966;font-size:13px}
 </style>
 </head>
 <body>
@@ -275,6 +288,8 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
@@ -446,6 +461,14 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
             <button class="btn" id="stopBtn"><svg class="ic f"><use href="#i-stop"/></svg><span>หยุด</span></button>
           </div>
         </div>
+        <div style="padding:0 14px">
+          <div class="idbox">
+            <svg class="ic"><use href="#i-shield"/></svg>
+            <code id="botPublicId">-</code>
+            <button class="btn sm" id="copyBotId"><svg class="ic"><use href="#i-copy"/></svg><span>คัดลอก</span></button>
+          </div>
+          <div class="foot" id="botTimerInfo">-</div>
+        </div>
         <div id="errbox" class="errbox"><span id="errtxt"></span><button class="btn" id="toLog">ดูล็อก</button></div>
         <div class="sub">
           <div class="seg" id="viewSeg">
@@ -539,7 +562,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- ===== เว็บสาธารณะ ===== -->
+    <!-- ===== เว็บสาธารณะ: แกลเลอรี ===== -->
     <section id="pg-sites" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>เว็บสาธารณะ</h2><p>สร้างเว็บ HTML / CSS / JavaScript ออนไลน์ แชร์เป็นลิงก์ให้ใครก็เปิดได้</p></div>
@@ -553,12 +576,21 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <div class="grid" id="sitesGrid"></div>
     </section>
 
+    <!-- ===== เว็บสาธารณะ: ตัวสร้าง ===== -->
     <section id="pg-site" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2 id="siteHead">สร้างเว็บสาธารณะ</h2><p>เขียนโค้ด ดูตัวอย่าง แล้วกดเผยแพร่ ได้ลิงก์ทันที</p></div>
         <button class="btn" id="siteBack"><svg class="ic"><use href="#i-back"/></svg><span>กลับ</span></button>
       </div>
       <div class="panel pad">
+        <div id="siteIdBox" class="hide">
+          <div class="idbox">
+            <svg class="ic"><use href="#i-shield"/></svg>
+            <code id="sitePublicId">-</code>
+            <button class="btn sm" id="copySiteId"><svg class="ic"><use href="#i-copy"/></svg><span>คัดลอก</span></button>
+          </div>
+          <div class="foot">Public ID ของเว็บนี้ — แจ้งแอดมินเมื่อมีปัญหา</div>
+        </div>
         <label class="l" for="sTitle" style="margin-top:0">ชื่อเว็บ</label>
         <input class="inp" id="sTitle" maxlength="60" placeholder="เช่น เว็บแนะนำตัวของฉัน">
         <label class="l" for="sSlug">ลิงก์เว็บ</label>
@@ -569,7 +601,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
           <select class="inp" id="sTpl">
             <option value="blank">เว็บเปล่า (สวัสดีชาวโลก)</option>
             <option value="chat">แชทออนไลน์</option>
-            <option value="game">เกมตัวละคร</option>
             <option value="guestbook">สมุดเยี่ยม</option>
             <option value="profile">หน้าแนะนำตัว</option>
             <option value="landing">หน้า Landing</option>
@@ -594,7 +625,6 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
         </div>
         <details class="doc">
           <summary>คู่มือ alexa API</summary>
-          <p class="foot">ใช้ได้ทันทีในโค้ด JavaScript ของเว็บ</p>
           <pre class="codebox">var room = alexa.join("lobby", { name: "ชื่อเล่น" });
 room.on("message", function (m) { /* m.from, m.name, m.data */ });
 room.send({ text: "สวัสดี" });
@@ -624,7 +654,7 @@ alexa.db.incr("visits");</pre>
           <div id="sdList" style="margin-top:8px"></div>
           <label class="l">เพิ่ม / แก้ข้อมูลร่วม</label>
           <input class="inp" id="sdKey" maxlength="64" placeholder="ชื่อคีย์ เช่น title" autocapitalize="off" autocorrect="off" spellcheck="false">
-          <textarea class="libin" id="sdVal" style="min-height:70px;margin-top:8px" spellcheck="false" placeholder='ค่า เช่น "สวัสดี" หรือ 123 หรือ {"a":1}'></textarea>
+          <textarea class="libin" id="sdVal" style="min-height:70px;margin-top:8px" spellcheck="false" placeholder='ค่า เช่น "สวัสดี" หรือ 123'></textarea>
           <div style="margin-top:8px"><button class="btn" id="sdSet"><svg class="ic"><use href="#i-save"/></svg><span>บันทึกคีย์</span></button></div>
         </div>
       </div>
@@ -659,13 +689,23 @@ alexa.db.incr("visits");</pre>
     <!-- ===== แผงแอดมิน ===== -->
     <section id="pg-admin" class="page hide">
       <div class="ph row" style="justify-content:space-between">
-        <div><h2>แผงแอดมิน</h2><p>จัดการผู้ใช้ โควต้าบอท/เว็บ และเวลาใช้งาน</p></div>
+        <div><h2>แผงแอดมิน</h2><p>ค้นหาด้วย Public ID หรือจัดการผู้ใช้</p></div>
         <div class="row">
           <button class="btn" id="adToggle"><svg class="ic"><use href="#i-set"/></svg><span>เปิด/ปิด UI</span></button>
           <button class="btn" id="adRef"><svg class="ic"><use href="#i-restart"/></svg><span>รีเฟรช</span></button>
         </div>
       </div>
-      <div class="notice">เฉพาะแอดมินเท่านั้น — การลบบัญชีจะลบข้อมูลทุกอย่างของผู้ใช้นั้นถาวร</div>
+
+      <div class="panel pad" style="margin-bottom:12px">
+        <b>🔍 ค้นหาด้วย Public ID</b>
+        <div class="foot">ใส่ ID ของบอทหรือเว็บที่ลูกค้าแจ้งมา ระบบจะแสดงข้อมูลเจ้าของ + เครื่องมือควบคุม</div>
+        <div class="row" style="margin-top:10px">
+          <input class="inp" id="lookupId" placeholder="เช่น A3F9C21B" style="flex:1;min-width:180px;text-transform:uppercase" maxlength="12" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="btn solid" id="lookupBtn"><svg class="ic"><use href="#i-search"/></svg><span>ค้นหา</span></button>
+        </div>
+        <div id="lookupResult"></div>
+      </div>
+
       <div class="panel pad">
         <b>รายชื่อผู้ใช้ <span class="mut" id="adCount"></span></b>
         <div id="adList" style="margin-top:10px"></div>
@@ -744,23 +784,25 @@ const TPL = {
 
 const SITE_TPL = {
   blank: { title: 'เว็บของฉัน',
-    html: ['<h1>สวัสดีชาวโลก</h1>', '<p>นี่คือเว็บแรกของฉัน</p>'].join('\n'),
-    css: ['body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#000;color:#fff;font-family:system-ui,sans-serif}', 'h1{font-size:44px;margin:0 0 8px}'].join('\n'),
+    html: '<h1>สวัสดีชาวโลก</h1>\n<p>นี่คือเว็บแรกของฉัน</p>',
+    css: 'body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#000;color:#fff;font-family:system-ui,sans-serif}h1{font-size:44px;margin:0 0 8px}',
     js: 'console.log("เว็บพร้อมแล้ว");' },
   chat: { title: 'แชทออนไลน์',
-    html: ['<div id="app">','  <div id="top"><b>แชทรวม</b><span id="online">กำลังเชื่อมต่อ...</span></div>','  <div id="log"></div>','  <form id="f">','    <input id="nick" placeholder="ชื่อเล่น" maxlength="16">','    <input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300">','    <button>ส่ง</button>','  </form>','</div>'].join('\n'),
-    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','#app{display:flex;flex-direction:column;height:100vh;max-width:640px;margin:0 auto}','#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}','#log{flex:1;overflow:auto;padding:14px 16px}','.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d}','.m.me{background:#fff;color:#000;margin-left:30px}','#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}','#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}','#nick{width:28%}','#msg{flex:1}','#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}'].join('\n'),
-    js: ['var nick = document.getElementById("nick");','nick.value = "ผู้เยี่ยมชม" + Math.floor(Math.random() * 900 + 100);','var logEl = document.getElementById("log");','var online = document.getElementById("online");','var room = alexa.join("lobby", { name: nick.value });','function add(who, text, mine) { var d = document.createElement("div"); d.className = "m" + (mine ? " me" : ""); var b = document.createElement("b"); b.textContent = who + ": "; var s = document.createElement("span"); s.textContent = text; d.appendChild(b); d.appendChild(s); logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; }','function show(m) { if (!m.data || typeof m.data.text !== "string") return; add(m.data.name || m.name || "?", m.data.text.slice(0, 300), m.from === alexa.id); }','function count() { online.textContent = "ออนไลน์ " + room.peers.length + " คน"; }','room.on("hello", function (info) { count(); logEl.innerHTML = ""; (info.history || []).forEach(show); });','room.on("join", count);','room.on("leave", count);','room.on("message", show);','document.getElementById("f").onsubmit = function (e) { e.preventDefault(); var box = document.getElementById("msg"); var t = box.value.trim(); if (!t) return; room.send({ text: t, name: nick.value.trim() || "?" }, { keep: true }); box.value = ""; };'].join('\n') },
+    html: '<div id="app"><div id="top"><b>แชทรวม</b><span id="online">กำลังเชื่อมต่อ...</span></div><div id="log"></div><form id="f"><input id="nick" placeholder="ชื่อเล่น" maxlength="16"><input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300"><button>ส่ง</button></form></div>',
+    css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}#app{display:flex;flex-direction:column;height:100vh;max-width:640px;margin:0 auto}#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}#log{flex:1;overflow:auto;padding:14px 16px}.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d}.m.me{background:#fff;color:#000;margin-left:30px}#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}#nick{width:28%}#msg{flex:1}#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}',
+    js: 'var nick=document.getElementById("nick");nick.value="ผู้เยี่ยมชม"+Math.floor(Math.random()*900+100);var logEl=document.getElementById("log");var online=document.getElementById("online");var room=alexa.join("lobby",{name:nick.value});function add(who,text,mine){var d=document.createElement("div");d.className="m"+(mine?" me":"");var b=document.createElement("b");b.textContent=who+": ";var s=document.createElement("span");s.textContent=text;d.appendChild(b);d.appendChild(s);logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight;}function show(m){if(!m.data||typeof m.data.text!=="string")return;add(m.data.name||m.name||"?",m.data.text.slice(0,300),m.from===alexa.id);}function count(){online.textContent="ออนไลน์ "+room.peers.length+" คน";}room.on("hello",function(info){count();logEl.innerHTML="";(info.history||[]).forEach(show);});room.on("join",count);room.on("leave",count);room.on("message",show);document.getElementById("f").onsubmit=function(e){e.preventDefault();var box=document.getElementById("msg");var t=box.value.trim();if(!t)return;room.send({text:t,name:nick.value.trim()||"?"},{keep:true});box.value="";};' },
   guestbook: { title: 'สมุดเยี่ยม',
-    html: ['<main>','  <h1>สมุดเยี่ยม</h1>','  <p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p>','  <form id="f">','    <input id="nm" placeholder="ชื่อ" maxlength="20">','    <textarea id="tx" placeholder="เขียนข้อความ" maxlength="200"></textarea>','    <button>ฝากข้อความ</button>','  </form>','  <div id="list"></div>','</main>'].join('\n'),
-    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','main{max-width:560px;margin:0 auto;padding:28px 16px}','.sub{color:#9a9a9a;margin:0 0 20px}','#f{display:grid;gap:8px;margin-bottom:22px}','#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}','#f textarea{min-height:80px;resize:vertical}','#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}','.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}'].join('\n'),
-    js: ['var list = document.getElementById("list");','function render(items) { items = items.filter(function (it) { return it.value && typeof it.value.text === "string"; }); items.sort(function (a, b) { return (b.value.t || 0) - (a.value.t || 0); }); list.innerHTML = ""; items.slice(0, 50).forEach(function (it) { var d = document.createElement("div"); d.className = "e"; var b = document.createElement("b"); b.textContent = it.value.name || "ไม่ระบุชื่อ"; var p = document.createElement("p"); p.textContent = it.value.text; d.appendChild(b); d.appendChild(p); list.appendChild(d); }); }','function load() { alexa.db.list("msg:").then(render); }','alexa.db.incr("visits").then(function (n) { document.getElementById("visits").textContent = n; });','document.getElementById("f").onsubmit = function (e) { e.preventDefault(); var text = document.getElementById("tx").value.trim(); if (!text) return; var id = "msg:" + Date.now(); alexa.db.set(id, { name: document.getElementById("nm").value.trim(), text: text, t: Date.now() }).then(function () { document.getElementById("tx").value = ""; load(); }); };','load();','setInterval(load, 8000);'].join('\n') },
+    html: '<main><h1>สมุดเยี่ยม</h1><p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p><form id="f"><input id="nm" placeholder="ชื่อ" maxlength="20"><textarea id="tx" placeholder="เขียนข้อความ" maxlength="200"></textarea><button>ฝากข้อความ</button></form><div id="list"></div></main>',
+    css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}main{max-width:560px;margin:0 auto;padding:28px 16px}.sub{color:#9a9a9a;margin:0 0 20px}#f{display:grid;gap:8px;margin-bottom:22px}#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}#f textarea{min-height:80px;resize:vertical}#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}',
+    js: 'var list=document.getElementById("list");function render(items){items=items.filter(function(it){return it.value&&typeof it.value.text==="string";});items.sort(function(a,b){return (b.value.t||0)-(a.value.t||0);});list.innerHTML="";items.slice(0,50).forEach(function(it){var d=document.createElement("div");d.className="e";var b=document.createElement("b");b.textContent=it.value.name||"ไม่ระบุชื่อ";var p=document.createElement("p");p.textContent=it.value.text;d.appendChild(b);d.appendChild(p);list.appendChild(d);});}function load(){alexa.db.list("msg:").then(render);}alexa.db.incr("visits").then(function(n){document.getElementById("visits").textContent=n;});document.getElementById("f").onsubmit=function(e){e.preventDefault();var text=document.getElementById("tx").value.trim();if(!text)return;var id="msg:"+Date.now();alexa.db.set(id,{name:document.getElementById("nm").value.trim(),text:text,t:Date.now()}).then(function(){document.getElementById("tx").value="";load();});};load();setInterval(load,8000);' },
   profile: { title: 'แนะนำตัว',
-    html: ['<main class="card">','  <div class="av">A</div>','  <h1>ชื่อของคุณ</h1>','  <p>เขียนแนะนำตัวสั้นๆ</p>','  <div class="links">','    <a href="#">Discord</a>','    <a href="#">YouTube</a>','    <a href="#">Roblox</a>','  </div>','</main>'].join('\n'),
-    css: ['*{box-sizing:border-box}','body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif}','.card{width:min(360px,90vw);padding:32px;text-align:center;border:1px solid #333;border-radius:20px;background:#0c0c0c}','.av{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:36px;font-weight:900}','.links{display:grid;gap:10px;margin-top:22px}','.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}'].join('\n'), js: '' },
+    html: '<main class="card"><div class="av">A</div><h1>ชื่อของคุณ</h1><p>เขียนแนะนำตัวสั้นๆ</p><div class="links"><a href="#">Discord</a><a href="#">YouTube</a><a href="#">Roblox</a></div></main>',
+    css: '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif}.card{width:min(360px,90vw);padding:32px;text-align:center;border:1px solid #333;border-radius:20px;background:#0c0c0c}.av{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:36px;font-weight:900}.links{display:grid;gap:10px;margin-top:22px}.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}',
+    js: '' },
   landing: { title: 'หน้า Landing',
-    html: ['<header><b>ชื่อโปรเจกต์</b><a class="btn" href="#join">เริ่มเลย</a></header>','<section class="hero"><h1>คำโปรยที่ดึงดูดใจ</h1><p>อธิบายสั้นๆ</p><a class="btn solid" id="join" href="#features">ดูรายละเอียด</a></section>','<section id="features" class="features"><div><h3>จุดเด่น 1</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 2</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 3</h3><p>สั้นๆ</p></div></section>'].join('\n'),
-    css: ['*{box-sizing:border-box}','body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}','header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}','.hero{padding:90px 22px;text-align:center}','.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}','.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}','.btn.solid{background:#fff;color:#000;border-color:#fff}','.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}','.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}'].join('\n'), js: '' },
+    html: '<header><b>ชื่อโปรเจกต์</b><a class="btn" href="#join">เริ่มเลย</a></header><section class="hero"><h1>คำโปรยที่ดึงดูดใจ</h1><p>อธิบายสั้นๆ</p><a class="btn solid" id="join" href="#features">ดูรายละเอียด</a></section><section id="features" class="features"><div><h3>จุดเด่น 1</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 2</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 3</h3><p>สั้นๆ</p></div></section>',
+    css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}.hero{padding:90px 22px;text-align:center}.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}.btn.solid{background:#fff;color:#000;border-color:#fff}.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}',
+    js: '' },
   counter: { title: 'ตัวนับ',
     html: '<main><div id="num">0</div><button id="plus">+1</button><button id="reset">รีเซ็ต</button></main>',
     css: 'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center}#num{font-size:96px;font-weight:900;margin-bottom:16px}button{font:inherit;padding:12px 22px;margin:4px;border-radius:12px;border:1px solid #666;background:#111;color:#fff;cursor:pointer}#plus{background:#fff;color:#000;border-color:#fff}',
@@ -772,26 +814,30 @@ const CHIPS = {
   js: ['@discordjs/voice', '@discordjs/opus', 'axios', 'dotenv', 'ffmpeg-static', 'play-dl', 'moment', 'node-fetch@2']
 };
 
-/* ---------- สถานะรวม ---------- */
+/* ---------- state ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
+let authToken = localStorage.getItem('authToken') || '';
 let myInfo = null;
 let bots = [], cur = null, shownId = null, dirty = false, lastLogKey = '', lastTabsKey = '', lastLibKey = '', view = 'code';
 let posts = [], filter = 'all', lastPostsKey = '', coverFile = null, payMode = 'free', publishing = false;
 let sites = [], sFilter = 'all', lastSitesKey = '', sdItems = {};
-let siteEditing = null, siteMode = 'split', siteTab = null, sHtml = '', sCss = '', sJs = '', sPublic = true, siteDirty = false, siteSaving = false;
+let siteEditing = null, siteMode = 'split', siteTab = null, sHtml = '', sCss = '', sJs = '', sPublic = true, siteDirty = false, siteSaving = false, siteCurrentPublicId = '';
 let chats = [], curChat = null, thrTotal = 0, thrBusy = false, attach = null, sending = false, lastChatsKey = '';
+let lookupBotId = '';
 
 async function api(method, url, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
   const r = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) {
     if (r.status === 401 && !/^\/api\/(login|register|me|verify|resend)$/.test(url)) toAuth();
     const e = new Error(d.error || 'HTTP ' + r.status);
-    e.status = r.status; e.trial = !!d.trial; e.needsVerify = !!d.needsVerify; e.needsEmail = !!d.needsEmail;
+    e.status = r.status; e.trial = !!d.trial; e.needsVerify = !!d.needsVerify; e.needsEmail = !!d.needsEmail; e.expired = !!d.expired;
     throw e;
   }
   return d;
@@ -802,6 +848,7 @@ function uploadFile(file, qs, onProg) {
     const x = new XMLHttpRequest();
     x.open('POST', '/api/upload?' + qs);
     x.setRequestHeader('Content-Type', file.type);
+    if (authToken) x.setRequestHeader('Authorization', 'Bearer ' + authToken);
     x.upload.onprogress = (e) => { if (e.lengthComputable && onProg) onProg(Math.round(e.loaded / e.total * 100)); };
     x.onload = () => {
       let d = {};
@@ -871,7 +918,7 @@ async function copyText(t) {
   }
 }
 
-/* ---------- เข้าสู่ระบบ ---------- */
+/* ---------- auth ---------- */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
@@ -891,8 +938,23 @@ async function authGo() {
       password: $('#ap').value
     });
     $('#ap').value = '';
-    const info = await api('GET', '/api/me');
-    enter(info);
+    if (d.token) { authToken = d.token; try { localStorage.setItem('authToken', authToken); } catch {} }
+    if (d.info) {
+      enter(d.info);
+    } else {
+      try {
+        const info = await api('GET', '/api/me');
+        enter(info);
+      } catch {
+        enter({
+          user: d.user, admin: false,
+          displayName: '', bio: '',
+          emailVerified: false, email: '', hasEmail: false,
+          trialEnds: 0, trialExpired: false,
+          paid: false, maxBots: 1, maxSites: 1
+        });
+      }
+    }
     if (mode === 'register') toast('สมัครสำเร็จ! ไปที่โปรไฟล์เพื่อผูกอีเมล');
   } catch (e) {
     $('#aerr').textContent = e.message;
@@ -903,6 +965,8 @@ async function authGo() {
 function toAuth() {
   hideBoot();
   clearInterval(timer); timer = null;
+  authToken = '';
+  try { localStorage.removeItem('authToken'); } catch {}
   me = null; myInfo = null; bots = []; cur = null; shownId = null; lastTabsKey = ''; lastLibKey = '';
   chats = []; curChat = null; thrTotal = 0; attach = null; lastChatsKey = ''; lastPostsKey = '';
   sites = []; lastSitesKey = ''; siteEditing = null; siteDirty = false;
@@ -978,10 +1042,12 @@ async function doResend() {
 
 async function logout() {
   try { await api('POST', '/api/logout'); } catch {}
+  authToken = '';
+  try { localStorage.removeItem('authToken'); } catch {}
   toAuth();
 }
 
-/* ---------- เมนู / หน้า ---------- */
+/* ---------- menu / page ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   const isAdm = myInfo && myInfo.admin;
@@ -1004,7 +1070,7 @@ async function setPage(p) {
     else if (p === 'sites') await loadSites();
     else if (p === 'chat') await loadChatList();
     else if (p === 'admin') await loadAdmin();
-  } catch (e) { /* รอรอบหน้า */ }
+  } catch (e) { /* next tick */ }
 }
 async function tick() {
   if (busy || !me) return;
@@ -1017,11 +1083,11 @@ async function tick() {
     else if (page === 'sites') { if (tc % 5 === 0) await loadSites(); }
     else if (page === 'chat') { await loadChatList(); await loadThread(); }
     if (page !== 'chat' && tc % 3 === 0) await loadChatList();
-  } catch (e) { /* รอรอบหน้า */ }
+  } catch (e) { /* next tick */ }
   busy = false;
 }
 
-/* ---------- หน้าหลัก ---------- */
+/* ---------- home ---------- */
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
@@ -1029,7 +1095,7 @@ async function loadStats() {
   set('#sMembers', d.users); set('#sPosts', d.posts);
 }
 
-/* ---------- โปรไฟล์ ---------- */
+/* ---------- profile ---------- */
 async function loadProfile() {
   try {
     const p = await api('GET', '/api/profile');
@@ -1052,7 +1118,7 @@ function renderTrialTag(p) {
   if (p.trialExpired) { tag.textContent = 'หมดเวลาทดลอง'; tag.className = 'tag danger'; return; }
   const days = Math.max(0, Math.ceil((p.trialEnds - Date.now()) / 86400000));
   tag.textContent = 'เหลือ ' + days + ' วัน';
-  tag.className = 'tag paid';
+  tag.className = 'tag ok';
 }
 function renderEmailBox(p) {
   const box = $('#pEmailBox');
@@ -1125,15 +1191,16 @@ function bindEmailVerify() {
   };
 }
 
-/* ---------- รันบอท ---------- */
+/* ---------- bot run ---------- */
 function renderTabs() {
-  const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang).join(',');
+  const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang + (b.expiresAt || 0)).join(',');
   if (key === lastTabsKey) return;
   lastTabsKey = key;
-  $('#tabs').innerHTML = bots.map((b) =>
-    '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' +
-    esc(b.name) + '</span><small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small></div>'
-  ).join('') + '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
+  $('#tabs').innerHTML = bots.map((b) => {
+    const expired = b.expiresAt && Date.now() > b.expiresAt;
+    return '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' +
+      esc(b.name) + '</span>' + (expired ? '<small style="color:#ff7a7c">หมด</small>' : '<small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small>') + '</div>';
+  }).join('') + '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
 }
 function setView(v) {
   view = v;
@@ -1153,6 +1220,16 @@ function fmtUp(ms) {
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
   return h ? h + ' ชม. ' + m + ' นาที' : m ? m + ' นาที' : s + ' วิ';
+}
+function fmtTimeLeft(ms) {
+  if (ms <= 0) return 'หมดแล้ว';
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return d + ' วัน ' + h + ' ชม.';
+  if (h > 0) return h + ' ชม. ' + m + ' นาที';
+  return m + ' นาที';
 }
 function renderLibs(b) {
   const key = b.id + '|' + b.lang + '|' + (b.libs || []).join(',') + '|' + b.installing;
@@ -1182,6 +1259,21 @@ function updateStatus() {
   $('#badge').innerHTML = '<span class="dot ' + b.status + '"></span>' + label;
   $('#title').textContent = b.name;
   $('#info').textContent = b.status === 'running' && b.startedAt ? 'รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
+  // Public ID
+  if (b.publicId) {
+    $('#botPublicId').textContent = b.publicId;
+    $('#copyBotId').onclick = () => copyText(b.publicId);
+  } else {
+    $('#botPublicId').textContent = '-';
+  }
+  // Timer info
+  if (b.expiresAt) {
+    const left = b.expiresAt - Date.now();
+    if (left > 0) $('#botTimerInfo').textContent = '⏱ หมดเวลาอีก: ' + fmtTimeLeft(left) + ' (' + new Date(b.expiresAt).toLocaleString('th-TH') + ')';
+    else $('#botTimerInfo').innerHTML = '<span class="err">⏱ หมดเวลาแล้ว — ติดต่อแอดมินเพื่อต่อเวลา</span>';
+  } else {
+    $('#botTimerInfo').textContent = '⏱ ไม่จำกัดเวลา';
+  }
   const eb = $('#errbox');
   if (b.status === 'error') {
     eb.style.display = 'flex';
@@ -1261,7 +1353,7 @@ async function saveBot() {
   return d;
 }
 
-/* ---------- ไลบรารี ---------- */
+/* ---------- libs ---------- */
 async function installLibs() {
   const text = $('#libIn').value;
   if (!text.trim()) return toast('ใส่ชื่อไลบรารีก่อน');
@@ -1296,11 +1388,12 @@ function handleApiError(e) {
   if (e && e.trial) { toast(e.message); setPage('trial'); return true; }
   if (e && e.needsEmail) { toast(e.message); setPage('profile'); return true; }
   if (e && e.needsVerify) { toast('กรุณายืนยันอีเมลก่อน'); setPage('profile'); return true; }
+  if (e && e.expired) { toast(e.message); return true; }
   toast(e.message || 'เกิดข้อผิดพลาด');
   return false;
 }
 
-/* ---------- ตลาดโค้ด ---------- */
+/* ---------- market ---------- */
 function cardHtml(p) {
   const cover = p.cover ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="cv ph">' + ic('img') + '</div>';
   return '<div class="card" data-id="' + p.id + '">' + cover +
@@ -1345,7 +1438,19 @@ async function usePost(id) {
     cur = b.id; shownId = null; lastTabsKey = '';
     localStorage.setItem('cur:' + me, b.id);
     await setPage('run');
-    toast('เพิ่มเป็นบอทของคุณแล้ว');
+    if (b.publicId) {
+      openModal(
+        '<h2>เพิ่มบอทสำเร็จ</h2>' +
+        '<div class="mut">นี่คือ Public ID ของบอทคุณ — เก็บไว้ แจ้งแอดมินเมื่อมีปัญหา</div>' +
+        '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(b.publicId) + '</code>' +
+        '<button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div>' +
+        '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>'
+      );
+      $('#cpid').onclick = () => copyText(b.publicId);
+      $('#ok').onclick = closeModal;
+    } else {
+      toast('เพิ่มเป็นบอทของคุณแล้ว');
+    }
   } catch (e) { handleApiError(e); }
 }
 async function deletePost(id) {
@@ -1364,7 +1469,7 @@ async function contactSeller(postId) {
   } catch (e) { toast(e.message); }
 }
 
-/* ---------- อัปโหลดโค้ดบอท ---------- */
+/* ---------- upload ---------- */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -1408,7 +1513,7 @@ async function doPublish() {
   publishing = false; $('#upGo').disabled = false;
 }
 
-/* ---------- เว็บสาธารณะ ---------- */
+/* ---------- sites ---------- */
 function buildSitePage(m, title, html, css, js) {
   if (m === 'full') return html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
@@ -1437,7 +1542,7 @@ function siteCard(x) {
 }
 function renderSites() {
   const list = sites.filter((x) => sFilter === 'all' || x.mine);
-  const key = sFilter + '|' + list.map((x) => x.slug + x.title + x.public + x.views + x.updated).join(',');
+  const key = sFilter + '|' + list.map((x) => x.slug + x.title + x.public + x.views + x.updated + (x.publicId || '')).join(',');
   if (key === lastSitesKey) return;
   lastSitesKey = key;
   $('#sitesGrid').innerHTML = list.map(siteCard).join('') ||
@@ -1451,11 +1556,15 @@ function openSiteModal(slug) {
     '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' +
     (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') +
     '<span class="mut">โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</span></div>' +
-    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">' +
-    '<div class="row" style="margin-top:12px">' +
+    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
+  if (x.publicId) {
+    h += '<div class="idbox" style="margin-top:10px"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(x.publicId) + '</code>' +
+      '<button class="btn sm" id="mCopyId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>' +
+      '<div class="foot">Public ID — แจ้งแอดมินเมื่อมีปัญหา</div>';
+  }
+  h += '<div class="row" style="margin-top:12px">' +
     '<a class="btn solid" href="/s/' + x.slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
-    '<button class="btn" id="mCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>' +
-    '<button class="btn" id="mRemix">' + ic('code') + '<span>ทำสำเนา</span></button>';
+    '<button class="btn" id="mCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>';
   if (x.mine) {
     h += '<button class="btn" id="mEdit">' + ic('set') + '<span>แก้ไข</span></button>' +
       '<button class="btn danger" id="mDel">' + ic('trash') + '<span>ลบ</span></button>';
@@ -1463,16 +1572,8 @@ function openSiteModal(slug) {
   h += '</div>';
   openModal(h);
   $('#mCopy').onclick = () => copyText(url);
-  $('#mRemix').onclick = () => remixSite(x.slug);
+  if ($('#mCopyId')) $('#mCopyId').onclick = () => copyText(x.publicId);
   if (x.mine) { $('#mEdit').onclick = () => editSite(x.slug); $('#mDel').onclick = () => deleteSite(x.slug); }
-}
-async function remixSite(slug) {
-  try {
-    const d = await api('GET', '/api/sites/' + slug);
-    closeModal();
-    await openSiteEditor(null, { title: 'สำเนา: ' + d.title, mode: d.mode, html: d.html, css: d.css, js: d.js, public: true });
-    siteDirty = true;
-  } catch (e) { toast(e.message); }
 }
 async function editSite(slug) {
   try {
@@ -1524,6 +1625,7 @@ function applyPubUI() { $$('#sPubSeg button').forEach((b) => b.classList.toggle(
 async function openSiteEditor(slug, data) {
   const d = data || Object.assign({ mode: 'split', public: true }, SITE_TPL.blank);
   siteEditing = slug;
+  siteCurrentPublicId = d.publicId || '';
   siteMode = d.mode === 'full' ? 'full' : 'split';
   sHtml = d.html || ''; sCss = d.css || ''; sJs = d.js || '';
   sPublic = d.public !== false;
@@ -1538,6 +1640,14 @@ async function openSiteEditor(slug, data) {
   $('#sDataBox').classList.toggle('hide', !slug);
   $('#sErr').textContent = '';
   $('#sdKey').value = ''; $('#sdVal').value = '';
+  // Public ID
+  if (siteCurrentPublicId) {
+    $('#siteIdBox').classList.remove('hide');
+    $('#sitePublicId').textContent = siteCurrentPublicId;
+    $('#copySiteId').onclick = () => copyText(siteCurrentPublicId);
+  } else {
+    $('#siteIdBox').classList.add('hide');
+  }
   siteTab = null;
   applyModeUI(); applyPubUI();
   siteDirty = false;
@@ -1561,7 +1671,13 @@ async function saveSite() {
     $('#sDel').classList.remove('hide');
     $('#sDataBox').classList.remove('hide');
     $('#siteHead').textContent = 'แก้ไขเว็บ';
-    showSiteLink(d.slug, d.public);
+    if (d.publicId) {
+      siteCurrentPublicId = d.publicId;
+      $('#siteIdBox').classList.remove('hide');
+      $('#sitePublicId').textContent = d.publicId;
+      $('#copySiteId').onclick = () => copyText(d.publicId);
+    }
+    showSiteLink(d.slug, d.public, d.publicId);
     loadSiteData();
   } catch (e) {
     if (handleApiError(e)) return;
@@ -1569,19 +1685,25 @@ async function saveSite() {
   }
   siteSaving = false; $('#sSave').disabled = false;
 }
-function showSiteLink(slug, isPublic) {
+function showSiteLink(slug, isPublic, publicId) {
   const url = siteUrl(slug);
   let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่างแล้ว') + '</h2>' +
     (isPublic ? '<div class="mut" style="margin-bottom:10px">ส่งลิงก์นี้ให้ใครก็ได้ เปิดได้เลย</div>'
               : '<div class="notice">โหมดซ่อน: มีแค่คุณที่เปิดได้</div>') +
-    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">' +
-    '<div class="row" style="margin-top:12px">' +
+    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
+  if (publicId) {
+    h += '<div class="idbox" style="margin-top:10px"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(publicId) + '</code>' +
+      '<button class="btn sm" id="lkId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>' +
+      '<div class="foot">Public ID — แจ้งแอดมินเมื่อมีปัญหา</div>';
+  }
+  h += '<div class="row" style="margin-top:12px">' +
     '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
     '<button class="btn" id="lkCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>' +
     (navigator.share ? '<button class="btn" id="lkShare">' + ic('send') + '<span>แชร์</span></button>' : '') +
     '</div>';
   openModal(h);
   $('#lkCopy').onclick = () => copyText(url);
+  if ($('#lkId')) $('#lkId').onclick = () => copyText(publicId);
   if ($('#lkShare')) $('#lkShare').onclick = () => navigator.share({ title: $('#sTitle').value, url }).catch(() => {});
 }
 async function applyTemplate(key) {
@@ -1646,7 +1768,7 @@ async function clearSiteData() {
   catch (e) { toast(e.message); }
 }
 
-/* ---------- แชท ---------- */
+/* ---------- chat ---------- */
 function setUnread(n) {
   $('#pip').classList.toggle('hide', !n);
   const m = $('#mcnt'); m.textContent = n > 99 ? '99+' : n;
@@ -1757,7 +1879,7 @@ async function sendPostCode() {
   catch (e) { toast(e.message); }
 }
 
-/* ---------- แอดมิน ---------- */
+/* ---------- admin ---------- */
 async function loadAdmin() {
   const listEl = document.getElementById('adList');
   if (!listEl) return;
@@ -1826,7 +1948,124 @@ async function loadAdmin() {
   } catch (e) { listEl.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
 }
 
-/* ---------- ผูกปุ่ม ---------- */
+/* ---------- admin: lookup ---------- */
+async function doLookup() {
+  const id = ($('#lookupId').value || '').trim().toUpperCase();
+  if (!id) return toast('ใส่ ID ก่อน');
+  const box = $('#lookupResult');
+  box.innerHTML = '<div class="mut" style="margin-top:12px">กำลังค้นหา...</div>';
+  try {
+    const d = await api('POST', '/api/admin/lookup', { id });
+    lookupBotId = id;
+    renderLookup(d);
+  } catch (e) {
+    box.innerHTML = '<div class="err" style="margin-top:12px">' + esc(e.message) + '</div>';
+  }
+}
+function renderLookup(d) {
+  const box = $('#lookupResult');
+  let h = '<div class="lookup-result">';
+  h += '<div class="lr-head"><span class="tag ' + (d.type === 'bot' ? 'paid' : 'ok') + '">' + (d.type === 'bot' ? 'บอท' : 'เว็บ') + '</span>' +
+    '<b>' + esc(d.type === 'bot' ? d.bot.name : d.site.title) + '</b></div>';
+  h += '<div class="adcard"><div class="adhead"><div style="min-width:0;flex:1">';
+  h += '<b>เจ้าของ: @' + esc(d.owner) + '</b>';
+  if (d.ownerInfo) {
+    if (d.ownerInfo.displayName) h += '<div class="mut" style="font-size:13px">' + esc(d.ownerInfo.displayName) + '</div>';
+    if (d.ownerInfo.email) h += '<div class="mut" style="font-size:12px">' + esc(d.ownerInfo.email) + '</div>';
+  }
+  h += '</div></div></div>';
+  if (d.type === 'bot') {
+    const b = d.bot;
+    h += '<div class="adcard">';
+    h += '<div class="row" style="gap:8px;flex-wrap:wrap">';
+    h += '<span class="badge ' + b.status + '"><span class="dot ' + b.status + '"></span>' + (b.status === 'running' ? 'กำลังรัน' : b.status === 'error' ? 'ผิดพลาด' : 'หยุดอยู่') + '</span>';
+    h += '<span class="tag">' + (b.lang === 'py' ? 'Python' : 'JavaScript') + '</span>';
+    if (b.startedAt && b.status === 'running') h += '<span class="mut">รันมา ' + fmtUp(Date.now() - b.startedAt) + '</span>';
+    h += '</div>';
+    if (b.expiresAt) {
+      const left = b.expiresAt - Date.now();
+      h += '<div class="warn-box">⏱ ' + (left > 0 ? 'หมดเวลาอีก ' + fmtTimeLeft(left) + ' (' + new Date(b.expiresAt).toLocaleString('th-TH') + ')' : '<b>หมดเวลาแล้ว</b>') + '</div>';
+    } else {
+      h += '<div class="foot" style="margin-top:6px">⏱ ไม่จำกัดเวลา</div>';
+    }
+    h += '<div class="timer-row">';
+    h += '<button class="btn sm" data-timer="24">+1 วัน</button>';
+    h += '<button class="btn sm" data-timer="48">+2 วัน</button>';
+    h += '<button class="btn sm" data-timer="168">+7 วัน</button>';
+    h += '<button class="btn sm" data-timer="0">ไม่จำกัด</button>';
+    h += '</div>';
+    h += '<label class="l" style="margin-top:10px">กำหนดเอง (ชั่วโมง)</label>';
+    h += '<div class="row">';
+    h += '<input class="inp" id="timerHours" type="number" min="0" max="8760" placeholder="เช่น 12" style="max-width:120px">';
+    h += '<button class="btn sm" id="timerSet">ตั้ง</button>';
+    h += '</div>';
+    h += '<div class="adfoot">';
+    h += '<button class="btn ok" data-bot="start">' + ic('play', 1) + '<span>เริ่มบอท</span></button>';
+    h += '<button class="btn danger" data-bot="stop">' + ic('stop') + '<span>หยุดบอท</span></button>';
+    h += '<button class="btn" data-bot="logs">' + ic('log') + '<span>ดู Log</span></button>';
+    h += '</div>';
+    h += '<div id="lookupLogs" style="margin-top:10px"></div>';
+    h += '</div>';
+  } else {
+    const x = d.site;
+    h += '<div class="adcard">';
+    h += '<div class="row" style="gap:8px;flex-wrap:wrap">';
+    h += '<span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>';
+    h += x.public ? '<span class="tag ok">สาธารณะ</span>' : '<span class="tag danger">ร่าง</span>';
+    h += '<span class="mut">เปิดดู ' + x.views + ' ครั้ง</span>';
+    h += '</div>';
+    h += '<div class="foot" style="margin-top:6px">ลิงก์: <a style="color:#fff" href="/s/' + x.slug + '" target="_blank">/s/' + x.slug + '</a></div>';
+    h += '<div class="foot">เว็บรวมของเจ้าของ: ' + (d.sitesCount || 0) + ' เว็บ</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  box.innerHTML = h;
+  // bind timer buttons
+  box.querySelectorAll('[data-timer]').forEach((btn) => {
+    btn.onclick = async () => {
+      const h2 = parseInt(btn.dataset.timer, 10);
+      try {
+        await api('POST', '/api/admin/set-bot-timer', { id: lookupBotId, hours: h2, extend: true });
+        toast(h2 === 0 ? 'ตั้งเป็นไม่จำกัด' : 'ต่อเวลา ' + (h2 / 24) + ' วัน');
+        doLookup();
+      } catch (e) { toast(e.message); }
+    };
+  });
+  const setBtn = box.querySelector('#timerSet');
+  if (setBtn) setBtn.onclick = async () => {
+    const hrs = parseFloat(box.querySelector('#timerHours').value);
+    if (!Number.isFinite(hrs) || hrs < 0 || hrs > 8760) return toast('กรอก 0-8760 ชั่วโมง');
+    try {
+      await api('POST', '/api/admin/set-bot-timer', { id: lookupBotId, hours: hrs, extend: true });
+      toast('ตั้งเวลาแล้ว');
+      doLookup();
+    } catch (e) { toast(e.message); }
+  };
+  // bind bot actions
+  box.querySelectorAll('[data-bot]').forEach((btn) => {
+    btn.onclick = async () => {
+      const act = btn.dataset.bot;
+      try {
+        if (act === 'start') {
+          await api('POST', '/api/admin/bot-start', { id: lookupBotId });
+          toast('เริ่มบอทแล้ว'); doLookup();
+        } else if (act === 'stop') {
+          await api('POST', '/api/admin/bot-stop', { id: lookupBotId });
+          toast('หยุดบอทแล้ว'); doLookup();
+        } else if (act === 'logs') {
+          const d2 = await api('POST', '/api/admin/bot-logs', { id: lookupBotId });
+          const logBox = box.querySelector('#lookupLogs');
+          logBox.innerHTML = '<div class="logs" style="height:200px">' + (d2.logs || []).map((l) =>
+            '<div class="lg ' + l.k + '"><span class="t">' + hhmm(l.t) + '</span>' + esc(l.m) + '</div>'
+          ).join('') + '</div>';
+          logBox.querySelector('.logs').scrollTop = 999999;
+        }
+      } catch (e) { toast(e.message); }
+    };
+  });
+}
+
+/* ---------- bind ---------- */
 function safe(label, fn) {
   try { fn(); }
   catch (e) {
@@ -1844,21 +2083,21 @@ function tabInsert(e) {
   }
 }
 
-safe('เข้าสู่ระบบ', function () {
+safe('auth', function () {
   $('#authSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
   $('#aGo').onclick = authGo;
   $('#ap').addEventListener('keydown', (e) => { if (e.key === 'Enter') authGo(); });
   $('#au').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#ap').focus(); });
 });
 
-safe('ยืนยันอีเมล', function () {
+safe('verify', function () {
   $('#vGo').onclick = doVerify;
   $('#vResend').onclick = doResend;
   $('#vLogout').onclick = logout;
   $('#vCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') doVerify(); });
 });
 
-safe('เมนู', function () {
+safe('menu', function () {
   $('#menuBtn').onclick = (e) => { e.stopPropagation(); menuOpen($('#menu').classList.contains('hide')); };
   document.addEventListener('click', (e) => { if (!e.target.closest('#menu')) menuOpen(false); });
   $('#menu').addEventListener('click', (e) => {
@@ -1881,7 +2120,7 @@ safe('เมนู', function () {
   window.addEventListener('beforeunload', (e) => { if (dirty || siteDirty) { e.preventDefault(); e.returnValue = ''; } });
 });
 
-safe('โปรไฟล์', function () {
+safe('profile', function () {
   const bioEl = document.getElementById('pBio');
   if (bioEl) bioEl.addEventListener('input', () => {
     document.getElementById('pBioCount').textContent = bioEl.value.length;
@@ -1896,7 +2135,7 @@ safe('โปรไฟล์', function () {
   };
 });
 
-safe('รันบอท', function () {
+safe('run', function () {
   $('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) select(t.dataset.id); });
   $('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
   $('#toLog').onclick = () => setView('log');
@@ -1908,6 +2147,17 @@ safe('รันบอท', function () {
       bots = (await api('GET', '/api/bots')).bots;
       setDirty(false); cur = null; shownId = null;
       await select(d.id); setView('code');
+      if (d.publicId) {
+        openModal(
+          '<h2>สร้างบอทสำเร็จ</h2>' +
+          '<div class="mut">นี่คือ Public ID ของบอทคุณ — เก็บไว้ แจ้งแอดมินเมื่อมีปัญหา</div>' +
+          '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(d.publicId) + '</code>' +
+          '<button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div>' +
+          '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>'
+        );
+        $('#cpid').onclick = () => copyText(d.publicId);
+        $('#ok').onclick = closeModal;
+      }
     } catch (e) { handleApiError(e); }
   };
   const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { handleApiError(e); } };
@@ -1933,7 +2183,7 @@ safe('รันบอท', function () {
   $('#code').addEventListener('keydown', tabInsert);
 });
 
-safe('ไลบรารี', function () {
+safe('libs', function () {
   $('#libGo').onclick = installLibs;
   $('#libRe').onclick = reinstallLibs;
   $('#chips').addEventListener('click', (e) => {
@@ -1946,7 +2196,7 @@ safe('ไลบรารี', function () {
   $('#libList').addEventListener('click', (e) => { const x = e.target.closest('[data-rm]'); if (x) removeLib(x.dataset.rm); });
 });
 
-safe('ตลาดโค้ด', function () {
+safe('market', function () {
   $('#fSeg').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -1958,7 +2208,7 @@ safe('ตลาดโค้ด', function () {
   $('#goUpload').onclick = () => setPage('upload');
 });
 
-safe('อัปโหลดโค้ด', function () {
+safe('upload', function () {
   $('#coverBtn').onclick = () => $('#coverIn').click();
   $('#coverX').onclick = () => { $('#coverIn').value = ''; setCover(null); };
   $('#coverIn').addEventListener('change', (e) => {
@@ -1972,7 +2222,7 @@ safe('อัปโหลดโค้ด', function () {
   $('#upGo').onclick = doPublish;
 });
 
-safe('เว็บสาธารณะ', function () {
+safe('sites', function () {
   $('#siteNew').onclick = startNewSite;
   $('#siteBack').onclick = () => setPage('sites');
   $('#sfSeg').addEventListener('click', (e) => {
@@ -2006,7 +2256,7 @@ safe('เว็บสาธารณะ', function () {
   });
 });
 
-safe('แชท', function () {
+safe('chat', function () {
   $('#cList').addEventListener('click', (e) => { const c = e.target.closest('.ci'); if (c) openChat(c.dataset.id); });
   $('#cBack').onclick = () => {
     curChat = null; thrTotal = 0;
@@ -2038,7 +2288,7 @@ safe('แชท', function () {
   });
 });
 
-safe('แอดมิน', function () {
+safe('admin', function () {
   const adRef = document.getElementById('adRef');
   if (adRef) adRef.onclick = loadAdmin;
   const adToggle = document.getElementById('adToggle');
@@ -2046,10 +2296,13 @@ safe('แอดมิน', function () {
     try { const d = await api('POST', '/api/admin/toggle'); toast(d.adminUi ? 'เปิด UI แอดมิน' : 'ปิด UI แอดมิน'); }
     catch (e) { toast(e.message); }
   };
+  const lk = document.getElementById('lookupBtn');
+  if (lk) lk.onclick = doLookup;
+  const lkInp = document.getElementById('lookupId');
+  if (lkInp) lkInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLookup(); });
 });
 
-/* ---------- เริ่มต้น ---------- */
-safe('หน้าเข้าสู่ระบบ', function () { setMode('login'); });
+safe('init', function () { setMode('login'); });
 api('GET', '/api/me').then(
   (d) => enter(d),
   (e) => {
