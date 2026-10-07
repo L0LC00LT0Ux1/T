@@ -627,7 +627,6 @@ function userOf(req) {
   if (!s || s.exp < Date.now()) return null;
   return getUser(s.user) ? s.user : null;
 }
-// user จาก query string (ใช้กับ <img src="/media/xxx?t=TOKEN">)
 function userFromQueryToken(req) {
   try {
     const u = new URL(req.url, 'http://x');
@@ -710,10 +709,12 @@ async function putMedia(buf, ext, ct) {
     return { id, size: buf.length, upstashPath: null, bucketId: -1 };
   }
 }
+
+// ⭐ serveMedia: proxy buffer ผ่าน server (ไม่ redirect) เพื่อให้แอปแสดงรูปได้
 async function serveMedia(req, res, id, me) {
   const m = own(hub.media, id);
   if (!m) return json(res, 404, { error: 'ไม่เจอไฟล์' });
-  // chat media: ต้อง login (หรือใช้ ?t=TOKEN)
+
   if (m.scope === 'chat') {
     let uid = me;
     if (!uid) uid = userFromQueryToken(req);
@@ -721,18 +722,37 @@ async function serveMedia(req, res, id, me) {
     const c = own(hub.chats, m.chatId);
     if (!c || !c.members.includes(uid)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   }
-  // cover / avatar / comment / report: เข้าได้เลย
+
+  // ⭐ ถ้าเก็บใน Upstash → proxy ผ่าน server เอง (ไม่ redirect)
   if (m.upstashPath) {
     const bi = typeof m.bucketId === 'number' ? m.bucketId : 0;
     const bk = blobBuckets[bi];
     if (bk) {
       try {
-        const url = await bk.bucket.signedReadUrl(m.upstashPath, { expiresIn: 3600 });
-        res.writeHead(302, { Location: url, 'Cache-Control': 'private, max-age=3600' });
-        return res.end();
-      } catch (e) { console.error('sign err:', e); return json(res, 500, { error: 'สร้างลิงก์ไม่ได้' }); }
+        const url = await bk.bucket.signedReadUrl(m.upstashPath, { expiresIn: 300 });
+        const r = await fetch(url);
+        if (!r.ok) {
+          console.error('serveMedia fetch blob:', r.status);
+          return json(res, 502, { error: 'อ่านไฟล์ไม่ได้' });
+        }
+        const buf = Buffer.from(await r.arrayBuffer());
+        const h = {
+          'Content-Type': m.mime || 'application/octet-stream',
+          'Content-Length': buf.length,
+          'Cache-Control': 'public, max-age=86400',
+          'X-Content-Type-Options': 'nosniff'
+        };
+        if (m.kind === 'file') h['Content-Disposition'] = 'attachment; filename="file.' + m.ext + '"';
+        res.writeHead(200, h);
+        return res.end(buf);
+      } catch (e) {
+        console.error('serveMedia proxy error:', e.message);
+        return json(res, 500, { error: 'โหลดไฟล์ไม่ได้' });
+      }
     }
   }
+
+  // Local fallback (กรณีไม่มี Blob)
   const fp = path.join(MEDIA_DIR, id + '.' + m.ext);
   let size;
   try { size = fs.statSync(fp).size; } catch { return json(res, 404, { error: 'ไม่เจอไฟล์' }); }
@@ -1231,7 +1251,7 @@ const server = http.createServer(async (req, res) => {
     const sapi = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/(events|send|db)$/);
     if (sapi) return await handleSapi(req, res, url, sapi[1], sapi[2]);
 
-    // ⭐ Media — อนุญาตให้เข้าถึงก่อน auth check (ใช้ ?t=TOKEN สำหรับ chat)
+    // Media - เข้าถึงได้ก่อน auth (ใช้ ?t=TOKEN สำหรับ chat)
     const mmPublic = p.match(/^\/media\/([a-f0-9]{24})$/);
     if (mmPublic && M === 'GET') return await serveMedia(req, res, mmPublic[1], userOf(req));
     if (p.startsWith('/media/')) return json(res, 404, { error: 'not found' });
@@ -2054,7 +2074,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     console.log('⚠️  ไม่มี UPSTASH_REDIS → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
   }
 
-  // migrations
   for (const u of Object.keys(state.users)) {
     const usr = state.users[u];
     if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
@@ -2079,7 +2098,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   for (const p of Object.values(hub.posts)) if (!Array.isArray(p.comments)) p.comments = [];
   if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
 
-  // Restore bot code files จาก state
   let restored = 0;
   for (const b of Object.values(bots)) {
     const file = codeFile(b);
@@ -2094,7 +2112,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
   }
   if (restored) console.log('↩️  Restored ' + restored + ' bot code file(s) from Redis state');
 
-  // คำนวณ blob usage
   if (blobBuckets.length) {
     const usedPerBucket = {};
     for (const m of Object.values(hub.media)) {
