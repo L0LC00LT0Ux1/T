@@ -37,14 +37,78 @@ const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
 
-// ---------- Upstash ----------
+// ---------- Upstash Redis (state persistence) ----------
+const REDIS_URL = String(process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
+const REDIS_TOKEN = String(process.env.UPSTASH_REDIS_REST_TOKEN || '');
+const hasRedis = !!(REDIS_URL && REDIS_TOKEN);
+
+async function redisGet(key) {
+  if (!hasRedis) return null;
+  try {
+    const r = await fetch(REDIS_URL + '/get/' + encodeURIComponent(key), {
+      headers: { Authorization: 'Bearer ' + REDIS_TOKEN }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j || j.result == null) return null;
+    if (typeof j.result === 'string') {
+      try { return JSON.parse(j.result); } catch { return j.result; }
+    }
+    return j.result;
+  } catch (e) {
+    console.error('redisGet[' + key + ']:', e.message);
+    return null;
+  }
+}
+
+async function redisSet(key, value) {
+  if (!hasRedis) return false;
+  try {
+    const body = typeof value === 'string' ? value : JSON.stringify(value);
+    const r = await fetch(REDIS_URL + '/set/' + encodeURIComponent(key), {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + REDIS_TOKEN, 'Content-Type': 'text/plain' },
+      body
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return true;
+  } catch (e) {
+    console.error('redisSet[' + key + ']:', e.message);
+    return false;
+  }
+}
+
+const redisTimers = {};
+function scheduleRedisSave(key, getter, delay) {
+  if (!hasRedis) return;
+  if (redisTimers[key]) clearTimeout(redisTimers[key]);
+  redisTimers[key] = setTimeout(async () => {
+    delete redisTimers[key];
+    try {
+      const v = getter();
+      await redisSet(key, JSON.stringify(v));
+    } catch (e) { console.error('redis flush ' + key + ':', e.message); }
+  }, delay || 5000);
+}
+async function flushRedis() {
+  for (const k of Object.keys(redisTimers)) { clearTimeout(redisTimers[k]); delete redisTimers[k]; }
+  if (!hasRedis) return;
+  const tasks = [];
+  try { tasks.push(redisSet('alexa:state', JSON.stringify(state))); } catch {}
+  try { tasks.push(redisSet('alexa:hub', JSON.stringify(hub))); } catch {}
+  try { tasks.push(redisSet('alexa:sitedata', JSON.stringify(sdata))); } catch {}
+  await Promise.all(tasks.map(p => p.catch(() => {})));
+  console.log('✓ Flushed state to Redis');
+}
+
+// ---------- Upstash Blob ----------
 let bucket = null;
 if (process.env.UPSTASH_BLOB_TOKEN) {
   try { bucket = Bucket.fromEnv(); console.log('✅ Upstash Blob connected'); }
   catch (e) { console.error('❌ Upstash init error:', e.message); }
 } else console.warn('⚠️ UPSTASH_BLOB_TOKEN not found. Media stored locally.');
 
-// ---------- storage ----------
+// ---------- storage dirs ----------
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
 const DATA_DIR = process.env.DATA_DIR || volPath || path.join(__dirname, 'data');
 const BOTS_DIR = path.join(DATA_DIR, 'bots');
@@ -53,9 +117,9 @@ const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const HUB_FILE = path.join(DATA_DIR, 'hub.json');
 const SITEDATA_FILE = path.join(DATA_DIR, 'sitedata.json');
-fs.mkdirSync(BOTS_DIR, { recursive: true });
-fs.mkdirSync(MEDIA_DIR, { recursive: true });
-fs.mkdirSync(BACKUP_DIR, { recursive: true });
+try { fs.mkdirSync(BOTS_DIR, { recursive: true }); } catch {}
+try { fs.mkdirSync(MEDIA_DIR, { recursive: true }); } catch {}
+try { fs.mkdirSync(BACKUP_DIR, { recursive: true }); } catch {}
 
 function detectPersistent() {
   if (process.env.ASSUME_PERSISTENT === '1') return true;
@@ -120,39 +184,27 @@ function snapshot() {
 }
 
 // ---------- state ----------
-let state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMIN_UI_DEFAULT };
+const state = { users: {}, sessions: {}, bots: {}, nextUid: 20000, adminUi: ADMIN_UI_DEFAULT };
 {
   const r = loadJson(STATE_FILE);
   if (r) {
     const raw = r.data;
-    if (raw && raw.users && raw.bots) state = Object.assign(state, raw);
+    if (raw && raw.users && raw.bots) Object.assign(state, raw);
     else if (raw && typeof raw === 'object') state.bots = raw;
-    if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
     if (r.from !== STATE_FILE) console.error('main file corrupt, using backup:', r.from);
   }
 }
 const bots = state.bots;
 
-// migrate users
-for (const u of Object.keys(state.users)) {
-  const usr = state.users[u];
-  if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
-  if (usr.maxSites === undefined) usr.maxSites = DEFAULT_MAX_SITES;
-  if (usr.emailVerified === undefined) usr.emailVerified = !!usr.email;
-  if (usr.email === undefined) usr.email = '';
-  if (usr.displayName === undefined) usr.displayName = '';
-  if (usr.bio === undefined) usr.bio = '';
-  if (usr.paid === undefined) usr.paid = false;
-  // users from old version: อย่าตั้ง trialEnds อัตโนมัติ ให้ผูกอีเมลก่อน
-  if (usr.trialEnds === undefined) usr.trialEnds = 0;
-}
-
 function save() {
-  const tmp = STATE_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(state, null, 1), { mode: 0o600 });
-  backupOnce(STATE_FILE);
-  fs.renameSync(tmp, STATE_FILE);
-  try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
+  try {
+    const tmp = STATE_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(state, null, 1), { mode: 0o600 });
+    backupOnce(STATE_FILE);
+    fs.renameSync(tmp, STATE_FILE);
+    try { fs.chmodSync(STATE_FILE, 0o600); } catch {}
+  } catch (e) { /* ไม่มี volume ก็ข้ามไป */ }
+  scheduleRedisSave('alexa:state', () => state, 5000);
 }
 
 // ---------- hub ----------
@@ -163,9 +215,13 @@ let hub = { posts: {}, chats: {}, media: {}, sites: {} };
 }
 let hubTimer = null;
 function writeHub() {
-  const tmp = HUB_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(hub), { mode: 0o600 });
-  backupOnce(HUB_FILE); fs.renameSync(tmp, HUB_FILE);
+  try {
+    const tmp = HUB_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(hub), { mode: 0o600 });
+    backupOnce(HUB_FILE);
+    fs.renameSync(tmp, HUB_FILE);
+  } catch (e) {}
+  scheduleRedisSave('alexa:hub', () => hub, 5000);
 }
 function saveHub() {
   if (hubTimer) return;
@@ -180,9 +236,13 @@ let sdata = { sites: {} };
 }
 let sdTimer = null;
 function writeSData() {
-  const tmp = SITEDATA_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(sdata), { mode: 0o600 });
-  backupOnce(SITEDATA_FILE); fs.renameSync(tmp, SITEDATA_FILE);
+  try {
+    const tmp = SITEDATA_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(sdata), { mode: 0o600 });
+    backupOnce(SITEDATA_FILE);
+    fs.renameSync(tmp, SITEDATA_FILE);
+  } catch (e) {}
+  scheduleRedisSave('alexa:sitedata', () => sdata, 5000);
 }
 function saveSData() {
   if (sdTimer) return;
@@ -198,7 +258,6 @@ function trialExpired(user) {
   if (!user) return true;
   if (isAdmin(user)) return false;
   if (user.paid) return false;
-  // ยังไม่เริ่ม trial (trialEnds = 0) = ยังไม่หมด แต่ต้องผูกอีเมลก่อน
   if (!user.trialEnds) return false;
   return Date.now() > user.trialEnds;
 }
@@ -286,8 +345,10 @@ function createBot(owner, name, lang, code) {
     token: '', libs: [], desired: false, status: 'stopped', startedAt: 0, lastExit: '', created: Date.now()
   };
   bots[id] = b;
-  fs.mkdirSync(path.join(BOTS_DIR, id), { recursive: true });
-  fs.writeFileSync(codeFile(b), code || '');
+  try {
+    fs.mkdirSync(path.join(BOTS_DIR, id), { recursive: true });
+    fs.writeFileSync(codeFile(b), code || '');
+  } catch (e) { console.error('createBot fs:', e.message); }
   fixPerm(b); save();
   return b;
 }
@@ -303,8 +364,8 @@ function startBot(id) {
     addLog(id, 'err', 'ไม่สามารถรันได้: ' + TRIAL_MSG); return;
   }
   const file = codeFile(b); const dir = path.dirname(file);
-  fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(file)) fs.writeFileSync(file, '');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+  if (!fs.existsSync(file)) { try { fs.writeFileSync(file, ''); } catch {} }
   fixPerm(b);
   const env = {
     PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
@@ -1133,7 +1194,6 @@ const server = http.createServer(async (req, res) => {
       user.emailVerified = true;
       user.emailCode = '';
       user.emailCodeExp = 0;
-      // เริ่ม trial ถ้ายังไม่เคยมี
       if (!user.trialEnds || user.trialEnds < Date.now()) {
         user.trialEnds = Date.now() + TRIAL_MS;
       }
@@ -1186,7 +1246,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/me' && M === 'GET') return json(res, 200, pubMe(me));
 
-    // ===== Profile API =====
+    // ===== Profile =====
     if (p === '/api/profile' && M === 'GET') {
       const x = meUser;
       return json(res, 200, {
@@ -1204,7 +1264,6 @@ const server = http.createServer(async (req, res) => {
       save();
       return json(res, 200, { ok: true });
     }
-    // ผูก/เปลี่ยนอีเมล -> ส่งรหัส
     if (p === '/api/profile/email' && M === 'POST') {
       if (tooMany(emailSends, ip, 3, 600000)) return json(res, 429, { error: 'ส่งรหัสบ่อยเกินไป รอ 10 นาที' });
       const d = await readBody(req);
@@ -1227,7 +1286,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, dev: !!sent.dev, error: sent.ok ? '' : sent.msg });
     }
 
-    // ===== Admin API =====
+    // ===== Admin =====
     if (p === '/api/admin/state' && M === 'GET') {
       if (!isAdmin(me)) return json(res, 403, { error: 'ไม่มีสิทธิ์' });
       return json(res, 200, { adminUi: !!state.adminUi });
@@ -1296,7 +1355,8 @@ const server = http.createServer(async (req, res) => {
         runningBots: run.length,
         users: Object.keys(state.users).length,
         posts: Object.keys(hub.posts).length,
-        persistent: PERSISTENT
+        persistent: PERSISTENT,
+        redis: hasRedis
       });
     }
 
@@ -1555,7 +1615,7 @@ const server = http.createServer(async (req, res) => {
       if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
       const d = await readBody(req);
       if (typeof d.name === 'string' && d.name.trim()) b.name = d.name.trim().slice(0, 40);
-      if (typeof d.code === 'string') { fs.writeFileSync(codeFile(b), d.code); fixPerm(b); }
+      if (typeof d.code === 'string') { try { fs.writeFileSync(codeFile(b), d.code); } catch (e) { console.error('write code:', e.message); } fixPerm(b); }
       if (typeof d.token === 'string' && d.token.trim()) b.token = d.token.trim();
       save();
       return json(res, 200, pub(b, true));
@@ -1563,7 +1623,7 @@ const server = http.createServer(async (req, res) => {
     if (!sub && M === 'DELETE') {
       if (installs[id]) return json(res, 409, { error: 'กำลังติดตั้งอยู่' });
       await stopBot(id);
-      fs.rmSync(path.join(BOTS_DIR, id), { recursive: true, force: true });
+      try { fs.rmSync(path.join(BOTS_DIR, id), { recursive: true, force: true }); } catch {}
       delete bots[id]; delete logs[id]; save();
       return json(res, 200, { ok: true });
     }
@@ -1614,55 +1674,114 @@ const server = http.createServer(async (req, res) => {
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  flushRedis().catch(() => {});
   try { save(); } catch (e) { console.error('save:', e.message); }
   try { if (hubTimer) clearTimeout(hubTimer); writeHub(); } catch (e) { console.error('writeHub:', e.message); }
   try { if (sdTimer) clearTimeout(sdTimer); writeSData(); } catch (e) { console.error('writeSData:', e.message); }
   for (const c of Object.values(procs)) { try { c.kill('SIGTERM'); } catch {} }
   for (const i of Object.values(installs)) { try { if (i.child) i.child.kill('SIGKILL'); } catch {} }
-  setTimeout(() => process.exit(0), 1500);
+  setTimeout(() => process.exit(0), 2500);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 process.on('uncaughtException', (e) => console.error('uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('unhandled:', e));
 
-snapshot();
-setInterval(snapshot, 6 * 3600 * 1000);
+(async () => {
+  // ---------- โหลด state จาก Redis ก่อน (ถ้ามี) ----------
+  if (hasRedis) {
+    console.log('🔌 Upstash Redis detected, loading state...');
+    try {
+      const [rs, rh, rd] = await Promise.all([
+        redisGet('alexa:state'),
+        redisGet('alexa:hub'),
+        redisGet('alexa:sitedata')
+      ]);
+      if (rs && typeof rs === 'object' && (rs.users || rs.bots)) {
+        state.users = rs.users || {};
+        state.sessions = rs.sessions || {};
+        const nb = rs.bots || {};
+        for (const k of Object.keys(state.bots)) delete state.bots[k];
+        Object.assign(state.bots, nb);
+        if (rs.nextUid) state.nextUid = rs.nextUid;
+        if (rs.adminUi !== undefined) state.adminUi = rs.adminUi;
+        console.log('✓ state loaded from Redis (' + Object.keys(state.users).length + ' users, ' + Object.keys(state.bots).length + ' bots)');
+      } else {
+        console.log('• Redis ไม่มี state เก่า → เริ่มใหม่');
+      }
+      if (rh && typeof rh === 'object') {
+        Object.assign(hub, rh);
+        console.log('✓ hub loaded from Redis');
+      }
+      if (rd && typeof rd === 'object' && rd.sites) {
+        sdata.sites = rd.sites;
+        console.log('✓ sitedata loaded from Redis');
+      }
+    } catch (e) {
+      console.error('Redis boot error:', e.message);
+    }
+  } else {
+    console.log('⚠️  ไม่มี UPSTASH_REDIS_REST_URL/TOKEN → ใช้ไฟล์ในเครื่อง (ข้อมูลจะหายเมื่อ deploy)');
+  }
 
-// cleanup + trial auto-stop
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, r] of Array.from(rooms.entries())) if (!r.clients.size && r.emptySince && now - r.emptySince > 30 * 60 * 1000) rooms.delete(k);
-  for (const [k, b] of Array.from(buckets.entries())) if (now - b.last > 10 * 60 * 1000) buckets.delete(k);
-  for (const [k, f] of Array.from(sapiHits.entries())) if (now - f.t > 60000) sapiHits.delete(k);
-  for (const [k, f] of Array.from(loginFails.entries())) if (now - f.t > 3600000) loginFails.delete(k);
-  for (const [k, f] of Array.from(msgRate.entries())) if (now - f.t > 120000) msgRate.delete(k);
-  for (const [k, f] of Array.from(emailSends.entries())) if (now - f.t > 3600000) emailSends.delete(k);
-  // auto-stop bots ของผู้ใช้ที่ trial หมด
+  // ---------- migrations ----------
+  for (const u of Object.keys(state.users)) {
+    const usr = state.users[u];
+    if (usr.maxBots === undefined) usr.maxBots = DEFAULT_MAX_BOTS;
+    if (usr.maxSites === undefined) usr.maxSites = DEFAULT_MAX_SITES;
+    if (usr.emailVerified === undefined) usr.emailVerified = !!usr.email;
+    if (usr.email === undefined) usr.email = '';
+    if (usr.displayName === undefined) usr.displayName = '';
+    if (usr.bio === undefined) usr.bio = '';
+    if (usr.paid === undefined) usr.paid = false;
+    if (usr.trialEnds === undefined) usr.trialEnds = 0;
+  }
+  if (state.adminUi === undefined) state.adminUi = ADMIN_UI_DEFAULT;
+
+  // ---------- snapshot + timers ----------
+  snapshot();
+  setInterval(snapshot, 6 * 3600 * 1000);
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, r] of Array.from(rooms.entries())) if (!r.clients.size && r.emptySince && now - r.emptySince > 30 * 60 * 1000) rooms.delete(k);
+    for (const [k, b] of Array.from(buckets.entries())) if (now - b.last > 10 * 60 * 1000) buckets.delete(k);
+    for (const [k, f] of Array.from(sapiHits.entries())) if (now - f.t > 60000) sapiHits.delete(k);
+    for (const [k, f] of Array.from(loginFails.entries())) if (now - f.t > 3600000) loginFails.delete(k);
+    for (const [k, f] of Array.from(msgRate.entries())) if (now - f.t > 120000) msgRate.delete(k);
+    for (const [k, f] of Array.from(emailSends.entries())) if (now - f.t > 3600000) emailSends.delete(k);
+    for (const b of Object.values(bots)) {
+      const o = getUser(b.owner);
+      if (b.status === 'running' && o && trialExpired(o)) {
+        addLog(b.id, 'err', 'หมดเวลาทดลอง: หยุดบอทอัตโนมัติ');
+        stopBot(b.id).catch(() => {});
+      }
+    }
+  }, 5 * 60 * 1000);
+
+  // ---------- session cleanup ----------
+  for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
+
+  // ---------- fix perm ----------
+  for (const b of Object.values(bots)) fixPerm(b);
+
+  // ---------- restart desired bots ----------
+  let i = 0;
   for (const b of Object.values(bots)) {
-    const o = getUser(b.owner);
-    if (b.status === 'running' && o && trialExpired(o)) {
-      addLog(b.id, 'err', 'หมดเวลาทดลอง: หยุดบอทอัตโนมัติ');
-      stopBot(b.id).catch(() => {});
+    if (b.desired) {
+      const o = getUser(b.owner);
+      if (o && trialExpired(o)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; continue; }
+      setTimeout(() => { addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทอัตโนมัติ'); startBot(b.id); }, 800 + i++ * 1500);
+    } else if (b.status === 'running') {
+      b.status = 'stopped';
     }
   }
-}, 5 * 60 * 1000);
+  save();
 
-for (const [k, s] of Object.entries(state.sessions)) if (s.exp < Date.now()) delete state.sessions[k];
-for (const b of Object.values(bots)) fixPerm(b);
-
-let i = 0;
-for (const b of Object.values(bots)) {
-  if (b.desired) {
-    const o = getUser(b.owner);
-    if (o && trialExpired(o)) { b.status = 'stopped'; b.desired = false; b.lastExit = TRIAL_MSG; continue; }
-    setTimeout(() => { addLog(b.id, 'sys', 'เซิร์ฟเวอร์รีสตาร์ท - เปิดบอทอัตโนมัติ'); startBot(b.id); }, 800 + i++ * 1500);
-  } else if (b.status === 'running') b.status = 'stopped';
-}
-save();
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('Alexa Hub @ ' + PORT + ' | ADMIN=' + ADMIN_USER + ' | DATA=' + DATA_DIR +
-    ' | Volume=' + (PERSISTENT ? 'yes' : 'NO (data will be lost!)') + ' | Trial=' + TRIAL_DAYS + 'd' +
-    ' | Email=' + (RESEND_API_KEY ? 'resend' : 'dev-console'));
-});
+  // ---------- start server ----------
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('Alexa Hub @ ' + PORT + ' | ADMIN=' + ADMIN_USER + ' | DATA=' + DATA_DIR +
+      ' | Volume=' + (PERSISTENT ? 'yes' : 'NO') + ' | Redis=' + (hasRedis ? 'yes' : 'no') +
+      ' | Trial=' + TRIAL_DAYS + 'd | Email=' + (RESEND_API_KEY ? 'resend' : 'dev-console'));
+  });
+})();
