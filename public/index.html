@@ -64,6 +64,7 @@ body{background:#000;color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Seg
 .btn.ok{border-color:rgba(74,222,128,.55);color:#4ade80}
 .btn.ok:hover{background:rgba(74,222,128,.12)}
 .btn.warn{border-color:rgba(251,191,36,.55);color:#fbbf24}
+.btn.warn:hover{background:rgba(251,191,36,.12)}
 .btn.wide{width:100%}
 .btn.sm{min-height:34px;padding:0 11px;font-size:13px}
 .btn[disabled]{opacity:.45;pointer-events:none}
@@ -191,7 +192,6 @@ textarea.code:focus{border-color:var(--line2)}
 details.doc{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.45);padding:2px 14px 12px}
 details.doc summary{cursor:pointer;padding:12px 0;font-weight:700}
 details.doc .codebox{margin:8px 0 0;max-height:340px}
-#sDataBox{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.modal{align-items:center}}
 .mback{position:absolute;inset:0;background:rgba(0,0,0,.74)}
@@ -204,6 +204,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .codebox{margin:12px 0;padding:12px;max-height:260px;overflow:auto;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:10px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#eaeaea}
 .lock{margin:12px 0;padding:14px;border:1px dashed var(--line2);border-radius:12px;color:#cfcfcf;text-align:center}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;max-width:92vw;padding:10px 18px;border-radius:18px;background:#fff;color:#000;font-weight:700;text-align:center;box-shadow:0 8px 40px rgba(255,255,255,.25)}
+/* Chat */
 .chatwrap{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:760px){.chatwrap{grid-template-columns:300px 1fr}#cBack{display:none}}
 @media(max-width:759px){.chatwrap.open #cListBox{display:none}.chatwrap:not(.open) #cBox{display:none}}
@@ -233,44 +234,45 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .msg.me .filelink{background:rgba(0,0,0,.15)}
 .att{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid var(--line);font-size:13px;color:#cfcfcf}
 .att span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.comp{display:flex;gap:8px;align-items:flex-end;padding:10px;border-top:1px solid var(--line)}
-.comp textarea{flex:1;min-height:42px;max-height:120px;padding:10px 12px;resize:none;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
-.comp textarea:focus{border-color:#fff}
-.comp .btn{width:44px;padding:0}
-/* chat input with + */
 .chatinput{display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .chatinput .tools{display:flex;align-items:center;gap:8px;padding:6px 10px 0}
 .chatinput .tools .foot{margin:0;flex:1;font-size:11px}
 .chatinput .plusbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chatinput .plusbtn:hover{background:rgba(255,255,255,.08)}
-.chatinput .comp{border-top:0;padding:8px 10px 10px}
+.chatinput .comp{display:flex;gap:8px;align-items:flex-end;padding:8px 10px 10px}
+.chatinput .comp textarea{flex:1;min-height:42px;max-height:120px;padding:10px 12px;resize:none;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
+.chatinput .comp textarea:focus{border-color:#fff}
+.chatinput .comp .btn{width:44px;padding:0}
 .plusmenu{display:flex;gap:6px;padding:6px 10px 0;flex-wrap:wrap}
 .plusmenu .btn{min-height:36px;font-size:13px}
+/* Admin */
 .adcard{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;background:rgba(0,0,0,.5)}
 .adhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .adbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .adbody label{font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;display:block;margin-bottom:4px}
 .adfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+/* Profile */
 .profile-avatar{width:96px;height:96px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:38px;font-weight:900;text-transform:uppercase;overflow:hidden;position:relative;flex:none}
 .profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.profile-avatar .editover{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:11px;padding:3px 0;text-align:center;color:#fff;cursor:pointer}
+/* ID box */
 .idbox{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.05);border:1px dashed var(--line2);border-radius:10px;margin-top:8px}
 .idbox code{flex:1;font:16px ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:2px;color:#fff;word-break:break-all}
 .idbox .btn{flex:none}
+/* Lookup */
 .lookup-result{margin-top:14px}
 .lr-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .lr-head b{font-size:18px}
 .timer-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .warn-box{margin-top:10px;padding:10px 14px;border:1px solid rgba(255,200,0,.4);border-radius:10px;background:rgba(255,200,0,.08);color:#ffd966;font-size:13px}
 .ok-box{margin-top:10px;padding:10px 14px;border:1px solid rgba(80,200,120,.4);border-radius:10px;background:rgba(50,180,100,.08);color:#7ee0a0;font-size:13px}
-/* friends */
+/* Friends */
 .friend-row{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
 .friend-row:last-child{border-bottom:0}
 .friend-row .info{flex:1;min-width:0}
 .friend-row .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .friend-row .info small{color:var(--mut);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .friend-row .actions{display:flex;gap:6px;flex:none}
-/* comments */
+/* Comments */
 .cmt{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:10px}
 .cmt:first-child{border-top:0}
 .cmt .cm{flex:1;min-width:0}
@@ -283,8 +285,39 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
 .cmtform textarea{flex:1;min-height:42px;max-height:100px;padding:10px 12px;resize:none;background:rgba(0,0,0,.62);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit;outline:none}
 .cmtform .btn{width:44px;padding:0}
 .cmtform .plusbtn{width:44px;height:42px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:#fff;font-size:20px;cursor:pointer}
-/* report */
+/* Report */
 .report-preview{max-width:260px;border-radius:10px;margin-top:8px;display:block}
+/* Storage */
+.stor-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
+.stor-stat{padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.4);text-align:center}
+.stor-stat .big{font-size:24px;font-weight:900;margin-top:2px;text-shadow:0 0 14px rgba(255,255,255,.25)}
+.stor-stat .lbl{font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase}
+.stor-overall{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.4)}
+.stor-overall-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.stor-bar{position:relative;height:16px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--line)}
+.stor-bar .fill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,#4ade80,#22c55e);transition:width .6s ease;border-radius:99px}
+.stor-bar .fill.warn{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.stor-bar .fill.danger{background:linear-gradient(90deg,#ff7a7c,#ff4d4f)}
+.stor-bar .pct{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;text-shadow:0 0 4px rgba(255,255,255,.5)}
+.bucket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:14px}
+.bucket-card{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.4);position:relative}
+.bucket-card.full{border-color:rgba(255,77,79,.6);background:rgba(255,77,79,.06)}
+.bucket-card.warn{border-color:rgba(251,191,36,.55);background:rgba(251,191,36,.05)}
+.bucket-card .bh{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px}
+.bucket-card .name{font:13px ui-monospace,Menlo,monospace;font-weight:800;color:#fff}
+.bucket-card .badge-sm{font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--line2);color:#bdbdbd}
+.bucket-card .badge-sm.full{background:#ff4d4f;color:#fff;border-color:#ff4d4f}
+.bucket-card .badge-sm.ok{background:#4ade80;color:#000;border-color:#4ade80}
+.bucket-card .badge-sm.warn{background:#fbbf24;color:#000;border-color:#fbbf24}
+.bucket-card .meta{font-size:11px;color:var(--mut);margin-top:6px;display:flex;justify-content:space-between}
+.bucket-bar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;position:relative;border:1px solid var(--line);margin-top:6px}
+.bucket-bar .fill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:99px;transition:width .6s ease}
+.bucket-bar .fill.warn{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.bucket-bar .fill.danger{background:linear-gradient(90deg,#ff7a7c,#ff4d4f)}
+.info-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid var(--line2);font-size:12px;font-weight:600}
+.info-pill.ok{border-color:rgba(74,222,128,.55);color:#4ade80}
+.info-pill.warn{border-color:rgba(251,191,36,.55);color:#fbbf24}
+.info-pill.danger{border-color:rgba(255,77,79,.55);color:#ff7a7c}
 </style>
 </head>
 <body>
@@ -326,13 +359,14 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
   <symbol id="i-comment" viewBox="0 0 24 24"><path d="M21 12c0 4.4-4 8-9 8-1.6 0-3-.3-4.3-.8L3 21l1.2-3.5C2.8 16.3 2 14.2 2 12c0-4.4 4-8 9-8s10 3.6 10 8z"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v5h4"/></symbol>
+  <symbol id="i-disk" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
 </svg>
 
 <div class="bg"><i></i><i></i><i></i><div class="cone a"></div><div class="cone b"></div></div>
 
 <div id="boot"><div class="spin"></div><div>ALEXA HUB</div></div>
 
-<!-- ===== auth ===== -->
+<!-- ===== Auth ===== -->
 <div id="auth" class="hide">
   <div class="authbox panel">
     <div class="brand"><svg class="ic logo"><use href="#i-logo"/></svg><span>ALEXA HUB</span></div>
@@ -350,7 +384,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
   </div>
 </div>
 
-<!-- ===== verify ===== -->
+<!-- ===== Verify ===== -->
 <div id="verify" class="hide">
   <div class="authbox panel">
     <div class="brand"><svg class="ic logo"><use href="#i-mail"/></svg><span>ยืนยันอีเมล</span></div>
@@ -364,7 +398,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
   </div>
 </div>
 
-<!-- ===== app ===== -->
+<!-- ===== App ===== -->
 <div id="app" class="hide">
   <div class="wrap">
     <div class="top">
@@ -389,7 +423,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </div>
 
-    <!-- home -->
+    <!-- ===== Home ===== -->
     <section id="pg-home" class="page">
       <div class="hero panel">
         <div class="kicker">WELCOME TO</div>
@@ -422,7 +456,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- profile -->
+    <!-- ===== Profile ===== -->
     <section id="pg-profile" class="page hide">
       <div class="ph"><h2>โปรไฟล์ของฉัน</h2><p>ตั้งค่าโปรไฟล์ ผูกอีเมล เปลี่ยนรหัส</p></div>
       <div class="panel pad">
@@ -472,7 +506,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- trial -->
+    <!-- ===== Trial ===== -->
     <section id="pg-trial" class="page hide">
       <div class="hero panel">
         <div class="kicker" style="color:#ff7a7c">TRIAL EXPIRED</div>
@@ -492,7 +526,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- run -->
+    <!-- ===== Run ===== -->
     <section id="pg-run" class="page hide">
       <div class="ph"><h2>รันบอท 24 ชั่วโมง</h2><p>บอทของคุณรันต่อเนื่องบนเซิร์ฟเวอร์</p></div>
       <div id="tabs"></div>
@@ -565,13 +599,13 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </section>
     </section>
 
-    <!-- market -->
+    <!-- ===== Market ===== -->
     <section id="pg-market" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แจก/ซื้อขายโค้ดบอท</h2><p>โค้ดที่สมาชิกนำมาแบ่งปัน</p></div>
         <button class="btn solid" id="goUpload"><svg class="ic"><use href="#i-up"/></svg><span>อัปโหลดโค้ดบอท</span></button>
       </div>
-      <div class="notice">เว็บนี้ไม่รับชำระเงินแทน การซื้อขายตกลงกันเองระหว่างผู้ใช้ ระวังมิจฉาชีพ</div>
+      <div class="notice">เว็บนี้ไม่รับชำระเงินแทน การซื้อขายตกลงกันเองระหว่างผู้ใช้ ระวังมิจฉาชีพ — คุยกันได้ที่คอมเมนต์ใต้โพสต์</div>
       <div class="seg" id="fSeg">
         <button data-f="all" class="on">ทั้งหมด</button>
         <button data-f="free">ฟรี</button>
@@ -581,7 +615,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <div class="grid" id="posts"></div>
     </section>
 
-    <!-- upload -->
+    <!-- ===== Upload ===== -->
     <section id="pg-upload" class="page hide">
       <div class="ph"><h2>อัปโหลดโค้ดบอท</h2></div>
       <div class="panel pad">
@@ -615,7 +649,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- sites -->
+    <!-- ===== Sites ===== -->
     <section id="pg-sites" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>เว็บสาธารณะ</h2></div>
@@ -694,7 +728,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- friends -->
+    <!-- ===== Friends ===== -->
     <section id="pg-friends" class="page hide">
       <div class="ph"><h2>เพื่อน</h2><p>เพิ่มเพื่อนเพื่อแชทคุยกัน</p></div>
 
@@ -718,7 +752,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- chat with friends -->
+    <!-- ===== Chat ===== -->
     <section id="pg-chat" class="page hide">
       <div class="ph"><h2>แชท</h2><p>คุยกับเพื่อน ส่งข้อความ รูป วิดีโอ และไฟล์</p></div>
       <div class="chatwrap" id="chatwrap">
@@ -754,7 +788,7 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       <input type="file" id="fileIn" class="hide">
     </section>
 
-    <!-- report -->
+    <!-- ===== Report ===== -->
     <section id="pg-report" class="page hide">
       <div class="ph"><h2>แจ้งปัญหา</h2><p>เจอ bug? ระบบมีปัญหา? แจ้งให้แอดมินทราบได้เลย</p></div>
       <div class="panel pad" style="margin-bottom:12px">
@@ -785,13 +819,27 @@ details.doc .codebox{margin:8px 0 0;max-height:340px}
       </div>
     </section>
 
-    <!-- admin -->
+    <!-- ===== Admin ===== -->
     <section id="pg-admin" class="page hide">
       <div class="ph row" style="justify-content:space-between">
         <div><h2>แผงแอดมิน</h2><p>ค้นหา Public ID หรือจัดการผู้ใช้</p></div>
         <div class="row">
           <button class="btn" id="adToggle"><svg class="ic"><use href="#i-set"/></svg><span>เปิด/ปิด UI</span></button>
           <button class="btn" id="adRef"><svg class="ic"><use href="#i-restart"/></svg><span>รีเฟรช</span></button>
+        </div>
+      </div>
+
+      <!-- Storage panel -->
+      <div class="panel pad" style="margin-bottom:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b>💾 พื้นที่จัดเก็บ (Storage)</b>
+            <div class="foot">ข้อมูลจาก Upstash Blob ทุกบัญชี</div>
+          </div>
+          <button class="btn sm" id="storRef"><svg class="ic"><use href="#i-restart"/></svg><span>รีเฟรช</span></button>
+        </div>
+        <div id="storageBox">
+          <div class="mut" style="margin-top:12px;text-align:center">กำลังโหลด...</div>
         </div>
       </div>
 
@@ -845,7 +893,7 @@ const SITE_TPL = {
   chat: { title: 'แชทออนไลน์', html: '<div id="app"><div id="top"><b>แชทรวม</b><span id="online">กำลังเชื่อมต่อ...</span></div><div id="log"></div><form id="f"><input id="nick" placeholder="ชื่อเล่น" maxlength="16"><input id="msg" placeholder="พิมพ์ข้อความ" maxlength="300"><button>ส่ง</button></form></div>', css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}#app{display:flex;flex-direction:column;height:100vh;max-width:640px;margin:0 auto}#top{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #222}#log{flex:1;overflow:auto;padding:14px 16px}.m{margin:0 0 8px;padding:8px 12px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d}.m.me{background:#fff;color:#000;margin-left:30px}#f{display:flex;gap:8px;padding:12px;border-top:1px solid #222}#f input{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit;min-width:0}#nick{width:28%}#msg{flex:1}#f button{padding:0 18px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}', js: 'var nick=document.getElementById("nick");nick.value="ผู้เยี่ยมชม"+Math.floor(Math.random()*900+100);var logEl=document.getElementById("log");var online=document.getElementById("online");var room=alexa.join("lobby",{name:nick.value});function add(who,text,mine){var d=document.createElement("div");d.className="m"+(mine?" me":"");var b=document.createElement("b");b.textContent=who+": ";var s=document.createElement("span");s.textContent=text;d.appendChild(b);d.appendChild(s);logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight;}function show(m){if(!m.data||typeof m.data.text!=="string")return;add(m.data.name||m.name||"?",m.data.text.slice(0,300),m.from===alexa.id);}function count(){online.textContent="ออนไลน์ "+room.peers.length+" คน";}room.on("hello",function(info){count();logEl.innerHTML="";(info.history||[]).forEach(show);});room.on("join",count);room.on("leave",count);room.on("message",show);document.getElementById("f").onsubmit=function(e){e.preventDefault();var box=document.getElementById("msg");var t=box.value.trim();if(!t)return;room.send({text:t,name:nick.value.trim()||"?"},{keep:true});box.value="";};' },
   guestbook: { title: 'สมุดเยี่ยม', html: '<main><h1>สมุดเยี่ยม</h1><p class="sub">มีผู้เข้าชม <b id="visits">-</b> ครั้ง</p><form id="f"><input id="nm" placeholder="ชื่อ" maxlength="20"><textarea id="tx" placeholder="เขียนข้อความ" maxlength="200"></textarea><button>ฝากข้อความ</button></form><div id="list"></div></main>', css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}main{max-width:560px;margin:0 auto;padding:28px 16px}.sub{color:#9a9a9a;margin:0 0 20px}#f{display:grid;gap:8px;margin-bottom:22px}#f input,#f textarea{padding:11px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;font:inherit}#f textarea{min-height:80px;resize:vertical}#f button{padding:11px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:700}.e{padding:12px 14px;border:1px solid #2a2a2a;border-radius:12px;background:#0d0d0d;margin-bottom:8px}', js: 'var list=document.getElementById("list");function render(items){items=items.filter(function(it){return it.value&&typeof it.value.text==="string";});items.sort(function(a,b){return (b.value.t||0)-(a.value.t||0);});list.innerHTML="";items.slice(0,50).forEach(function(it){var d=document.createElement("div");d.className="e";var b=document.createElement("b");b.textContent=it.value.name||"ไม่ระบุชื่อ";var p=document.createElement("p");p.textContent=it.value.text;d.appendChild(b);d.appendChild(p);list.appendChild(d);});}function load(){alexa.db.list("msg:").then(render);}alexa.db.incr("visits").then(function(n){document.getElementById("visits").textContent=n;});document.getElementById("f").onsubmit=function(e){e.preventDefault();var text=document.getElementById("tx").value.trim();if(!text)return;var id="msg:"+Date.now();alexa.db.set(id,{name:document.getElementById("nm").value.trim(),text:text,t:Date.now()}).then(function(){document.getElementById("tx").value="";load();});};load();setInterval(load,8000);' },
   profile: { title: 'แนะนำตัว', html: '<main class="card"><div class="av">A</div><h1>ชื่อของคุณ</h1><p>เขียนแนะนำตัวสั้นๆ</p><div class="links"><a href="#">Discord</a><a href="#">YouTube</a></div></main>', css: '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif}.card{width:min(360px,90vw);padding:32px;text-align:center;border:1px solid #333;border-radius:20px;background:#0c0c0c}.av{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-size:36px;font-weight:900}.links{display:grid;gap:10px;margin-top:22px}.links a{padding:12px;border:1px solid #444;border-radius:12px;color:#fff;text-decoration:none}', js: '' },
-  landing: { title: 'หน้า Landing', html: '<header><b>ชื่อโปรเจกต์</b><a class="btn" href="#join">เริ่มเลย</a></header><section class="hero"><h1>คำโปรยที่ดึงดูดใจ</h1><p>อธิบายสั้นๆ</p><a class="btn solid" id="join" href="#features">ดูรายละเอียด</a></section><section id="features" class="features"><div><h3>จุดเด่น 1</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 2</h3><p>สั้นๆ</p></div></div></section>', css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}.hero{padding:90px 22px;text-align:center}.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}.btn.solid{background:#fff;color:#000;border-color:#fff}.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}', js: '' },
+  landing: { title: 'หน้า Landing', html: '<header><b>ชื่อโปรเจกต์</b><a class="btn" href="#join">เริ่มเลย</a></header><section class="hero"><h1>คำโปรยที่ดึงดูดใจ</h1><p>อธิบายสั้นๆ</p><a class="btn solid" id="join" href="#features">ดูรายละเอียด</a></section><section id="features" class="features"><div><h3>จุดเด่น 1</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 2</h3><p>สั้นๆ</p></div><div><h3>จุดเด่น 3</h3><p>สั้นๆ</p></div></section>', css: '*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #222}.hero{padding:90px 22px;text-align:center}.hero h1{font-size:clamp(32px,8vw,60px);margin:0 0 10px}.btn{display:inline-block;padding:10px 18px;border:1px solid #666;border-radius:10px;color:#fff;text-decoration:none}.btn.solid{background:#fff;color:#000;border-color:#fff}.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:0 22px 60px}.features div{padding:22px;border:1px solid #333;border-radius:16px;background:#0c0c0c}', js: '' },
   counter: { title: 'ตัวนับ', html: '<main><div id="num">0</div><button id="plus">+1</button><button id="reset">รีเซ็ต</button></main>', css: 'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center}#num{font-size:96px;font-weight:900;margin-bottom:16px}button{font:inherit;padding:12px 22px;margin:4px;border-radius:12px;border:1px solid #666;background:#111;color:#fff;cursor:pointer}#plus{background:#fff;color:#000;border-color:#fff}', js: 'var n=0;var num=document.getElementById("num");document.getElementById("plus").onclick=function(){n++;num.textContent=n;};document.getElementById("reset").onclick=function(){n=0;num.textContent=n;};' }
 };
 
@@ -854,7 +902,7 @@ const CHIPS = {
   js: ['@discordjs/voice', '@discordjs/opus', 'axios', 'dotenv', 'ffmpeg-static', 'play-dl', 'moment', 'node-fetch@2']
 };
 
-/* ---------- state ---------- */
+/* ---------- Global state ---------- */
 let me = null, page = 'home', tc = 0, timer = null, busy = false, mode = 'login';
 let authToken = localStorage.getItem('authToken') || '';
 let myInfo = null;
@@ -865,8 +913,9 @@ let siteEditing = null, siteMode = 'split', siteTab = null, sHtml = '', sCss = '
 let curChat = null, chatMsgs = [], chatTotal = 0, chatBusy = false, attachFile = null, attachKind = '', sendingMsg = false;
 let friends = [], frRequests = [], frSent = [], lastFriendsKey = '', lastChatKey = '';
 let lookupBotId = '';
-let reportImg = null;
+let _chatIdCache = {};
 
+/* ---------- API ---------- */
 async function api(method, url, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
@@ -885,9 +934,9 @@ function uploadFile(file, qs, onProg) {
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open('POST', '/api/upload?' + qs);
-    x.setRequestHeader('Content-Type', file.type);
+    x.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     if (authToken) x.setRequestHeader('Authorization', 'Bearer ' + authToken);
-    try { x.setRequestHeader('X-File-Name', encodeURIComponent(file.name).slice(0, 100)); } catch {}
+    try { x.setRequestHeader('X-File-Name', encodeURIComponent(file.name || '').slice(0, 100)); } catch {}
     x.upload.onprogress = (e) => { if (e.lengthComputable && onProg) onProg(Math.round(e.loaded / e.total * 100)); };
     x.onload = () => {
       let d = {};
@@ -935,7 +984,6 @@ function closeModal() {
   $('#mbody').innerHTML = '';
   document.body.style.overflow = '';
 }
-
 let __confirmFinish = null;
 function askConfirm(msg, okText) {
   return new Promise(function (resolve) {
@@ -971,18 +1019,20 @@ async function copyText(t) {
     ta.remove();
   }
 }
-
-function avatarHtml(user, size) {
-  const u = (user || '?').trim();
-  const letter = u.slice(0, 1).toUpperCase();
-  return '<span style="font-size:' + Math.round(size * 0.45) + 'px">' + esc(letter) + '</span>';
-}
 function avatarImg(user, avatarId) {
   if (avatarId) return '<img src="/media/' + avatarId + '" alt="">';
-  return avatarHtml(user, 40);
+  const u = String(user || '?').trim();
+  return '<span style="font-size:16px">' + esc(u.slice(0, 1).toUpperCase()) + '</span>';
+}
+function fmtBytes(n) {
+  if (!n) return '0 B';
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+  return (n / 1073741824).toFixed(2) + ' GB';
 }
 
-/* ---------- auth ---------- */
+/* ---------- Auth ---------- */
 function setMode(m) {
   mode = m;
   $$('#authSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
@@ -1001,15 +1051,11 @@ async function authGo() {
     $('#ap').value = '';
     if (d.token) { authToken = d.token; try { localStorage.setItem('authToken', authToken); } catch {} }
     if (d.info) enter(d.info);
-    else {
-      try { const info = await api('GET', '/api/me'); enter(info); }
-      catch { enter({ user: d.user, admin: false, displayName: '', bio: '', avatar: '', emailVerified: false, email: '', hasEmail: false, trialEnds: 0, trialExpired: false, paid: false, maxBots: 1, maxSites: 1 }); }
-    }
+    else { try { const info = await api('GET', '/api/me'); enter(info); } catch { enter({ user: d.user, admin: false, displayName: '', bio: '', avatar: '', emailVerified: false, email: '', hasEmail: false, trialEnds: 0, trialExpired: false, paid: false, maxBots: 1, maxSites: 1 }); } }
     if (mode === 'register') toast('สมัครสำเร็จ! ไปที่โปรไฟล์เพื่อผูกอีเมล');
   } catch (e) { $('#aerr').textContent = e.message; }
   $('#aGo').disabled = false;
 }
-
 function toAuth() {
   hideBoot();
   clearInterval(timer); timer = null;
@@ -1025,7 +1071,6 @@ function toAuth() {
   $('#verify').classList.add('hide');
   $('#auth').classList.remove('hide');
 }
-
 function enter(info) {
   const user = typeof info === 'string' ? info : info.user;
   hideBoot();
@@ -1041,14 +1086,11 @@ function enter(info) {
   showThread(false);
   cur = localStorage.getItem('cur:' + me) || null;
   shownId = null; lastLogKey = ''; lastTabsKey = ''; lastLibKey = ''; curChat = null; chatMsgs = []; chatTotal = 0; lastChatKey = '';
-
   const isAdm = myInfo && myInfo.admin;
   const miAdm = document.getElementById('miAdmin');
   if (miAdm) miAdm.classList.toggle('hide', !isAdm);
-
   clearInterval(timer);
   tc = 0;
-
   let pg = localStorage.getItem('pg:' + me) || 'home';
   if (pg === 'site') pg = 'sites';
   if (pg === 'admin' && !isAdm) pg = 'home';
@@ -1059,7 +1101,6 @@ function enter(info) {
   loadFriendsList().catch(() => {});
   timer = setInterval(tick, 2000);
 }
-
 function showVerify(info) {
   $('#auth').classList.add('hide');
   $('#app').classList.add('hide');
@@ -1072,12 +1113,8 @@ async function doVerify() {
   const code = $('#vCode').value.trim();
   $('#verr').textContent = '';
   if (!/^\d{6}$/.test(code)) { $('#verr').textContent = 'กรอกรหัส 6 หลัก'; return; }
-  try {
-    await api('POST', '/api/verify', { code });
-    toast('ยืนยันสำเร็จ!');
-    const info = await api('GET', '/api/me');
-    enter(info);
-  } catch (e) { $('#verr').textContent = e.message; }
+  try { await api('POST', '/api/verify', { code }); toast('ยืนยันสำเร็จ!'); const info = await api('GET', '/api/me'); enter(info); }
+  catch (e) { $('#verr').textContent = e.message; }
 }
 async function doResend() {
   try { const d = await api('POST', '/api/resend'); toast(d.dev ? 'รหัส log ที่เซิร์ฟเวอร์' : 'ส่งรหัสใหม่แล้ว'); }
@@ -1089,7 +1126,7 @@ async function logout() {
   toAuth();
 }
 
-/* ---------- menu/page ---------- */
+/* ---------- Menu / page ---------- */
 function menuOpen(v) { $('#menu').classList.toggle('hide', !v); }
 async function setPage(p) {
   const isAdm = myInfo && myInfo.admin;
@@ -1110,7 +1147,7 @@ async function setPage(p) {
     else if (p === 'sites') await loadSites();
     else if (p === 'friends') await loadFriendsList();
     else if (p === 'chat') await loadFriendsList();
-    else if (p === 'admin') await loadAdmin();
+    else if (p === 'admin') { await loadAdmin(); await loadStorage(); }
   } catch (e) {}
 }
 async function tick() {
@@ -1127,7 +1164,7 @@ async function tick() {
   busy = false;
 }
 
-/* ---------- stats ---------- */
+/* ---------- Stats ---------- */
 async function loadStats() {
   const d = await api('GET', '/api/stats');
   const set = (sel, n) => { const el = $(sel); if (el.textContent !== String(n)) el.textContent = n; };
@@ -1135,7 +1172,7 @@ async function loadStats() {
   set('#sMembers', d.users); set('#sPosts', d.posts);
 }
 
-/* ---------- profile ---------- */
+/* ---------- Profile ---------- */
 async function loadProfile() {
   try {
     const p = await api('GET', '/api/profile');
@@ -1171,9 +1208,7 @@ function renderEmailBox(p) {
   if (p.hasEmail && p.emailVerified) {
     box.innerHTML =
       '<div class="ok-box" style="margin:0">✓ ผูกอีเมลแล้ว: <b>' + esc(p.email) + '</b></div>' +
-      (p.trialExpired
-        ? '<div class="warn-box">หมดเวลาทดลอง — <a style="color:#fff;text-decoration:underline" href="https://discord.gg/dTz2njT9fZ" target="_blank" rel="noopener">discord.gg/dTz2njT9fZ</a></div>'
-        : (p.trialEnds ? '<div class="foot">เหลือเวลาทดลองอีก ' + Math.max(0, Math.ceil((p.trialEnds - Date.now()) / 86400000)) + ' วัน</div>' : '')) +
+      (p.trialExpired ? '<div class="warn-box">หมดเวลาทดลอง — <a style="color:#fff;text-decoration:underline" href="https://discord.gg/dTz2njT9fZ" target="_blank" rel="noopener">discord.gg/dTz2njT9fZ</a></div>' : (p.trialEnds ? '<div class="foot">เหลือเวลาทดลองอีก ' + Math.max(0, Math.ceil((p.trialEnds - Date.now()) / 86400000)) + ' วัน</div>' : '')) +
       '<div class="row" style="margin-top:10px"><button class="btn sm" id="pChangeEmail"><svg class="ic"><use href="#i-mail"/></svg><span>เปลี่ยนอีเมล</span></button></div>';
     $('#pChangeEmail').onclick = () => showLinkEmailForm(p.email);
   } else if (p.hasEmail && !p.emailVerified) {
@@ -1214,12 +1249,8 @@ function bindEmailVerify() {
   const go = async () => {
     const code = $('#pCode').value.trim();
     if (!/^\d{6}$/.test(code)) return toast('กรอกรหัส 6 หลัก');
-    try {
-      await api('POST', '/api/verify', { code });
-      toast('ยืนยันสำเร็จ!');
-      const info = await api('GET', '/api/me');
-      enter(info); setPage('profile');
-    } catch (e) { toast(e.message); }
+    try { await api('POST', '/api/verify', { code }); toast('ยืนยันสำเร็จ!'); const info = await api('GET', '/api/me'); enter(info); setPage('profile'); }
+    catch (e) { toast(e.message); }
   };
   $('#pVerify').onclick = go;
   $('#pCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
@@ -1229,15 +1260,14 @@ function bindEmailVerify() {
   };
 }
 
-/* ---------- bots ---------- */
+/* ---------- Bots ---------- */
 function renderTabs() {
   const key = cur + '|' + bots.map((b) => b.id + b.name + b.status + b.lang + (b.expiresAt || 0)).join(',');
   if (key === lastTabsKey) return;
   lastTabsKey = key;
   $('#tabs').innerHTML = bots.map((b) => {
     const expired = b.expiresAt && Date.now() > b.expiresAt;
-    return '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' +
-      esc(b.name) + '</span>' + (expired ? '<small style="color:#ff7a7c">หมด</small>' : '<small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small>') + '</div>';
+    return '<div class="tab' + (b.id === cur ? ' on' : '') + '" data-id="' + b.id + '"><span class="dot ' + b.status + '"></span><span>' + esc(b.name) + '</span>' + (expired ? '<small style="color:#ff7a7c">หมด</small>' : '<small>' + (b.lang === 'py' ? 'PY' : 'JS') + '</small>') + '</div>';
   }).join('') + '<div class="tab add' + (cur === 'new' ? ' on' : '') + '" data-id="new">' + ic('plus') + '<span>เพิ่มบอท</span></div>';
 }
 function setView(v) {
@@ -1261,9 +1291,7 @@ function renderLibs(b) {
   $('#libIn').placeholder = py ? 'pip install Pillow numpy' : 'npm install axios dotenv';
   $('#chips').innerHTML = CHIPS[b.lang].map((c) => '<button class="pk" data-s="' + esc(c) + '">' + esc(c) + '</button>').join('');
   const libs = b.libs || [];
-  $('#libList').innerHTML = libs.map((s) =>
-    '<div class="lib"><code>' + esc(s) + '</code><button class="btn" data-rm="' + esc(s) + '">' + ic('x') + '</button></div>'
-  ).join('') || '<div class="mut">ยังไม่ได้ติดตั้ง</div>';
+  $('#libList').innerHTML = libs.map((s) => '<div class="lib"><code>' + esc(s) + '</code><button class="btn" data-rm="' + esc(s) + '">' + ic('x') + '</button></div>').join('') || '<div class="mut">ยังไม่ได้ติดตั้ง</div>';
   $('#libBusy').classList.toggle('hide', !b.installing);
   $('#libGo').disabled = !!b.installing; $('#libRe').disabled = !!b.installing;
   $$('#libList .btn').forEach((x) => (x.disabled = !!b.installing));
@@ -1277,10 +1305,8 @@ function updateStatus() {
   $('#badge').innerHTML = '<span class="dot ' + b.status + '"></span>' + label;
   $('#title').textContent = b.name;
   $('#info').textContent = b.status === 'running' && b.startedAt ? 'รันมา ' + fmtUp(Date.now() - b.startedAt) : '';
-  if (b.publicId) {
-    $('#botPublicId').textContent = b.publicId;
-    $('#copyBotId').onclick = () => copyText(b.publicId);
-  } else $('#botPublicId').textContent = '-';
+  if (b.publicId) { $('#botPublicId').textContent = b.publicId; $('#copyBotId').onclick = () => copyText(b.publicId); }
+  else $('#botPublicId').textContent = '-';
   if (b.expiresAt) {
     const left = b.expiresAt - Date.now();
     if (left > 0) $('#botTimerInfo').textContent = '⏱ หมดเวลาอีก: ' + fmtTimeLeft(left);
@@ -1324,22 +1350,14 @@ async function select(id) {
   if (id === cur && (id === 'new' || shownId === id)) return;
   if (dirty && !(await askConfirm('มีโค้ดที่ยังไม่ได้บันทึก จะทิ้งไหม?'))) return;
   cur = id; localStorage.setItem('cur:' + me, id); setDirty(false);
-  if (id === 'new') showNewPanel();
-  else await openBot(id);
+  if (id === 'new') showNewPanel(); else await openBot(id);
   lastTabsKey = ''; renderTabs();
 }
 async function tickRun() {
   bots = (await api('GET', '/api/bots')).bots;
-  if (cur !== 'new' && !bots.find((b) => b.id === cur)) {
-    cur = bots.length ? bots[0].id : 'new';
-    localStorage.setItem('cur:' + me, cur);
-    shownId = null;
-  }
+  if (cur !== 'new' && !bots.find((b) => b.id === cur)) { cur = bots.length ? bots[0].id : 'new'; localStorage.setItem('cur:' + me, cur); shownId = null; }
   if (cur === 'new') { if ($('#newPanel').classList.contains('hide')) showNewPanel(); }
-  else {
-    if (shownId !== cur) await openBot(cur);
-    updateStatus(); await loadLogs();
-  }
+  else { if (shownId !== cur) await openBot(cur); updateStatus(); await loadLogs(); }
   renderTabs();
 }
 async function saveBot() {
@@ -1348,7 +1366,7 @@ async function saveBot() {
   return d;
 }
 
-/* ---------- libs ---------- */
+/* ---------- Libs ---------- */
 async function installLibs() {
   const text = $('#libIn').value;
   if (!text.trim()) return toast('ใส่ชื่อไลบรารีก่อน');
@@ -1370,24 +1388,21 @@ async function reinstallLibs() {
   try { await api('POST', '/api/bots/' + cur + '/libs', { reinstall: true }); lastLibKey = ''; setView('log'); await tickRun(); }
   catch (e) { handleApiError(e); }
 }
-
 function handleApiError(e) {
   if (e && e.trial) { toast(e.message); setPage('trial'); return true; }
   if (e && e.needsEmail) { toast(e.message); setPage('profile'); return true; }
   if (e && e.needsVerify) { toast('กรุณายืนยันอีเมลก่อน'); setPage('profile'); return true; }
   if (e && e.expired) { toast(e.message); return true; }
   toast(e.message || 'เกิดข้อผิดพลาด');
-  return false;
+  return true;
 }
 
-/* ---------- market ---------- */
+/* ---------- Market ---------- */
 function cardHtml(p) {
   const cover = p.cover ? '<div class="cv" style="background-image:url(/media/' + p.cover + ')"></div>' : '<div class="cv ph">' + ic('img') + '</div>';
   return '<div class="card" data-id="' + p.id + '">' + cover +
-    '<div class="ov"><span class="tag">' + (p.lang === 'py' ? 'PY' : 'JS') + '</span><span class="tag ' + (p.price ? 'paid' : 'free') + '">' +
-    (p.price ? baht(p.price) : 'ฟรี') + '</span></div>' +
-    '<div class="cb"><b>' + esc(p.title) + '</b><small>โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</small>' +
-    (p.commentCount ? '<small>💬 ' + p.commentCount + ' คอมเมนต์</small>' : '') + '</div></div>';
+    '<div class="ov"><span class="tag">' + (p.lang === 'py' ? 'PY' : 'JS') + '</span><span class="tag ' + (p.price ? 'paid' : 'free') + '">' + (p.price ? baht(p.price) : 'ฟรี') + '</span></div>' +
+    '<div class="cb"><b>' + esc(p.title) + '</b><small>โดย ' + esc(p.owner) + ' · ' + dmy(p.created) + '</small>' + (p.commentCount ? '<small>💬 ' + p.commentCount + ' คอมเมนต์</small>' : '') + '</div></div>';
 }
 async function loadPosts() { posts = (await api('GET', '/api/posts')).posts; renderPosts(); }
 function renderPosts() {
@@ -1408,11 +1423,9 @@ async function openPost(id) {
     if (!p.locked) h += '<pre class="codebox" id="pcode"></pre>';
     else h += '<div class="lock">โค้ดนี้เสียเงิน ติดต่อคนขายผ่านคอมเมนต์ด้านล่าง</div>';
     h += '<div class="row">';
-    if (!p.locked) h += '<button class="btn" id="pCopy">' + ic('copy') + '<span>คัดลอกโค้ด</span></button>' +
-      '<button class="btn solid" id="pUse">' + ic('run') + '<span>ใช้เป็นบอทของฉัน</span></button>';
+    if (!p.locked) h += '<button class="btn" id="pCopy">' + ic('copy') + '<span>คัดลอกโค้ด</span></button>' + '<button class="btn solid" id="pUse">' + ic('run') + '<span>ใช้เป็นบอทของฉัน</span></button>';
     if (p.mine) h += '<button class="btn danger" id="pDel">' + ic('trash') + '<span>ลบโพสต์</span></button>';
     h += '</div>';
-    // comments section
     h += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">' +
       '<div class="row" style="justify-content:space-between;margin-bottom:8px"><b>💬 คอมเมนต์</b><span class="mut" id="cmtCount">-</span></div>' +
       '<div id="cmtBox"></div>' +
@@ -1427,9 +1440,7 @@ async function openPost(id) {
     openModal(h);
     if (!p.locked) { $('#pcode').textContent = p.code; $('#pCopy').onclick = () => copyText(p.code); $('#pUse').onclick = () => usePost(p.id); }
     if ($('#pDel')) $('#pDel').onclick = () => deletePost(p.id);
-    // Load comments
     loadComments(p.id);
-    // Bind comment form
     let cmtFile = null;
     $('#cmtPlus').onclick = () => $('#cmtFile').click();
     $('#cmtFile').onchange = (e) => {
@@ -1448,10 +1459,7 @@ async function openPost(id) {
       $('#cmtSend').disabled = true;
       try {
         let mediaId = null;
-        if (cmtFile) {
-          const r = await uploadFile(cmtFile, 'scope=comment', (pc) => { $('#cmtAttName').textContent = cmtFile.name + ' (' + pc + '%)'; });
-          mediaId = r.id;
-        }
+        if (cmtFile) { const r = await uploadFile(cmtFile, 'scope=comment', (pc) => { $('#cmtAttName').textContent = cmtFile.name + ' (' + pc + '%)'; }); mediaId = r.id; }
         await api('POST', '/api/posts/' + p.id + '/comments', { text, mediaId });
         $('#cmtInput').value = ''; $('#cmtInput').style.height = '';
         cmtFile = null; $('#cmtFile').value = ''; $('#cmtAtt').classList.add('hide');
@@ -1495,13 +1503,10 @@ async function usePost(id) {
     localStorage.setItem('cur:' + me, b.id);
     await setPage('run');
     if (b.publicId) {
-      openModal(
-        '<h2>เพิ่มบอทสำเร็จ</h2>' +
-        '<div class="mut">Public ID ของบอทคุณ</div>' +
+      openModal('<h2>เพิ่มบอทสำเร็จ</h2><div class="mut">Public ID ของบอทคุณ</div>' +
         '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(b.publicId) + '</code>' +
         '<button class="btn sm" id="cpid">' + ic('copy') + '<span>คัดลอก</span></button></div>' +
-        '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>'
-      );
+        '<div class="row" style="margin-top:12px"><button class="btn solid wide" id="ok">เข้าใจแล้ว</button></div>');
       $('#cpid').onclick = () => copyText(b.publicId);
       $('#ok').onclick = closeModal;
     } else toast('เพิ่มเป็นบอทของคุณแล้ว');
@@ -1513,7 +1518,7 @@ async function deletePost(id) {
   catch (e) { toast(e.message); }
 }
 
-/* ---------- upload post ---------- */
+/* ---------- Upload post ---------- */
 const IMG_OK = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 function setCover(f) {
   coverFile = f;
@@ -1522,11 +1527,7 @@ function setCover(f) {
   else { pv.style.backgroundImage = ''; pv.innerHTML = ic('img'); }
   $('#coverX').classList.toggle('hide', !f);
 }
-function setPay(m) {
-  payMode = m;
-  $$('#paySeg button').forEach((b) => b.classList.toggle('on', b.dataset.p === m));
-  $('#priceBox').classList.toggle('hide', m !== 'paid');
-}
+function setPay(m) { payMode = m; $$('#paySeg button').forEach((b) => b.classList.toggle('on', b.dataset.p === m)); $('#priceBox').classList.toggle('hide', m !== 'paid'); }
 async function doPublish() {
   if (publishing) return;
   const title = $('#upTitle').value.trim();
@@ -1540,10 +1541,7 @@ async function doPublish() {
   publishing = true; $('#upGo').disabled = true;
   try {
     let cover = '';
-    if (coverFile) {
-      const r = await uploadFile(coverFile, 'scope=cover', (pc) => { $('#upst').textContent = 'กำลังอัปโหลดรูป ' + pc + '%'; });
-      cover = r.id;
-    }
+    if (coverFile) { const r = await uploadFile(coverFile, 'scope=cover', (pc) => { $('#upst').textContent = 'กำลังอัปโหลดรูป ' + pc + '%'; }); cover = r.id; }
     await api('POST', '/api/posts', { title, lang: $('#upLang').value, code, paid, price: paid ? price : 0, cover });
     $('#upTitle').value = ''; $('#upCode').value = ''; $('#upPrice').value = '';
     setCover(null); setPay('free');
@@ -1556,7 +1554,7 @@ async function doPublish() {
   publishing = false; $('#upGo').disabled = false;
 }
 
-/* ---------- sites ---------- */
+/* ---------- Sites ---------- */
 function buildSitePage(m, title, html, css, js) {
   if (m === 'full') return html;
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>\n' + css + '\n</style></head><body>\n' + html + '\n<scr' + 'ipt>\n' + js + '\n</scr' + 'ipt></body></html>';
@@ -1575,8 +1573,7 @@ async function loadSites() { sites = (await api('GET', '/api/sites')).sites; ren
 function siteCard(x) {
   const letter = esc(String(x.title || '?').trim().slice(0, 1).toUpperCase() || '?');
   return '<div class="card" data-slug="' + x.slug + '"><div class="cv ph stile"><span>' + letter + '</span></div>' +
-    '<div class="ov"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' +
-    (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '</div>' +
+    '<div class="ov"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '</div>' +
     '<div class="cb"><b>' + esc(x.title) + '</b><small>โดย ' + esc(x.owner) + ' · ' + dmy(x.updated) + '</small></div></div>';
 }
 function renderSites() {
@@ -1591,19 +1588,13 @@ function openSiteModal(slug) {
   if (!x) return;
   const url = siteUrl(x.slug);
   let h = '<h2>' + esc(x.title) + '</h2>' +
-    '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' +
-    (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') +
-    '<span class="mut">โดย ' + esc(x.owner) + '</span></div>' +
+    '<div class="row" style="margin-bottom:10px"><span class="tag">' + (x.mode === 'full' ? 'HTML' : 'HTML+CSS+JS') + '</span>' + (x.public ? '<span class="tag">เปิดดู ' + x.views + ' ครั้ง</span>' : '<span class="tag danger">ร่าง</span>') + '<span class="mut">โดย ' + esc(x.owner) + '</span></div>' +
     '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
-  if (x.publicId) {
-    h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(x.publicId) + '</code>' +
-      '<button class="btn sm" id="mCopyId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
-  }
+  if (x.publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(x.publicId) + '</code>' + '<button class="btn sm" id="mCopyId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
   h += '<div class="row" style="margin-top:12px">' +
     '<a class="btn solid" href="/s/' + x.slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
     '<button class="btn" id="mCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button>';
-  if (x.mine) h += '<button class="btn" id="mEdit">' + ic('set') + '<span>แก้ไข</span></button>' +
-    '<button class="btn danger" id="mDel">' + ic('trash') + '<span>ลบ</span></button>';
+  if (x.mine) h += '<button class="btn" id="mEdit">' + ic('set') + '<span>แก้ไข</span></button>' + '<button class="btn danger" id="mDel">' + ic('trash') + '<span>ลบ</span></button>';
   h += '</div>';
   openModal(h);
   $('#mCopy').onclick = () => copyText(url);
@@ -1682,13 +1673,9 @@ async function saveSite() {
 }
 function showSiteLink(slug, isPublic, publicId) {
   const url = siteUrl(slug);
-  let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่าง') + '</h2>' +
-    '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
-  if (publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(publicId) + '</code>' +
-    '<button class="btn sm" id="lkId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
-  h += '<div class="row" style="margin-top:12px">' +
-    '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' +
-    '<button class="btn" id="lkCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button></div>';
+  let h = '<h2>' + (isPublic ? 'เว็บพร้อมแล้ว' : 'บันทึกเป็นร่าง') + '</h2>' + '<input class="inp" readonly value="' + esc(url) + '" onclick="this.select()">';
+  if (publicId) h += '<div class="idbox"><svg class="ic"><use href="#i-shield"/></svg><code>' + esc(publicId) + '</code>' + '<button class="btn sm" id="lkId">' + ic('copy') + '<span>คัดลอก ID</span></button></div>';
+  h += '<div class="row" style="margin-top:12px">' + '<a class="btn solid" href="/s/' + slug + '" target="_blank" rel="noopener">' + ic('globe') + '<span>เปิดเว็บ</span></a>' + '<button class="btn" id="lkCopy">' + ic('copy') + '<span>คัดลอกลิงก์</span></button></div>';
   openModal(h);
   $('#lkCopy').onclick = () => copyText(url);
   if ($('#lkId')) $('#lkId').onclick = () => copyText(publicId);
@@ -1725,7 +1712,7 @@ async function loadSiteData() {
   } catch (e) { $('#sdInfo').textContent = e.message; }
 }
 
-/* ---------- friends ---------- */
+/* ---------- Friends ---------- */
 async function loadFriendsList() {
   try {
     const d = await api('GET', '/api/friends');
@@ -1734,7 +1721,6 @@ async function loadFriendsList() {
     frSent = d.sent || [];
     let totalUnread = 0;
     for (const f of friends) totalUnread += f.unread || 0;
-    // update UI
     const reqCnt = $('#freqCnt');
     if (frRequests.length) { reqCnt.textContent = frRequests.length; reqCnt.classList.remove('hide'); }
     else reqCnt.classList.add('hide');
@@ -1755,57 +1741,31 @@ function renderFriends() {
   $('#frRequests').innerHTML = frRequests.map((r) =>
     '<div class="friend-row"><div class="av">' + avatarImg(r.username, r.avatar) + '</div>' +
     '<div class="info"><b>@' + esc(r.username) + '</b>' + (r.displayName ? '<small>' + esc(r.displayName) + '</small>' : '') + '</div>' +
-    '<div class="actions">' +
-    '<button class="btn sm ok" data-acc="' + esc(r.username) + '">รับ</button>' +
-    '<button class="btn sm danger" data-rej="' + esc(r.username) + '">ปฏิเสธ</button>' +
-    '</div></div>'
+    '<div class="actions">' + '<button class="btn sm ok" data-acc="' + esc(r.username) + '">รับ</button>' + '<button class="btn sm danger" data-rej="' + esc(r.username) + '">ปฏิเสธ</button>' + '</div></div>'
   ).join('') || '<div class="mut" style="padding:14px;text-align:center">ไม่มีคำขอใหม่</div>';
-
   $('#frListCount').textContent = '(' + friends.length + ')';
   $('#frList').innerHTML = friends.map((f) =>
     '<div class="friend-row"><div class="av">' + avatarImg(f.username, f.avatar) + '</div>' +
-    '<div class="info"><b>@' + esc(f.username) + '</b>' + (f.displayName ? '<small>' + esc(f.displayName) + '</small>' : '') +
-    (f.last ? '<small>' + esc(f.last.text || '') + '</small>' : '') + '</div>' +
-    '<div class="actions">' +
-    '<button class="btn sm solid" data-chat="' + esc(f.username) + '">แชท</button>' +
-    '<button class="btn sm danger" data-rem="' + esc(f.username) + '">ลบ</button>' +
-    '</div></div>'
+    '<div class="info"><b>' + esc(f.displayName || '@' + f.username) + '</b>' + (f.displayName ? '<small>@' + esc(f.username) + '</small>' : '') + (f.last ? '<small>' + esc(f.last.text || '') + '</small>' : '') + '</div>' +
+    '<div class="actions">' + '<button class="btn sm solid" data-chat="' + esc(f.username) + '">แชท</button>' + '<button class="btn sm danger" data-rem="' + esc(f.username) + '">ลบ</button>' + '</div></div>'
   ).join('') || '<div class="mut" style="padding:14px;text-align:center">ยังไม่มีเพื่อน</div>';
-
   $('#frRequests').querySelectorAll('[data-acc]').forEach((b) => b.onclick = () => acceptFriend(b.dataset.acc));
   $('#frRequests').querySelectorAll('[data-rej]').forEach((b) => b.onclick = () => rejectFriend(b.dataset.rej));
   $('#frList').querySelectorAll('[data-chat]').forEach((b) => b.onclick = () => openChatWith(b.dataset.chat));
   $('#frList').querySelectorAll('[data-rem]').forEach((b) => b.onclick = () => removeFriend(b.dataset.rem));
 }
-async function acceptFriend(u) {
-  try { await api('POST', '/api/friends/accept', { username: u }); toast('รับคำขอแล้ว'); lastFriendsKey = ''; await loadFriendsList(); }
-  catch (e) { toast(e.message); }
-}
-async function rejectFriend(u) {
-  try { await api('POST', '/api/friends/reject', { username: u }); lastFriendsKey = ''; await loadFriendsList(); }
-  catch (e) { toast(e.message); }
-}
+async function acceptFriend(u) { try { await api('POST', '/api/friends/accept', { username: u }); toast('รับคำขอแล้ว'); lastFriendsKey = ''; await loadFriendsList(); } catch (e) { toast(e.message); } }
+async function rejectFriend(u) { try { await api('POST', '/api/friends/reject', { username: u }); lastFriendsKey = ''; await loadFriendsList(); } catch (e) { toast(e.message); } }
 async function removeFriend(u) {
   if (!(await askConfirm('ลบ @' + u + ' ออกจากเพื่อน?', 'ลบ'))) return;
   try { await api('POST', '/api/friends/remove', { username: u }); lastFriendsKey = ''; await loadFriendsList(); }
   catch (e) { toast(e.message); }
 }
 async function addFriend(u) {
-  try {
-    const d = await api('POST', '/api/friends/add', { username: u });
-    toast(d.accepted ? 'เป็นเพื่อนกันแล้ว!' : 'ส่งคำขอแล้ว');
-    lastFriendsKey = '';
-    doSearchFriends();
-    await loadFriendsList();
-  } catch (e) { toast(e.message); }
+  try { const d = await api('POST', '/api/friends/add', { username: u }); toast(d.accepted ? 'เป็นเพื่อนกันแล้ว!' : 'ส่งคำขอแล้ว'); lastFriendsKey = ''; doSearchFriends(); await loadFriendsList(); }
+  catch (e) { toast(e.message); }
 }
-async function openChatWith(u) {
-  try {
-    const d = await api('POST', '/api/chat', { username: u });
-    await setPage('chat');
-    await openChat(d.id);
-  } catch (e) { toast(e.message); }
-}
+async function openChatWith(u) { try { const d = await api('POST', '/api/chat', { username: u }); await setPage('chat'); await openChat(d.id); } catch (e) { toast(e.message); } }
 async function doSearchFriends() {
   const q = $('#frSearch').value.trim().toLowerCase();
   const box = $('#frSearchResult');
@@ -1829,33 +1789,27 @@ async function doSearchFriends() {
   } catch (e) { box.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
 }
 
-/* ---------- chat thread ---------- */
+/* ---------- Chat with friends ---------- */
 function renderChatList() {
-  const key = JSON.stringify(friends);
-  if (key === lastChatKey && curChat) {
-    // update active
-    $('#cList').querySelectorAll('.ci').forEach((el) => el.classList.toggle('on', el.dataset.id === curChat));
-    return;
-  }
+  const key = JSON.stringify(friends) + '|' + curChat;
+  if (key === lastChatKey) return;
   lastChatKey = key;
   $('#cList').innerHTML = friends.map((f) => {
     let last = '';
     if (f.last) last = f.last.text || '';
     return '<div class="ci' + (curChat === f.username ? ' on' : '') + '" data-id="' + esc(f.username) + '">' +
       '<div class="av">' + avatarImg(f.username, f.avatar) + '</div>' +
-      '<div class="m"><b>' + esc(f.displayName || '@' + f.username) + '</b>' +
-      '<small>' + esc(last.slice(0, 50)) + '</small></div>' +
+      '<div class="m"><b>' + esc(f.displayName || '@' + f.username) + '</b>' + '<small>' + esc(last.slice(0, 50)) + '</small></div>' +
       (f.unread ? '<span class="ub">' + f.unread + '</span>' : '') + '</div>';
   }).join('') || '<div class="empty">ยังไม่มีเพื่อน — ไปที่เมนู "เพื่อน" เพื่อเพิ่ม</div>';
-  $('#cList').querySelectorAll('.ci').forEach((el) => {
-    el.onclick = () => openChat(el.dataset.id);
-  });
+  $('#cList').querySelectorAll('.ci').forEach((el) => { el.onclick = () => openChat(el.dataset.id); });
 }
 function showThread(on) { $('#thread').classList.toggle('hide', !on); $('#cEmpty').classList.toggle('hide', on); }
 async function openChat(username) {
   try {
     const d = await api('POST', '/api/chat', { username });
-    curChat = username;
+    curChat = d.id;
+    _chatIdCache[username] = d.id;
     chatMsgs = []; chatTotal = 0;
     $('#msgs').innerHTML = '';
     clearAttach();
@@ -1871,12 +1825,10 @@ async function openChat(username) {
 async function loadChatThread() {
   if (!curChat || chatBusy) return;
   chatBusy = true;
-  const u = curChat;
+  const id = curChat;
   try {
-    const chatId = await getChatId(u);
-    if (!chatId) return;
-    const d = await api('GET', '/api/chat/' + chatId + '?since=' + chatTotal);
-    if (u !== curChat) return;
+    const d = await api('GET', '/api/chat/' + id + '?since=' + chatTotal);
+    if (id !== curChat) return;
     $('#cName').textContent = d.otherDisplay || '@' + d.other;
     $('#cPost').textContent = '@' + d.other;
     $('#cAvatar').innerHTML = avatarImg(d.other, d.otherAvatar);
@@ -1884,19 +1836,6 @@ async function loadChatThread() {
     chatTotal = d.total;
   } catch (e) {}
   chatBusy = false;
-}
-async function getChatId(username) {
-  try {
-    const d = await api('POST', '/api/chat', { username });
-    return d.id;
-  } catch (e) { return null; }
-}
-let _chatIdCache = {};
-async function getChatIdCached(u) {
-  if (_chatIdCache[u]) return _chatIdCache[u];
-  const id = await getChatId(u);
-  if (id) _chatIdCache[u] = id;
-  return id;
 }
 function msgNode(m) {
   const div = document.createElement('div');
@@ -1936,8 +1875,7 @@ async function sendChatMsg() {
   if (text.length > 500) return toast('ข้อความยาวเกิน 500 ตัวอักษร');
   sendingMsg = true; $('#sendBtn').disabled = true;
   try {
-    const chatId = await getChatIdCached(curChat);
-    if (!chatId) throw new Error('ไม่พบแชท');
+    const chatId = curChat;
     let mediaId = null;
     if (attachFile) {
       const nm = attachFile.name;
@@ -1953,7 +1891,7 @@ async function sendChatMsg() {
   sendingMsg = false; $('#sendBtn').disabled = false;
 }
 
-/* ---------- report ---------- */
+/* ---------- Report ---------- */
 let reportImgFile = null;
 function bindReport() {
   const el = document.getElementById('rpText');
@@ -1962,8 +1900,7 @@ function bindReport() {
   if (btn) btn.onclick = () => document.getElementById('rpImgIn').click();
   const inp = document.getElementById('rpImgIn');
   if (inp) inp.addEventListener('change', (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
+    const f = e.target.files[0]; if (!f) return;
     if (!f.type.startsWith('image/')) { toast('ต้องเป็นรูป'); e.target.value = ''; return; }
     if (f.size > 5 * 1024 * 1024) { toast('รูปใหญ่เกิน 5 MB'); e.target.value = ''; return; }
     reportImgFile = f;
@@ -1990,10 +1927,7 @@ function bindReport() {
     go.disabled = true;
     try {
       let mediaId = null;
-      if (reportImgFile) {
-        const r = await uploadFile(reportImgFile, 'scope=report', (pc) => { err.textContent = 'กำลังอัปโหลด ' + pc + '%'; });
-        mediaId = r.id;
-      }
+      if (reportImgFile) { const r = await uploadFile(reportImgFile, 'scope=report', (pc) => { err.textContent = 'กำลังอัปโหลด ' + pc + '%'; }); mediaId = r.id; }
       err.textContent = 'กำลังส่ง...';
       await api('POST', '/api/report', { text, mediaId, botId, siteId });
       document.getElementById('rpText').value = '';
@@ -2010,7 +1944,7 @@ function bindReport() {
   };
 }
 
-/* ---------- admin ---------- */
+/* ---------- Admin ---------- */
 async function loadAdmin() {
   const listEl = document.getElementById('adList');
   if (!listEl) return;
@@ -2078,6 +2012,70 @@ async function loadAdmin() {
     });
   } catch (e) { listEl.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; }
 }
+
+/* ---------- Admin: Storage ---------- */
+async function loadStorage() {
+  const box = document.getElementById('storageBox');
+  if (!box) return;
+  box.innerHTML = '<div class="mut" style="margin-top:12px;text-align:center">กำลังโหลด...</div>';
+  try {
+    const d = await api('GET', '/api/admin/storage');
+    renderStorage(d);
+  } catch (e) {
+    box.innerHTML = '<div class="err" style="margin-top:12px">' + esc(e.message) + '</div>';
+  }
+}
+function barClass(pct) { if (pct >= 95) return 'danger'; if (pct >= 80) return 'warn'; return ''; }
+function renderStorage(d) {
+  const box = document.getElementById('storageBox');
+  if (!d.totalBuckets) {
+    box.innerHTML = '<div class="warn-box">⚠️ ยังไม่ได้ตั้งค่า UPSTASH_BLOB_TOKENS — ไม่มี bucket ที่ใช้งานได้</div>';
+    return;
+  }
+  const overallCls = barClass(d.overallPercent);
+  let h = '<div class="stor-hero">';
+  h += '<div class="stor-stat"><div class="lbl">โทเค็น (Bucket)</div><div class="big">' + d.totalBuckets + '</div></div>';
+  h += '<div class="stor-stat"><div class="lbl">ไฟล์ทั้งหมด</div><div class="big">' + d.totalFiles + '</div></div>';
+  h += '<div class="stor-stat"><div class="lbl">พื้นที่ใช้ไป</div><div class="big">' + fmtBytes(d.totalUsed) + '</div></div>';
+  h += '<div class="stor-stat"><div class="lbl">พื้นที่รวม</div><div class="big">' + fmtBytes(d.totalLimit) + '</div></div>';
+  h += '</div>';
+  h += '<div class="stor-overall">';
+  h += '<div class="stor-overall-head">';
+  h += '<b>ภาพรวมทั้งหมด</b>';
+  h += '<div class="row" style="gap:6px">';
+  if (d.fullCount) h += '<span class="info-pill danger">🔴 เต็ม ' + d.fullCount + ' อัน</span>';
+  if (d.nearlyCount) h += '<span class="info-pill warn">🟡 ใกล้เต็ม ' + d.nearlyCount + ' อัน</span>';
+  if (!d.fullCount && !d.nearlyCount) h += '<span class="info-pill ok">🟢 ทุกอันยังว่าง</span>';
+  h += '</div></div>';
+  h += '<div class="stor-bar"><div class="fill ' + overallCls + '" style="width:' + d.overallPercent.toFixed(1) + '%"></div>' + '<div class="pct">' + d.overallPercent.toFixed(1) + '%</div></div>';
+  h += '<div class="foot">ใช้ไป ' + fmtBytes(d.totalUsed) + ' จาก ' + fmtBytes(d.totalLimit) + '</div>';
+  h += '</div>';
+  h += '<b style="display:block;margin-top:18px">รายละเอียดแต่ละโทเค็น</b>';
+  h += '<div class="bucket-grid">';
+  d.buckets.forEach((b) => {
+    const cls = b.full ? 'full' : (b.nearlyFull ? 'warn' : '');
+    const fillCls = barClass(b.percent);
+    let badge;
+    if (b.full) badge = '<span class="badge-sm full">FULL</span>';
+    else if (b.nearlyFull) badge = '<span class="badge-sm warn">NEAR</span>';
+    else badge = '<span class="badge-sm ok">OK</span>';
+    h += '<div class="bucket-card ' + cls + '">';
+    h += '<div class="bh"><span class="name">#' + b.id + '</span>' + badge + '</div>';
+    h += '<div class="bucket-bar"><div class="fill ' + fillCls + '" style="width:' + b.percent.toFixed(1) + '%"></div></div>';
+    h += '<div class="meta"><span>' + fmtBytes(b.used) + ' / ' + fmtBytes(b.limit) + '</span><span>' + b.percent.toFixed(1) + '%</span></div>';
+    h += '<div class="meta"><span>📁 ' + b.files + ' ไฟล์</span><span>' + (b.full ? '⚠️ เต็ม' : (b.nearlyFull ? '⚠️ ใกล้เต็ม' : 'พร้อมใช้')) + '</span></div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div class="notice" style="margin-top:14px">';
+  if (d.fullCount === 0 && d.nearlyCount === 0) h += '💡 <b>สถานะ:</b> ทุกโทเค็นยังมีพื้นที่เหลือเยอะ ยังไม่ต้องเพิ่ม';
+  else if (d.fullCount > 0) h += '⚠️ <b>มี ' + d.fullCount + ' โทเค็นที่เต็มแล้ว</b> — ระบบจะข้ามไปใช้โทเค็นอื่นแทน แนะนำให้เพิ่มโทเค็นใหม่';
+  else h += '💡 <b>มี ' + d.nearlyCount + ' โทเค็นใกล้เต็ม</b> — ควรเตรียมเพิ่ม';
+  h += '<br>📌 <b>วิธีเพิ่มโทเค็น:</b> สร้างบัญชี Upstash ใหม่ → สร้าง Blob Bucket → คัดลอก Token → ไปที่ Railway Variables → แก้ <code style="background:rgba(255,255,255,.1);padding:1px 6px;border-radius:4px">UPSTASH_BLOB_TOKENS</code> คั่นด้วย <code style="background:rgba(255,255,255,.1);padding:1px 6px;border-radius:4px">,</code> → Redeploy</div>';
+  box.innerHTML = h;
+}
+
+/* ---------- Admin: Lookup ---------- */
 async function doLookup() {
   const id = ($('#lookupId').value || '').trim().toUpperCase();
   if (!id) return toast('ใส่ ID ก่อน');
@@ -2098,10 +2096,8 @@ function renderLookup(d) {
     const b = d.bot;
     h += '<div class="adcard">';
     h += '<div class="row" style="gap:8px"><span class="badge ' + b.status + '"><span class="dot ' + b.status + '"></span>' + (b.status === 'running' ? 'กำลังรัน' : b.status === 'error' ? 'ผิดพลาด' : 'หยุดอยู่') + '</span><span class="tag">' + (b.lang === 'py' ? 'Python' : 'JavaScript') + '</span></div>';
-    if (b.expiresAt) {
-      const left = b.expiresAt - Date.now();
-      h += '<div class="warn-box">⏱ ' + (left > 0 ? 'หมดเวลาอีก ' + fmtTimeLeft(left) : '<b>หมดเวลาแล้ว</b>') + '</div>';
-    } else h += '<div class="foot">⏱ ไม่จำกัดเวลา</div>';
+    if (b.expiresAt) { const left = b.expiresAt - Date.now(); h += '<div class="warn-box">⏱ ' + (left > 0 ? 'หมดเวลาอีก ' + fmtTimeLeft(left) : '<b>หมดเวลาแล้ว</b>') + '</div>'; }
+    else h += '<div class="foot">⏱ ไม่จำกัดเวลา</div>';
     h += '<div class="timer-row">';
     h += '<button class="btn sm" data-timer="24">+1 วัน</button>';
     h += '<button class="btn sm" data-timer="48">+2 วัน</button>';
@@ -2154,7 +2150,7 @@ function renderLookup(d) {
   });
 }
 
-/* ---------- bind ---------- */
+/* ---------- Bind ---------- */
 function safe(label, fn) { try { fn(); } catch (e) { console.error('[' + label + ']', e); if (window.__alexaFatal) window.__alexaFatal('ส่วน "' + label + '" เริ่มไม่ได้: ' + e.message); } }
 function tabInsert(e) { if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; t.dispatchEvent(new Event('input')); } }
 
@@ -2206,21 +2202,10 @@ safe('profile', function () {
     const f = e.target.files[0]; if (!f) return;
     if (!f.type.startsWith('image/')) { toast('ต้องเป็นรูป'); e.target.value = ''; return; }
     if (f.size > 5 * 1024 * 1024) { toast('รูปใหญ่เกิน 5 MB'); e.target.value = ''; return; }
-    try {
-      await uploadAvatar(f, (pc) => { toast('กำลังอัปโหลด ' + pc + '%'); });
-      toast('อัปโหลดรูปโปรไฟล์แล้ว');
-      loadProfile();
-    } catch (err) { toast(err.message); }
+    try { await uploadAvatar(f, (pc) => { toast('กำลังอัปโหลด ' + pc + '%'); }); toast('อัปโหลดแล้ว'); loadProfile(); }
+    catch (err) { toast(err.message); }
     e.target.value = '';
   });
-  const avX = document.getElementById('pAvatarX');
-  if (avX) avX.onclick = async () => {
-    if (!(await askConfirm('ลบรูปโปรไฟล์?', 'ลบ'))) return;
-    // ใช้ API PUT profile กับ avatar = '' (แต่ backend ใช้ avatar update แยก)
-    // ใช้ PUT /api/profile/avatar แบบพิเศษ ผ่าน PUT ไม่ได้ -> ต้องลบผ่าน backend
-    // ตอนนี้ไม่มี endpoint ลบ ให้ใช้วิธีส่งรูปใหม่ทับหรือเว้นไว้
-    toast('ยังไม่มีระบบลบรูป — เปลี่ยนรูปใหม่แทนได้');
-  };
   const pwSave = document.getElementById('pPwSave');
   if (pwSave) pwSave.onclick = async () => {
     const errEl = document.getElementById('pPwErr');
@@ -2229,11 +2214,8 @@ safe('profile', function () {
     if (!cur) { errEl.textContent = 'ใส่รหัสปัจจุบัน'; return; }
     if (n1.length < 6) { errEl.textContent = 'รหัสใหม่ 6 ตัวขึ้นไป'; return; }
     if (n1 !== n2) { errEl.textContent = 'รหัสใหม่ไม่ตรงกัน'; return; }
-    try {
-      await api('POST', '/api/profile/password', { current: cur, new1: n1, new2: n2 });
-      toast('เปลี่ยนรหัสสำเร็จ');
-      $('#pCur').value = ''; $('#pNew1').value = ''; $('#pNew2').value = '';
-    } catch (e) { errEl.textContent = e.message; }
+    try { await api('POST', '/api/profile/password', { current: cur, new1: n1, new2: n2 }); toast('เปลี่ยนรหัสสำเร็จ'); $('#pCur').value = ''; $('#pNew1').value = ''; $('#pNew2').value = ''; }
+    catch (e) { errEl.textContent = e.message; }
   };
 });
 safe('run', function () {
@@ -2261,10 +2243,7 @@ safe('run', function () {
   const doSave = async () => { try { await saveBot(); await tickRun(); toast('บันทึกแล้ว'); } catch (e) { handleApiError(e); } };
   $('#saveBtn').onclick = doSave;
   $('#saveBtn2').onclick = doSave;
-  $('#runBtn').onclick = async () => {
-    try { await saveBot(); await api('POST', '/api/bots/' + cur + '/start'); await tickRun(); setView('log'); }
-    catch (e) { handleApiError(e); }
-  };
+  $('#runBtn').onclick = async () => { try { await saveBot(); await api('POST', '/api/bots/' + cur + '/start'); await tickRun(); setView('log'); } catch (e) { handleApiError(e); } };
   $('#stopBtn').onclick = async () => { try { await api('POST', '/api/bots/' + cur + '/stop'); await tickRun(); } catch (e) { toast(e.message); } };
   $('#delBtn').onclick = async () => {
     if (!(await askConfirm('ลบบอทนี้ถาวร?', 'ลบบอท'))) return;
@@ -2324,7 +2303,7 @@ safe('friends', function () {
   $('#frSearch').addEventListener('input', () => {
     const q = $('#frSearch').value.trim();
     if (q.length < 2) $('#frSearchResult').innerHTML = '';
-    else if (q.length >= 2) { clearTimeout(window._frSearchT); window._frSearchT = setTimeout(doSearchFriends, 500); }
+    else { clearTimeout(window._frSearchT); window._frSearchT = setTimeout(doSearchFriends, 500); }
   });
 });
 safe('chat', function () {
@@ -2377,6 +2356,8 @@ safe('admin', function () {
   if (lk) lk.onclick = doLookup;
   const lkInp = document.getElementById('lookupId');
   if (lkInp) lkInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLookup(); });
+  const storRef = document.getElementById('storRef');
+  if (storRef) storRef.onclick = loadStorage;
 });
 
 safe('init', function () { setMode('login'); });
