@@ -34,7 +34,7 @@ const SITE_ROOMS_MAX = 20;
 const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 
 // ===== SITE TIER =====
-const SITE_FILE_MAX = parseInt(process.env.SITE_FILE_MAX || '52428800', 10); // 50MB/ไฟล์
+const SITE_FILE_MAX = parseInt(process.env.SITE_FILE_MAX || '52428800', 10);
 const SITE_QUOTA_DEFAULT_MB = parseInt(process.env.SITE_QUOTA_MB || '500', 10);
 const SITE_CONSOLE_MAX = parseInt(process.env.SITE_CONSOLE_MAX || '500', 10);
 const SITE_RUNTIME_PORT_MIN = parseInt(process.env.SITE_PORT_MIN || '4000', 10);
@@ -134,17 +134,9 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
 }
 if (blobBuckets.length) {
   console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
-  try {
-    const sample = blobBuckets[0].bucket;
-    const methods = ['put', 'get', 'delete', 'list', 'head', 'copy', 'signedReadUrl', 'presign', 'url', 'download', 'upload'];
-    const found = methods.filter(m => typeof sample[m] === 'function');
-    console.log('🔍 Blob methods available: ' + found.join(', '));
-  } catch (e) {}
 } else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
 
-function getBucketById(id) {
-  return blobBuckets.find(b => b.id === id) || null;
-}
+function getBucketById(id) { return blobBuckets.find(b => b.id === id) || null; }
 
 // ============ DIRS ============
 const volPath = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
@@ -759,7 +751,6 @@ async function deleteMediaFile(mediaId) {
         try {
           await bk.bucket.delete(m.upstashPath);
           bk.used = Math.max(0, (bk.used || 0) - (m.size || 0));
-          console.log('🗑️  Deleted ' + m.upstashPath + ' from bucket #' + bk.id + ' (-' + (m.size || 0) + ' bytes)');
         } catch (e) { console.error('delete from bucket error:', e.message); }
       }
     } else {
@@ -816,10 +807,7 @@ async function serveMedia(req, res, id, me) {
   if (m.upstashPath) {
     const bid = typeof m.bucketId === 'number' ? m.bucketId : 0;
     const bk = getBucketById(bid);
-    if (!bk) {
-      console.error('serveMedia: bucket id ' + bid + ' not found');
-      return json(res, 500, { error: 'ไม่พบ bucket' });
-    }
+    if (!bk) return json(res, 500, { error: 'ไม่พบ bucket' });
     let buf = null;
     try {
       if (typeof bk.bucket.get === 'function') {
@@ -910,6 +898,472 @@ function validateSite(d) {
   if (packageJson.length > SITE_FIELD_MAX || serverCode.length > SITE_FIELD_MAX) return { error: 'โค้ดยาวเกินไป' };
   if (mode === 'full' ? !html.trim() : !(html.trim() || css.trim() || js.trim())) return { error: 'ใส่โค้ดอย่างน้อย 1 ช่อง' };
   return { title, tier, mode, html, css, js, packageJson, serverCode, public: d.public !== false };
+}
+
+// ============ SITE SDK (client) ============
+function alexaSdk() {
+  if (window.alexa) return;
+  var parentWin = window.parent;
+  var hasParent = !!parentWin && parentWin !== window;
+  var decided = false, online = false, cid = null, seq = 0;
+  var pending = {}, rooms = {};
+  var resolveReady;
+  var ready = new Promise(function (r) { resolveReady = r; });
+  function rnd(n) { var s = ''; for (var i = 0; i < n; i++) s += Math.floor(Math.random() * 16).toString(16); return s; }
+  function post(msg) { try { parentWin.postMessage(Object.assign({ alexa: 1 }, msg), '*'); } catch (e) {} }
+  function call(cmd, args) {
+    return new Promise(function (resolve, reject) {
+      var id = ++seq;
+      pending[id] = { resolve: resolve, reject: reject };
+      post(Object.assign({ cmd: cmd, id: id }, args || {}));
+      setTimeout(function () { if (pending[id]) { delete pending[id]; reject(new Error('หมดเวลา')); } }, 15000);
+    });
+  }
+  window.addEventListener('message', function (e) {
+    if (!hasParent || e.source !== parentWin) return;
+    var m = e.data; if (!m || m.alexa !== 1) return;
+    if (m.type === 'ready') { if (decided) return; decided = true; online = true; cid = m.cid; resolveReady(); return; }
+    if (m.type === 'reply') { var p = pending[m.id]; if (p) { delete pending[m.id]; if (m.ok) p.resolve(m.result); else p.reject(new Error(m.error || 'error')); } return; }
+    if (m.type === 'room') { var r = rooms[m.room]; if (r) r._event(m.ev, m.data); }
+  });
+  var tries = 0;
+  function hello() { if (decided || !hasParent) return; post({ cmd: 'hello' }); if (++tries < 5) setTimeout(hello, 400); }
+  hello();
+  setTimeout(function () { if (decided) return; decided = true; online = false; cid = 'local' + rnd(20); resolveReady(); }, 2200);
+  function Room(name, opts) {
+    var self = this;
+    this.name = name; this.peers = []; this.id = null; this._h = {};
+    this._name = opts && opts.name ? String(opts.name).slice(0, 24) : '';
+    this._joined = new Promise(function (r) { self._resolveJoined = r; });
+  }
+  Room.prototype.on = function (ev, fn) { (this._h[ev] = this._h[ev] || []).push(fn); return this; };
+  Room.prototype._emit = function (ev, data) { (this._h[ev] || []).slice().forEach(function (f) { try { f(data); } catch (e) {} }); };
+  Room.prototype._event = function (ev, d) {
+    if (ev === 'hello') { this.id = d.id; this.peers = (d.peers || []).slice(); this._resolveJoined(); this._emit('hello', d); }
+    else if (ev === 'join') { if (!this.peers.some(function (p) { return p.id === d.id; })) this.peers.push(d); this._emit('join', d); }
+    else if (ev === 'leave') { this.peers = this.peers.filter(function (p) { return p.id !== d.id; }); this._emit('leave', d); }
+    else if (ev === 'msg') { this._emit('message', d); }
+    else if (ev === 'error') { this._emit('error', d); }
+  };
+  Room.prototype.send = function (data, o) {
+    var self = this; o = o || {};
+    return ready.then(function () { return self._joined; }).then(function () {
+      if (online) return call('send', { room: self.name, data: data, keep: !!o.keep, self: o.self !== false });
+      if (o.self !== false) { var msg = { from: cid, name: self._name, data: data, t: Date.now() }; setTimeout(function () { self._event('msg', msg); }, 0); }
+      return true;
+    });
+  };
+  Room.prototype.leave = function () { var name = this.name; delete rooms[name]; return ready.then(function () { if (online) return call('leave', { room: name }); return true; }); };
+  function join(name, opts) {
+    name = String(name || '');
+    var room = new Room(name, opts);
+    rooms[name] = room;
+    ready.then(function () {
+      if (online) call('join', { room: name, name: room._name }).catch(function (err) { room._emit('error', { error: err.message }); });
+      else setTimeout(function () { room._event('hello', { id: cid, peers: [{ id: cid, name: room._name }], history: [] }); }, 0);
+    });
+    return room;
+  }
+  var local = { shared: {}, mine: {} };
+  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
+  function localDb(op, scope, a) {
+    var st = local[scope];
+    var key = a.key === undefined ? '' : String(a.key);
+    var k = 'k:' + key;
+    if (op === 'get') return Promise.resolve(has(st, k) ? JSON.parse(st[k]) : null);
+    if (op === 'set') { st[k] = JSON.stringify(a.value === undefined ? null : a.value); return Promise.resolve(true); }
+    if (op === 'del') { delete st[k]; return Promise.resolve(true); }
+    if (op === 'incr') { var cur = has(st, k) ? JSON.parse(st[k]) : 0; if (typeof cur !== 'number') return Promise.reject(new Error('ไม่ใช่ตัวเลข')); cur += (a.by === undefined ? 1 : Number(a.by)); st[k] = JSON.stringify(cur); return Promise.resolve(cur); }
+    if (op === 'list') { var p = String(a.prefix || ''); return Promise.resolve(Object.keys(st).filter(function (x) { return x.slice(2).indexOf(p) === 0; }).sort().map(function (x) { return { key: x.slice(2), value: JSON.parse(st[x]) }; })); }
+    if (op === 'clear') { local[scope] = {}; return Promise.resolve(true); }
+    return Promise.reject(new Error('คำสั่งไม่ถูกต้อง'));
+  }
+  function dbCall(op, scope, extra) {
+    scope = scope === 'mine' ? 'mine' : 'shared';
+    return ready.then(function () { if (online) return call('db', Object.assign({ op: op, scope: scope }, extra)); return localDb(op, scope, extra); });
+  }
+  var db = {
+    get: function (key, scope) { return dbCall('get', scope, { key: key }); },
+    set: function (key, value, scope) { return dbCall('set', scope, { key: key, value: value }); },
+    del: function (key, scope) { return dbCall('del', scope, { key: key }); },
+    incr: function (key, by, scope) { return dbCall('incr', scope, { key: key, by: by === undefined ? 1 : by }); },
+    list: function (prefix, scope) { return dbCall('list', scope, { prefix: prefix || '' }); },
+    clear: function () { return dbCall('clear', 'mine', {}); }
+  };
+
+  // ===== Files API =====
+  var slug = null;
+  var mm = /^\/s\/([a-z0-9][a-z0-9-]{2,29})/.exec(location.pathname);
+  if (mm) slug = mm[1];
+
+  function filesUpload(file, onProgress) {
+    return new Promise(function (resolve, reject) {
+      if (!slug) return reject(new Error('ไม่พบ slug ของเว็บ'));
+      if (!file) return reject(new Error('ไม่มีไฟล์'));
+      var x = new XMLHttpRequest();
+      x.open('POST', '/sapi/' + slug + '/file');
+      x.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      try { x.setRequestHeader('X-File-Name', encodeURIComponent(file.name || '').slice(0, 200)); } catch (e) {}
+      x.withCredentials = true;
+      x.upload.onprogress = function (e) { if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100)); };
+      x.onload = function () {
+        var d = {};
+        try { d = JSON.parse(x.responseText); } catch (e) {}
+        if (x.status >= 200 && x.status < 300) resolve(d);
+        else reject(new Error(d.error || ('HTTP ' + x.status)));
+      };
+      x.onerror = function () { reject(new Error('เครือข่ายขัดข้อง')); };
+      x.send(file);
+    });
+  }
+  function filesList() {
+    if (!slug) return Promise.reject(new Error('ไม่พบ slug ของเว็บ'));
+    return fetch('/sapi/' + slug + '/file/list', { credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status); return d; }); });
+  }
+  function filesDelete(id) {
+    if (!slug) return Promise.reject(new Error('ไม่พบ slug ของเว็บ'));
+    return fetch('/sapi/' + slug + '/file/' + id, { method: 'DELETE', credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status); return d; }); });
+  }
+  var files = {
+    upload: filesUpload,
+    list: filesList,
+    delete: filesDelete,
+    del: filesDelete,
+    url: function (id) { return '/sapi/' + slug + '/file/' + id; },
+    slug: function () { return slug; }
+  };
+
+  // ===== Console log API =====
+  var logQueue = [];
+  var logTimer = null;
+  var logCount = 0;
+  var logResetAt = 0;
+
+  function flushLogs() {
+    logTimer = null;
+    if (!logQueue.length || !slug) return;
+    var batch = logQueue.splice(0, 5);
+    for (var i = 0; i < batch.length; i++) {
+      (function (item) {
+        fetch('/sapi/' + slug + '/console', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+          credentials: 'same-origin'
+        }).catch(function () {});
+      })(batch[i]);
+    }
+    if (logQueue.length) logTimer = setTimeout(flushLogs, 100);
+  }
+
+  function sendLog(level, args) {
+    if (!slug) return;
+    var now = Date.now();
+    if (now - logResetAt > 10000) { logCount = 0; logResetAt = now; }
+    if (logCount >= 100) return;
+    logCount++;
+    var msg = Array.prototype.map.call(args, function (a) {
+      if (a === null) return 'null';
+      if (a === undefined) return 'undefined';
+      if (typeof a === 'string') return a;
+      if (typeof a === 'number' || typeof a === 'boolean') return String(a);
+      if (a instanceof Error) return a.message + '\n' + (a.stack || '');
+      try { return JSON.stringify(a); } catch (e) { return String(a); }
+    }).join(' ').slice(0, 1000);
+    logQueue.push({ level: level, msg: msg });
+    if (!logTimer) logTimer = setTimeout(flushLogs, 100);
+  }
+
+  function alexaLog() { sendLog('log', arguments); }
+  function alexaInfo() { sendLog('info', arguments); }
+  function alexaWarn() { sendLog('warn', arguments); }
+  function alexaError() { sendLog('error', arguments); }
+
+  if (!window.__alexaConsoleHooked) {
+    window.__alexaConsoleHooked = true;
+    ['log', 'info', 'warn', 'error'].forEach(function (lv) {
+      var orig = console[lv] ? console[lv].bind(console) : function () {};
+      console[lv] = function () {
+        try { orig.apply(null, arguments); } catch (e) {}
+        try { sendLog(lv, arguments); } catch (e) {}
+      };
+    });
+    window.addEventListener('error', function (e) {
+      try { sendLog('error', ['[uncaught] ' + (e.message || 'error') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0)]); } catch (x) {}
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      try { sendLog('error', ['[unhandled promise] ' + ((e.reason && e.reason.message) || e.reason)]); } catch (x) {}
+    });
+  }
+
+  var api = { join: join, db: db, ready: ready, files: files, log: alexaLog, info: alexaInfo, warn: alexaWarn, error: alexaError };
+  Object.defineProperty(api, 'id', { get: function () { return cid; }, enumerable: true });
+  Object.defineProperty(api, 'offline', { get: function () { return decided && !online; }, enumerable: true });
+  window.alexa = api;
+}
+
+function alexaHost() {
+  var mm = /^\/s\/([a-z0-9][a-z0-9-]{2,29})/.exec(location.pathname);
+  if (!mm) return;
+  var slug = mm[1], base = '/sapi/' + slug;
+  var ROOM_RE = /^[A-Za-z0-9_-]{1,32}$/;
+  var cid = null, lsKey = 'alexa_cid_' + slug;
+  try { cid = localStorage.getItem(lsKey); } catch (e) {}
+  if (!cid || !/^[a-f0-9]{32}$/.test(cid)) {
+    var a = new Uint8Array(16);
+    window.crypto.getRandomValues(a);
+    cid = Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    try { localStorage.setItem(lsKey, cid); } catch (e) {}
+  }
+  var sources = {};
+  function frame() { return document.getElementById('f'); }
+  function toFrame(msg) { var f = frame(); if (f && f.contentWindow) f.contentWindow.postMessage(Object.assign({ alexa: 1 }, msg), '*'); }
+  function reply(id, ok, result, error) { toFrame({ type: 'reply', id: id, ok: ok, result: result, error: error }); }
+  function api(path, body) {
+    return fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }); });
+  }
+  function closeRoom(room) { if (sources[room]) { sources[room].close(); delete sources[room]; } }
+  function join(m) {
+    var room = String(m.room || '');
+    if (!ROOM_RE.test(room)) throw new Error('ชื่อห้องไม่ถูกต้อง');
+    if (!sources[room] && Object.keys(sources).length >= 5) throw new Error('เข้าห้องได้ไม่เกิน 5 ห้อง');
+    closeRoom(room);
+    var url = base + '/events?cid=' + cid + '&room=' + encodeURIComponent(room) + '&name=' + encodeURIComponent(String(m.name || '').slice(0, 24));
+    var es = new EventSource(url);
+    sources[room] = es;
+    ['hello', 'join', 'leave', 'msg'].forEach(function (ev) {
+      es.addEventListener(ev, function (e) { var data; try { data = JSON.parse(e.data); } catch (x) { return; } toFrame({ type: 'room', room: room, ev: ev, data: data }); });
+    });
+    es.addEventListener('fatal', function (e) { var d = {}; try { d = JSON.parse(e.data); } catch (x) {} toFrame({ type: 'room', room: room, ev: 'error', data: { error: d.error || 'เข้าห้องไม่ได้' } }); closeRoom(room); });
+    es.onerror = function () { if (es.readyState === 2) { toFrame({ type: 'room', room: room, ev: 'error', data: { error: 'เชื่อมต่อไม่ได้' } }); delete sources[room]; } };
+  }
+  window.addEventListener('message', function (e) {
+    var f = frame(); if (!f || e.source !== f.contentWindow) return;
+    var m = e.data; if (!m || m.alexa !== 1 || typeof m.cmd !== 'string') return;
+    var id = m.id;
+    if (m.cmd === 'hello') { api('/db', { cid: cid, op: 'whoami' }).then(function (d) { toFrame({ type: 'ready', cid: d.result }); }, function () {}); return; }
+    try {
+      if (m.cmd === 'join') { join(m); reply(id, true, true); }
+      else if (m.cmd === 'leave') { closeRoom(String(m.room || '')); reply(id, true, true); }
+      else if (m.cmd === 'send') { if (!ROOM_RE.test(String(m.room || ''))) throw new Error('ชื่อห้องไม่ถูกต้อง'); api('/send', { cid: cid, room: m.room, data: m.data, keep: !!m.keep, self: m.self !== false }).then(function () { reply(id, true, true); }, function (er) { reply(id, false, null, er.message); }); }
+      else if (m.cmd === 'db') { api('/db', { cid: cid, op: m.op, scope: m.scope, key: m.key, value: m.value, prefix: m.prefix, by: m.by }).then(function (d) { reply(id, true, d.result); }, function (er) { reply(id, false, null, er.message); }); }
+    } catch (er) { reply(id, false, null, er.message); }
+  });
+}
+const SDK_JS = '(' + alexaSdk.toString() + ')();';
+const HOST_JS = '(' + alexaHost.toString() + ')();';
+
+function serveJs(res, src) {
+  res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
+  res.end(src);
+}
+
+function serveSite(req, res, slug, raw) {
+  const site = own(hub.sites, slug);
+  const viewer = userOf(req) || userFromQueryToken(req);
+  const noRobots = 'noindex, nofollow';
+  const owner = site && getUser(site.owner);
+  const ownerExpired = owner ? trialExpired(owner) : false;
+  const isPublicVisible = site && site.public && !ownerExpired;
+  if (!site || (!isPublicVisible && viewer !== site.owner)) {
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-store' });
+    return res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ไม่พบเว็บ</title><body style="background:#000;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:20vh 20px"><h2>ไม่พบเว็บนี้</h2><p><a style="color:#fff" href="/">ALEXA HUB</a></p></body>');
+  }
+  if (raw) {
+    const dest = req.headers['sec-fetch-dest'];
+    if (dest && dest !== 'iframe' && dest !== 'frame') { res.writeHead(302, { Location: '/s/' + site.slug }); return res.end(); }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': 'sandbox ' + SANDBOX_FLAGS, 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-cache' });
+    return res.end(injectSdk(buildSitePage(site)));
+  }
+  if (viewer !== site.owner) { site.views = (site.views || 0) + 1; trackVisitor(site, ipOf(req)); saveHub(); }
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'", 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'X-Robots-Tag': noRobots, 'Cache-Control': 'no-store' });
+  const bar = SITE_BANNER ? '<div class="bar"><a href="/">ALEXA HUB</a><span>เว็บนี้สร้างโดยสมาชิก @' + escHtml(site.owner) + '</span></div>' : '';
+  res.end('<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>' + escHtml(site.title) + '</title><style>html,body{margin:0;height:100%;background:#000}iframe{position:fixed;left:0;right:0;bottom:0;top:0;width:100%;height:100%;border:0;background:#fff}' + (SITE_BANNER ? 'body.b iframe{top:34px;height:calc(100% - 34px)}.bar{position:fixed;left:0;right:0;top:0;height:34px;z-index:2;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:0 12px;background:#0b0b0b;border-bottom:1px solid #333;font:13px system-ui,sans-serif;color:#eee}.bar a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.2em}.bar span{color:#9a9a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' : '') + '</style><script src="/s/_host.js"></script></head><body' + (SITE_BANNER ? ' class="b"' : '') + '>' + bar + '<iframe id="f" src="/s/' + site.slug + '/raw" sandbox="' + SANDBOX_FLAGS + '" allow="fullscreen; autoplay; gamepad" referrerpolicy="no-referrer" allowfullscreen></iframe></body></html>');
+}
+
+// ============ SAPI ============
+const rooms = new Map();
+let sseCount = 0;
+const sseByIp = new Map(), sapiHits = new Map(), buckets = new Map();
+const SSE_HEADERS = { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no', 'X-Content-Type-Options': 'nosniff' };
+const pidOf = (slug, cid) => crypto.createHash('sha256').update(slug + ':' + cid).digest('hex').slice(0, 16);
+
+function sapiLimited(ip) {
+  const now = Date.now();
+  let f = sapiHits.get(ip);
+  if (!f || now - f.t > 10000) { f = { n: 0, t: now }; sapiHits.set(ip, f); }
+  f.n++; return f.n > 600;
+}
+function takeToken(key, rate, burst) {
+  const now = Date.now();
+  let b = buckets.get(key);
+  if (!b) { b = { tokens: burst, last: now }; buckets.set(key, b); }
+  b.tokens = Math.min(burst, b.tokens + (now - b.last) / 1000 * rate);
+  b.last = now;
+  if (b.tokens < 1) return false;
+  b.tokens -= 1; return true;
+}
+function sseSend(c, ev, data) {
+  try { if (c.res.writableLength > 1000000) { c.res.destroy(); return; } c.res.write('event: ' + ev + '\ndata: ' + JSON.stringify(data) + '\n\n'); } catch {}
+}
+function roomBroadcast(room, ev, data, exceptCid) { for (const c of room.clients.values()) if (c.cid !== exceptCid) sseSend(c, ev, data); }
+function onlineCount(slug) { let n = 0; for (const r of rooms.values()) if (r.slug === slug) n += r.clients.size; return n; }
+function closeSiteRooms(slug) {
+  for (const [k, r] of Array.from(rooms.entries())) {
+    if (r.slug !== slug) continue;
+    for (const c of Array.from(r.clients.values())) { try { c.res.end(); } catch {} }
+    rooms.delete(k);
+  }
+}
+function sapiEvents(req, res, url, site, ip) {
+  const cid = String(url.searchParams.get('cid') || '');
+  const roomName = String(url.searchParams.get('room') || '');
+  const nick = String(url.searchParams.get('name') || '').replace(/[\r\n]/g, ' ').slice(0, 24);
+  if (!CID_RE.test(cid) || !ROOM_RE.test(roomName)) return json(res, 400, { error: 'ข้อมูลห้องไม่ถูกต้อง' });
+  const fatal = (msg) => { res.writeHead(200, SSE_HEADERS); res.end('event: fatal\ndata: ' + JSON.stringify({ error: msg }) + '\n\n'); };
+  if (sseCount >= MAX_SSE) return fatal('เต็ม');
+  if ((sseByIp.get(ip) || 0) >= 40) return fatal('เชื่อมต่อจากเครื่องนี้มากเกินไป');
+  const key = site.slug + '|' + roomName;
+  let room = rooms.get(key);
+  if (!room) {
+    let n = 0;
+    for (const r of rooms.values()) if (r.slug === site.slug) n++;
+    if (n >= SITE_ROOMS_MAX) return fatal('เว็บนี้มีห้องมากเกินไป');
+    room = { slug: site.slug, name: roomName, clients: new Map(), history: [], emptySince: 0 };
+    rooms.set(key, room);
+  }
+  const old = room.clients.get(cid);
+  if (!old && room.clients.size >= ROOM_MAX) return fatal('ห้องเต็ม');
+  if (old) { room.clients.delete(cid); try { old.res.end(); } catch {} }
+  req.socket.setNoDelay(true); req.socket.setTimeout(0);
+  res.writeHead(200, SSE_HEADERS);
+  const pid = pidOf(site.slug, cid);
+  const client = { cid, pid, name: nick, res, ip };
+  room.clients.set(cid, client); room.emptySince = 0;
+  sseCount++; sseByIp.set(ip, (sseByIp.get(ip) || 0) + 1);
+  res.write('retry: 3000\n\n');
+  sseSend(client, 'hello', { id: pid, peers: Array.from(room.clients.values()).map((c) => ({ id: c.pid, name: c.name })), history: room.history });
+  if (!old) roomBroadcast(room, 'join', { id: pid, name: nick }, cid);
+  const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch {} }, 20000);
+  res.on('close', () => {
+    clearInterval(ping); sseCount--;
+    const left = (sseByIp.get(ip) || 1) - 1;
+    if (left <= 0) sseByIp.delete(ip); else sseByIp.set(ip, left);
+    if (room.clients.get(cid) === client) {
+      room.clients.delete(cid);
+      roomBroadcast(room, 'leave', { id: pid, name: nick });
+      if (!room.clients.size) room.emptySince = Date.now();
+    }
+  });
+}
+function dbExec(slug, cid, scope, op, d) {
+  const site = () => sdata.sites[slug] || null;
+  const store = (create) => {
+    let s = site();
+    if (!s) { if (!create) return null; s = sdata.sites[slug] = { shared: {}, priv: {} }; }
+    if (scope === 'shared') return s.shared;
+    if (!s.priv[cid]) { if (!create) return null; s.priv[cid] = {}; }
+    return s.priv[cid];
+  };
+  const key = d.key === undefined ? '' : String(d.key);
+  if (['get', 'set', 'del', 'incr'].includes(op) && !SITE_KEY_RE.test(key)) return { status: 400, error: 'ชื่อคีย์ไม่ถูกต้อง' };
+  const k = 'k:' + key;
+  if (op === 'get') { const st = store(false); return { result: st && hasOwn(st, k) ? JSON.parse(st[k].v) : null }; }
+  if (op === 'list') {
+    const st = store(false); const prefix = String(d.prefix || '').slice(0, 64);
+    const out = []; let size = 0;
+    if (st) {
+      const ks = Object.keys(st).filter((x) => x.slice(2).startsWith(prefix)).sort();
+      for (const x of ks) { size += st[x].v.length; if (out.length >= 200 || size > 512 * 1024) break; out.push({ key: x.slice(2), value: JSON.parse(st[x].v) }); }
+    }
+    return { result: out };
+  }
+  if (op === 'del') { const st = store(false); if (st && hasOwn(st, k)) { delete st[k]; if (scope === 'mine' && !Object.keys(st).length && site()) delete site().priv[cid]; saveSData(); } return { result: true }; }
+  if (op === 'clear') { if (scope !== 'mine') return { status: 403, error: 'ล้างได้เฉพาะเจ้าของ' }; const s = site(); if (s && s.priv[cid]) { delete s.priv[cid]; saveSData(); } return { result: true }; }
+  if (op === 'set' || op === 'incr') {
+    let value;
+    if (op === 'incr') {
+      const by = d.by === undefined ? 1 : Number(d.by);
+      if (!Number.isFinite(by) || Math.abs(by) > 1e9) return { status: 400, error: 'ค่า incr ไม่ถูกต้อง' };
+      const st0 = store(false); let curv = 0;
+      if (st0 && hasOwn(st0, k)) { curv = JSON.parse(st0[k].v); if (typeof curv !== 'number') return { status: 400, error: 'คีย์นี้ไม่ใช่ตัวเลข' }; }
+      value = curv + by;
+    } else value = d.value === undefined ? null : d.value;
+    const vs = JSON.stringify(value);
+    if (vs.length > SITE_VALUE_MAX) return { status: 413, error: 'ข้อมูลใหญ่เกิน ' + Math.round(SITE_VALUE_MAX / 1024) + ' KB' };
+    const s = site(); let bytes = 0, keys = 0;
+    if (s) for (const st of [s.shared].concat(Object.values(s.priv))) for (const kk in st) { bytes += kk.length + st[kk].v.length; keys++; }
+    const stNow = store(false); const existed = !!(stNow && hasOwn(stNow, k));
+    if (existed) bytes -= k.length + stNow[k].v.length; else keys += 1;
+    bytes += k.length + vs.length;
+    if (bytes > SITE_DB_BYTES || keys > SITE_KEYS_MAX) return { status: 413, error: 'ที่เก็บข้อมูลเต็ม' };
+    if (scope === 'mine') {
+      if (stNow && !existed && Object.keys(stNow).length >= 100) return { status: 400, error: 'ส่วนตัวได้ไม่เกิน 100 คีย์' };
+      if (!stNow && s && Object.keys(s.priv).length >= 500) return { status: 429, error: 'มีผู้ใช้เก็บข้อมูลส่วนตัวมากเกินไป' };
+    }
+    const st = store(true);
+    st[k] = { v: vs, t: Date.now() };
+    saveSData();
+    return { result: op === 'incr' ? value : true };
+  }
+  return { status: 400, error: 'คำสั่งไม่ถูกต้อง' };
+}
+function siteDataUsage(slug) {
+  const s = sdata.sites[slug]; let bytes = 0, keys = 0;
+  if (s) for (const st of [s.shared].concat(Object.values(s.priv))) for (const kk in st) { bytes += kk.length + st[kk].v.length; keys++; }
+  return { bytes, keys, limit: SITE_DB_BYTES, online: onlineCount(slug) };
+}
+async function handleSapi(req, res, url, slug, kind) {
+  const site = own(hub.sites, slug);
+  if (!site || (!site.public && userOf(req) !== site.owner)) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+  const owner = getUser(site.owner);
+  if (owner && trialExpired(owner) && userOf(req) !== site.owner) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+  const ip = ipOf(req);
+  if (sapiLimited(ip)) return json(res, 429, { error: 'ถี่เกินไป' });
+  if (kind === 'events') {
+    if (req.method !== 'GET') return json(res, 405, { error: 'method not allowed' });
+    return sapiEvents(req, res, url, site, ip);
+  }
+  if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' });
+  const d = await readBody(req);
+  const cid = String(d.cid || '');
+  if (!CID_RE.test(cid)) return json(res, 400, { error: 'รหัสผู้เข้าชมไม่ถูกต้อง' });
+  if (kind === 'send') {
+    const roomName = String(d.room || '');
+    const room = ROOM_RE.test(roomName) ? rooms.get(site.slug + '|' + roomName) : null;
+    const client = room && room.clients.get(cid);
+    if (!client) return json(res, 409, { error: 'ยังไม่ได้เข้าห้อง' });
+    if (!takeToken('s|' + site.slug + '|' + cid, 30, 60)) return json(res, 429, { error: 'ส่งถี่เกินไป' });
+    const data = d.data === undefined ? null : d.data;
+    if (JSON.stringify(data).length > 8192) return json(res, 413, { error: 'ใหญ่เกิน 8 KB' });
+    const msg = { from: client.pid, name: client.name, data, t: Date.now() };
+    if (d.keep) { room.history.push(msg); if (room.history.length > 50) room.history.shift(); }
+    roomBroadcast(room, 'msg', msg, d.self === false ? cid : null);
+    return json(res, 200, { ok: true });
+  }
+  const op = String(d.op || '');
+  if (op === 'whoami') return json(res, 200, { result: pidOf(site.slug, cid) });
+  if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'ถี่เกินไป' });
+  const scope = d.scope === 'mine' ? 'mine' : 'shared';
+  const out = dbExec(site.slug, cid, scope, op, d);
+  if (out.error) return json(res, out.status || 400, { error: out.error });
+  return json(res, 200, { result: out.result });
+}
+
+function json(res, code, obj, headers) {
+  res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff' }, headers || {}));
+  res.end(JSON.stringify(obj));
+}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let s = '', n = 0;
+    req.on('data', (c) => { n += c.length; if (n > 1e6) { reject(Object.assign(new Error('ใหญ่เกินไป'), { status: 413 })); req.destroy(); return; } s += c; });
+    req.on('end', () => { try { resolve(s ? JSON.parse(s) : {}); } catch { reject(Object.assign(new Error('JSON เสีย'), { status: 400 })); } });
+    req.on('error', reject);
+  });
 }
 
 // ============ SITE TIER HELPERS ============
@@ -1198,7 +1652,9 @@ const server = http.createServer(async (req, res) => {
       if (!site) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
       const tok = findTokenOfSlug(site.slug);
       if (!tok) return json(res, 400, { error: 'ยังไม่มี token' });
-      if (String(req.headers['x-site-token'] || '') !== tok.token) return json(res, 401, { error: 'token ไม่ถูกต้อง' });
+      const ownerOk = userOf(req) === site.owner;
+      const tokenOk = String(req.headers['x-site-token'] || '') === tok.token;
+      if (!ownerOk && !tokenOk) return json(res, 401, { error: 'unauthorized' });
       const files = Object.entries(hub.siteFiles)
         .filter(([id, f]) => f.slug === site.slug)
         .map(([id, f]) => ({ id, url: '/sapi/' + site.slug + '/file/' + id, size: f.size, mime: f.mime, name: f.originalName || '', created: f.created }));
@@ -1213,7 +1669,9 @@ const server = http.createServer(async (req, res) => {
       const tok = findTokenOfSlug(site.slug);
       if (!tok) return json(res, 400, { error: 'ยังไม่มี token' });
       if (M === 'POST' && !sf[2]) {
-        if (String(req.headers['x-site-token'] || '') !== tok.token) return json(res, 401, { error: 'token ไม่ถูกต้อง' });
+        const ownerOk = userOf(req) === site.owner;
+        const tokenOk = String(req.headers['x-site-token'] || '') === tok.token;
+        if (!ownerOk && !tokenOk) return json(res, 401, { error: 'unauthorized' });
         const ct = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
         const len = parseInt(req.headers['content-length'] || '0', 10) || 0;
         if (len > SITE_FILE_MAX) return json(res, 413, { error: 'ใหญ่เกิน ' + Math.round(SITE_FILE_MAX / 1048576) + 'MB' });
@@ -1251,7 +1709,9 @@ const server = http.createServer(async (req, res) => {
         return json(res, 500, { error: 'ไฟล์หาย' });
       }
       if (M === 'DELETE' && sf[2]) {
-        if (String(req.headers['x-site-token'] || '') !== tok.token) return json(res, 401, { error: 'token ไม่ถูกต้อง' });
+        const ownerOk = userOf(req) === site.owner;
+        const tokenOk = String(req.headers['x-site-token'] || '') === tok.token;
+        if (!ownerOk && !tokenOk) return json(res, 401, { error: 'unauthorized' });
         const f = own(hub.siteFiles, sf[2]);
         if (!f || f.slug !== site.slug) return json(res, 404, { error: 'ไม่เจอไฟล์' });
         await deleteSiteFile(sf[2]);
