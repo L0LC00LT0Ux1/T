@@ -33,7 +33,6 @@ const ROOM_MAX = parseInt(process.env.ROOM_MAX_CLIENTS || '40', 10);
 const SITE_ROOMS_MAX = 20;
 const MAX_SSE = parseInt(process.env.MAX_SSE || '600', 10);
 
-// ===== SITE TIER =====
 const SITE_FILE_MAX = parseInt(process.env.SITE_FILE_MAX || '52428800', 10);
 const SITE_QUOTA_DEFAULT_MB = parseInt(process.env.SITE_QUOTA_MB || '500', 10);
 const SITE_CONSOLE_MAX = parseInt(process.env.SITE_CONSOLE_MAX || '500', 10);
@@ -52,6 +51,15 @@ const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK
 const isAdmin = (u) => !!u && String(u).toLowerCase() === ADMIN_USER;
 const TRIAL_MSG = 'สิทธิ์คุณหมดแล้ว ไปติดต่อ ซื้อสิทธ์ เพิ่มได้ที่ https://discord.gg/dTz2njT9fZ';
 const BOT_EXPIRED_MSG = 'บอทนี้หมดเวลาแล้ว กรุณาต่อเวลาใหม่';
+
+// ============ CORS ============
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Site-Token, X-File-Name, X-Session, Authorization',
+  'Access-Control-Max-Age': '86400'
+};
+function withCors(extra) { return Object.assign({}, CORS_HEADERS, extra || {}); }
 
 // ============ ID GEN ============
 function genPublicId(existing) {
@@ -1287,39 +1295,39 @@ function siteDataUsage(slug) {
 }
 async function handleSapi(req, res, url, slug, kind) {
   const site = own(hub.sites, slug);
-  if (!site || (!site.public && userOf(req) !== site.owner)) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+  if (!site || (!site.public && userOf(req) !== site.owner)) return json(res, 404, { error: 'ไม่เจอเว็บนี้' }, CORS_HEADERS);
   const owner = getUser(site.owner);
-  if (owner && trialExpired(owner) && userOf(req) !== site.owner) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+  if (owner && trialExpired(owner) && userOf(req) !== site.owner) return json(res, 404, { error: 'ไม่เจอเว็บนี้' }, CORS_HEADERS);
   const ip = ipOf(req);
-  if (sapiLimited(ip)) return json(res, 429, { error: 'ถี่เกินไป' });
+  if (sapiLimited(ip)) return json(res, 429, { error: 'ถี่เกินไป' }, CORS_HEADERS);
   if (kind === 'events') {
-    if (req.method !== 'GET') return json(res, 405, { error: 'method not allowed' });
+    if (req.method !== 'GET') return json(res, 405, { error: 'method not allowed' }, CORS_HEADERS);
     return sapiEvents(req, res, url, site, ip);
   }
-  if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' });
+  if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' }, CORS_HEADERS);
   const d = await readBody(req);
   const cid = String(d.cid || '');
-  if (!CID_RE.test(cid)) return json(res, 400, { error: 'รหัสผู้เข้าชมไม่ถูกต้อง' });
+  if (!CID_RE.test(cid)) return json(res, 400, { error: 'รหัสผู้เข้าชมไม่ถูกต้อง' }, CORS_HEADERS);
   if (kind === 'send') {
     const roomName = String(d.room || '');
     const room = ROOM_RE.test(roomName) ? rooms.get(site.slug + '|' + roomName) : null;
     const client = room && room.clients.get(cid);
-    if (!client) return json(res, 409, { error: 'ยังไม่ได้เข้าห้อง' });
-    if (!takeToken('s|' + site.slug + '|' + cid, 30, 60)) return json(res, 429, { error: 'ส่งถี่เกินไป' });
+    if (!client) return json(res, 409, { error: 'ยังไม่ได้เข้าห้อง' }, CORS_HEADERS);
+    if (!takeToken('s|' + site.slug + '|' + cid, 30, 60)) return json(res, 429, { error: 'ส่งถี่เกินไป' }, CORS_HEADERS);
     const data = d.data === undefined ? null : d.data;
-    if (JSON.stringify(data).length > 8192) return json(res, 413, { error: 'ใหญ่เกิน 8 KB' });
+    if (JSON.stringify(data).length > 8192) return json(res, 413, { error: 'ใหญ่เกิน 8 KB' }, CORS_HEADERS);
     const msg = { from: client.pid, name: client.name, data, t: Date.now() };
     if (d.keep) { room.history.push(msg); if (room.history.length > 50) room.history.shift(); }
     roomBroadcast(room, 'msg', msg, d.self === false ? cid : null);
-    return json(res, 200, { ok: true });
+    return json(res, 200, { ok: true }, CORS_HEADERS);
   }
   const op = String(d.op || '');
-  if (op === 'whoami') return json(res, 200, { result: pidOf(site.slug, cid) });
-  if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'ถี่เกินไป' });
+  if (op === 'whoami') return json(res, 200, { result: pidOf(site.slug, cid) }, CORS_HEADERS);
+  if (!takeToken('d|' + site.slug + '|' + cid, 10, 30)) return json(res, 429, { error: 'ถี่เกินไป' }, CORS_HEADERS);
   const scope = d.scope === 'mine' ? 'mine' : 'shared';
   const out = dbExec(site.slug, cid, scope, op, d);
-  if (out.error) return json(res, out.status || 400, { error: out.error });
-  return json(res, 200, { result: out.result });
+  if (out.error) return json(res, out.status || 400, { error: out.error }, CORS_HEADERS);
+  return json(res, 200, { result: out.result }, CORS_HEADERS);
 }
 
 function json(res, code, obj, headers) {
@@ -1641,6 +1649,15 @@ function findByPublicId(id) {
 // ============ HTTP SERVER ============
 const server = http.createServer(async (req, res) => {
   try {
+    // ===== CORS Global =====
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Site-Token, X-File-Name, X-Session, Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+
+    // ===== CORS Preflight =====
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+
     const url = new URL(req.url, 'http://x');
     const p = url.pathname;
     const M = req.method;
