@@ -132,9 +132,8 @@ for (let i = 0; i < BLOB_TOKENS.length; i++) {
     blobBuckets.push({ bucket: bk, id: i, used: 0 });
   } catch (e) { console.error('❌ Blob init error #' + i + ':', e.message); }
 }
-if (blobBuckets.length) {
-  console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
-} else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
+if (blobBuckets.length) console.log('✅ Upstash Blob connected (' + blobBuckets.length + ' bucket' + (blobBuckets.length > 1 ? 's' : '') + ')');
+else console.warn('⚠️ UPSTASH_BLOB_TOKENS not found. Media stored locally.');
 
 function getBucketById(id) { return blobBuckets.find(b => b.id === id) || null; }
 
@@ -795,7 +794,6 @@ async function blobResultToBuffer(got) {
 async function serveMedia(req, res, id, me) {
   const m = own(hub.media, id);
   if (!m) return json(res, 404, { error: 'ไม่เจอไฟล์' });
-
   if (m.scope === 'chat') {
     let uid = me;
     if (!uid) uid = userFromQueryToken(req);
@@ -803,7 +801,6 @@ async function serveMedia(req, res, id, me) {
     const c = own(hub.chats, m.chatId);
     if (!c || !c.members.includes(uid)) return json(res, 404, { error: 'ไม่เจอไฟล์' });
   }
-
   if (m.upstashPath) {
     const bid = typeof m.bucketId === 'number' ? m.bucketId : 0;
     const bk = getBucketById(bid);
@@ -825,17 +822,11 @@ async function serveMedia(req, res, id, me) {
       } catch (e) {}
     }
     if (!buf) return json(res, 500, { error: 'อ่านไฟล์จาก storage ไม่ได้' });
-    const h = {
-      'Content-Type': m.mime || 'application/octet-stream',
-      'Content-Length': buf.length,
-      'Cache-Control': 'public, max-age=86400',
-      'X-Content-Type-Options': 'nosniff'
-    };
+    const h = { 'Content-Type': m.mime || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' };
     if (m.kind === 'file') h['Content-Disposition'] = 'attachment; filename="file.' + m.ext + '"';
     res.writeHead(200, h);
     return res.end(buf);
   }
-
   const fp = path.join(MEDIA_DIR, id + '.' + m.ext);
   let size;
   try { size = fs.statSync(fp).size; } catch { return json(res, 404, { error: 'ไม่เจอไฟล์' }); }
@@ -990,12 +981,9 @@ function alexaSdk() {
     list: function (prefix, scope) { return dbCall('list', scope, { prefix: prefix || '' }); },
     clear: function () { return dbCall('clear', 'mine', {}); }
   };
-
-  // ===== Files API =====
   var slug = null;
   var mm = /^\/s\/([a-z0-9][a-z0-9-]{2,29})/.exec(location.pathname);
   if (mm) slug = mm[1];
-
   function filesUpload(file, onProgress) {
     return new Promise(function (resolve, reject) {
       if (!slug) return reject(new Error('ไม่พบ slug ของเว็บ'));
@@ -1026,38 +1014,22 @@ function alexaSdk() {
     return fetch('/sapi/' + slug + '/file/' + id, { method: 'DELETE', credentials: 'same-origin' })
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status); return d; }); });
   }
-  var files = {
-    upload: filesUpload,
-    list: filesList,
-    delete: filesDelete,
-    del: filesDelete,
-    url: function (id) { return '/sapi/' + slug + '/file/' + id; },
-    slug: function () { return slug; }
-  };
-
-  // ===== Console log API =====
+  var files = { upload: filesUpload, list: filesList, delete: filesDelete, del: filesDelete, url: function (id) { return '/sapi/' + slug + '/file/' + id; }, slug: function () { return slug; } };
   var logQueue = [];
   var logTimer = null;
   var logCount = 0;
   var logResetAt = 0;
-
   function flushLogs() {
     logTimer = null;
     if (!logQueue.length || !slug) return;
     var batch = logQueue.splice(0, 5);
     for (var i = 0; i < batch.length; i++) {
       (function (item) {
-        fetch('/sapi/' + slug + '/console', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item),
-          credentials: 'same-origin'
-        }).catch(function () {});
+        fetch('/sapi/' + slug + '/console', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item), credentials: 'same-origin' }).catch(function () {});
       })(batch[i]);
     }
     if (logQueue.length) logTimer = setTimeout(flushLogs, 100);
   }
-
   function sendLog(level, args) {
     if (!slug) return;
     var now = Date.now();
@@ -1075,12 +1047,10 @@ function alexaSdk() {
     logQueue.push({ level: level, msg: msg });
     if (!logTimer) logTimer = setTimeout(flushLogs, 100);
   }
-
   function alexaLog() { sendLog('log', arguments); }
   function alexaInfo() { sendLog('info', arguments); }
   function alexaWarn() { sendLog('warn', arguments); }
   function alexaError() { sendLog('error', arguments); }
-
   if (!window.__alexaConsoleHooked) {
     window.__alexaConsoleHooked = true;
     ['log', 'info', 'warn', 'error'].forEach(function (lv) {
@@ -1097,7 +1067,6 @@ function alexaSdk() {
       try { sendLog('error', ['[unhandled promise] ' + ((e.reason && e.reason.message) || e.reason)]); } catch (x) {}
     });
   }
-
   var api = { join: join, db: db, ready: ready, files: files, log: alexaLog, info: alexaInfo, warn: alexaWarn, error: alexaError };
   Object.defineProperty(api, 'id', { get: function () { return cid; }, enumerable: true });
   Object.defineProperty(api, 'offline', { get: function () { return decided && !online; }, enumerable: true });
@@ -1425,6 +1394,56 @@ async function deleteSiteFile(fileId) {
   return true;
 }
 
+// ============ SITE NPM INSTALL ============
+const siteInstalls = {};
+
+function sitePkgPath(slug) { return path.join(siteDir(slug), 'package.json'); }
+
+function readSitePkg(slug) {
+  try {
+    const p = sitePkgPath(slug);
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (e) { return null; }
+}
+
+function writeSitePkg(slug, pkg) {
+  const dir = siteDir(slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(sitePkgPath(slug), JSON.stringify(pkg, null, 2));
+}
+
+function runSiteNpmInstall(slug) {
+  return new Promise((resolve) => {
+    const dir = siteDir(slug);
+    if (!fs.existsSync(path.join(dir, 'package.json'))) return resolve({ ok: true });
+    const env = Object.assign({}, process.env, {
+      HOME: dir,
+      npm_config_cache: path.join(dir, '.npm-cache'),
+      npm_config_update_notifier: 'false',
+      npm_config_fund: 'false',
+      npm_config_audit: 'false'
+    });
+    let child;
+    try { child = spawn('npm', ['install', '--no-audit', '--no-fund'], { cwd: dir, env }); }
+    catch (e) { return resolve({ ok: false, msg: e.message }); }
+    sitePushConsole(slug, 'sys', 'npm install เริ่ม...', 'server');
+    if (siteInstalls[slug]) siteInstalls[slug].child = child;
+    child.stdout.on('data', (d) => sitePushConsole(slug, 'out', d, 'server'));
+    child.stderr.on('data', (d) => sitePushConsole(slug, 'err', d, 'server'));
+    const to = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch {}
+      resolve({ ok: false, msg: 'ติดตั้งนานเกิน 5 นาที' });
+    }, 300000);
+    child.on('exit', (code) => {
+      clearTimeout(to);
+      sitePushConsole(slug, code === 0 ? 'sys' : 'err', code === 0 ? 'ติดตั้งสำเร็จ' : 'ติดตั้งล้มเหลว (exit ' + code + ')', 'server');
+      resolve({ ok: code === 0, msg: code ? 'exit ' + code : '' });
+    });
+    child.on('error', (e) => { clearTimeout(to); resolve({ ok: false, msg: e.message }); });
+  });
+}
+
 // ============ FRIENDS ============
 function ensureFriendArrays(x) {
   if (!Array.isArray(x.friends)) x.friends = [];
@@ -1637,7 +1656,7 @@ const server = http.createServer(async (req, res) => {
     const sapi = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/(events|send|db)$/);
     if (sapi) return await handleSapi(req, res, url, sapi[1], sapi[2]);
 
-    // ===== Site Runtime Proxy =====
+    // Site Runtime Proxy
     const apm = p.match(/^\/s\/([a-z0-9][a-z0-9-]{2,29})\/app(?:\/(.*))?$/);
     if (apm && M === 'GET') {
       const site = own(hub.sites, apm[1]);
@@ -1645,7 +1664,7 @@ const server = http.createServer(async (req, res) => {
       return proxySiteRuntime(req, res, apm[1], apm[2] || '');
     }
 
-    // ===== Site File API =====
+    // Site File API
     const sl = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/file\/list$/);
     if (sl && M === 'GET') {
       const site = own(hub.sites, sl[1]);
@@ -1655,9 +1674,7 @@ const server = http.createServer(async (req, res) => {
       const ownerOk = userOf(req) === site.owner;
       const tokenOk = String(req.headers['x-site-token'] || '') === tok.token;
       if (!ownerOk && !tokenOk) return json(res, 401, { error: 'unauthorized' });
-      const files = Object.entries(hub.siteFiles)
-        .filter(([id, f]) => f.slug === site.slug)
-        .map(([id, f]) => ({ id, url: '/sapi/' + site.slug + '/file/' + id, size: f.size, mime: f.mime, name: f.originalName || '', created: f.created }));
+      const files = Object.entries(hub.siteFiles).filter(([id, f]) => f.slug === site.slug).map(([id, f]) => ({ id, url: '/sapi/' + site.slug + '/file/' + id, size: f.size, mime: f.mime, name: f.originalName || '', created: f.created }));
       const usage = siteUsage(site.slug);
       return json(res, 200, { files, used: usage.bytes, quota: tok.info.quota });
     }
@@ -1685,12 +1702,7 @@ const server = http.createServer(async (req, res) => {
         let r;
         try { r = await putMedia(buf, ext, ct); }
         catch (e) { return json(res, 500, { error: 'อัปโหลดไม่สำเร็จ' }); }
-        hub.siteFiles[fid] = {
-          slug: site.slug, token: tok.token, size: r.size, mime: ct, ext,
-          upstashPath: r.upstashPath, bucketId: r.bucketId,
-          originalName: String(decodeURIComponent(String(req.headers['x-file-name'] || ''))).slice(0, 200),
-          created: Date.now()
-        };
+        hub.siteFiles[fid] = { slug: site.slug, token: tok.token, size: r.size, mime: ct, ext, upstashPath: r.upstashPath, bucketId: r.bucketId, originalName: String(decodeURIComponent(String(req.headers['x-file-name'] || ''))).slice(0, 200), created: Date.now() };
         await saveHubNow();
         return json(res, 200, { id: fid, url: '/sapi/' + site.slug + '/file/' + fid, size: r.size });
       }
@@ -1721,7 +1733,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { error: 'method not allowed' });
     }
 
-    // ===== Site Console =====
+    // Site Console
     const sc = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/console$/);
     if (sc && M === 'POST') {
       const site = own(hub.sites, sc[1]);
@@ -1742,7 +1754,6 @@ const server = http.createServer(async (req, res) => {
 
     const ip = ipOf(req);
 
-    // ===== Register =====
     if (p === '/api/register' && M === 'POST') {
       if (!SIGNUP_OPEN) return json(res, 403, { error: 'ปิดรับสมัคร' });
       if (tooMany(regCount, ip, 5, 3600000)) return json(res, 429, { error: 'สมัครบ่อยเกินไป' });
@@ -2082,6 +2093,75 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, out);
     }
 
+    // ===== Site Install =====
+    const instm = p.match(/^\/api\/sites\/([a-z0-9][a-z0-9-]{2,29})\/install$/);
+    if (instm) {
+      const site = own(hub.sites, instm[1]);
+      if (!site) return json(res, 404, { error: 'ไม่เจอเว็บนี้' });
+      if (site.owner !== me) return json(res, 403, { error: 'แก้ได้เฉพาะเจ้าของ' });
+      if (site.tier !== 'online') return json(res, 400, { error: 'เว็บนี้ไม่รองรับ (ต้องเป็น online)' });
+      if (M === 'GET') {
+        let pkg = readSitePkg(site.slug);
+        if (!pkg && site.packageJson) { try { pkg = JSON.parse(site.packageJson); } catch {} }
+        const deps = (pkg && pkg.dependencies) || {};
+        return json(res, 200, { deps, installing: !!siteInstalls[site.slug] });
+      }
+      if (M === 'POST') {
+        if (siteInstalls[site.slug]) return json(res, 409, { error: 'กำลังติดตั้งอยู่' });
+        const chk = canCreate(meUser);
+        if (!chk.ok) return json(res, 403, { error: chk.error, trial: chk.trial, needsVerify: chk.needsVerify, needsEmail: chk.needsEmail });
+        const d = await readBody(req);
+        let pkg = readSitePkg(site.slug);
+        if (!pkg && site.packageJson) { try { pkg = JSON.parse(site.packageJson); } catch {} }
+        if (!pkg) pkg = { name: site.slug, version: '1.0.0', main: 'server.js', dependencies: {} };
+        if (!pkg.dependencies) pkg.dependencies = {};
+        let actionMsg = '';
+        let added = [], removed = '';
+        if (d.reinstall) { actionMsg = 'ติดตั้งใหม่ทั้งหมด'; added = Object.keys(pkg.dependencies); }
+        else if (typeof d.remove === 'string' && d.remove.trim()) {
+          const name = d.remove.trim();
+          if (!pkg.dependencies[name]) return json(res, 404, { error: 'ไม่เจอ dependency นี้' });
+          delete pkg.dependencies[name];
+          removed = name;
+          actionMsg = 'ลบ ' + name + ' แล้วติดตั้งใหม่';
+        } else {
+          const raw = typeof d.text === 'string' ? d.text : (Array.isArray(d.add) ? d.add.map(String).join(' ') : '');
+          const ps = parseSpecs('js', raw);
+          if (ps.bad.length) return json(res, 400, { error: 'ชื่อไม่ถูกต้อง: ' + ps.bad.slice(0, 5).join(', ') });
+          if (!ps.specs.length) return json(res, 400, { error: 'ไม่พบชื่อไลบรารี' });
+          if (ps.specs.length > 40) return json(res, 400, { error: 'ครั้งละไม่เกิน 40' });
+          for (const spec of ps.specs) {
+            let name, version;
+            const mm2 = spec.match(/^(@[^/@]+\/[^@]+|[^@]+)(?:@(.+))?$/);
+            if (mm2) { name = mm2[1]; version = mm2[2] ? '^' + mm2[2].replace(/^[\^~]/, '') : 'latest'; }
+            else { name = spec; version = 'latest'; }
+            pkg.dependencies[name] = version;
+            added.push(name + '@' + version);
+          }
+          actionMsg = 'ติดตั้ง: ' + added.join(', ');
+        }
+        const depCount = Object.keys(pkg.dependencies).length;
+        if (depCount > 100) return json(res, 400, { error: 'dependency เกิน 100 รายการ' });
+        writeSitePkg(site.slug, pkg);
+        site.packageJson = JSON.stringify(pkg, null, 2);
+        await saveHubNow();
+        const wasRunning = !!siteProcs[site.slug];
+        if (wasRunning) await stopSiteRuntime(site.slug);
+        siteInstalls[site.slug] = { t: Date.now(), child: null };
+        sitePushConsole(site.slug, 'sys', actionMsg, 'server');
+        try {
+          const r = await runSiteNpmInstall(site.slug);
+          delete siteInstalls[site.slug];
+          if (!r.ok) return json(res, 500, { error: 'ติดตั้งไม่สำเร็จ: ' + r.msg });
+        } catch (e) {
+          delete siteInstalls[site.slug];
+          throw e;
+        }
+        if (wasRunning) setTimeout(() => startSiteRuntime(site.slug).catch(() => {}), 500);
+        return json(res, 200, { ok: true, deps: pkg.dependencies, added, removed });
+      }
+    }
+
     // ===== Site Settings =====
     const stg = p.match(/^\/api\/sites\/([a-z0-9][a-z0-9-]{2,29})\/settings$/);
     if (stg) {
@@ -2095,35 +2175,21 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, {
           slug: site.slug, tier: site.tier || 'normal',
           views: site.views || 0,
-          visitors: {
-            total: visitor.total || 0,
-            uniq: Array.isArray(visitor.uniq) ? visitor.uniq.length : 0,
-            daily: visitor.daily || {}
-          },
+          visitors: { total: visitor.total || 0, uniq: Array.isArray(visitor.uniq) ? visitor.uniq.length : 0, daily: visitor.daily || {} },
           console: site.console || [],
           token: tok ? tok.token : null,
           quota: tok ? tok.info.quota : 0,
           used: usage.bytes, fileCount: usage.count,
-          runtime: siteProcs[site.slug] ? { running: true, port: siteProcs[site.slug].port, startedAt: siteProcs[site.slug].startedAt } : { running: false }
+          runtime: siteProcs[site.slug] ? { running: true, port: siteProcs[site.slug].port, startedAt: siteProcs[site.slug].startedAt } : { running: false },
+          installing: !!siteInstalls[site.slug]
         });
       }
       if (M === 'POST') {
         const d = await readBody(req);
         if (d.action === 'clear-console') { site.console = []; await saveHubNow(); return json(res, 200, { ok: true }); }
-        if (d.action === 'runtime-start') {
-          const r = await startSiteRuntime(site.slug);
-          return json(res, r.ok ? 200 : 400, r);
-        }
-        if (d.action === 'runtime-stop') {
-          await stopSiteRuntime(site.slug);
-          site.desired = false; await saveHubNow();
-          return json(res, 200, { ok: true });
-        }
-        if (d.action === 'runtime-restart') {
-          await stopSiteRuntime(site.slug);
-          const r = await startSiteRuntime(site.slug);
-          return json(res, r.ok ? 200 : 400, r);
-        }
+        if (d.action === 'runtime-start') { const r = await startSiteRuntime(site.slug); return json(res, r.ok ? 200 : 400, r); }
+        if (d.action === 'runtime-stop') { await stopSiteRuntime(site.slug); site.desired = false; await saveHubNow(); return json(res, 200, { ok: true }); }
+        if (d.action === 'runtime-restart') { await stopSiteRuntime(site.slug); const r = await startSiteRuntime(site.slug); return json(res, r.ok ? 200 : 400, r); }
         return json(res, 400, { error: 'ไม่รู้จัก action' });
       }
     }
@@ -2401,7 +2467,6 @@ const server = http.createServer(async (req, res) => {
       const post = own(hub.posts, pm[1]);
       if (!post) return json(res, 404, { error: 'ไม่เจอโพสต์' });
       const open = post.price === 0 || post.owner === me;
-
       if (pm[2] === 'comments') {
         if (!Array.isArray(post.comments)) post.comments = [];
         if (M === 'GET') return json(res, 200, { comments: post.comments.map(pubComment) });
@@ -2433,7 +2498,6 @@ const server = http.createServer(async (req, res) => {
         }
         return json(res, 405, { error: 'method not allowed' });
       }
-
       if (!pm[2] && M === 'GET') return json(res, 200, Object.assign(pubPost(post, me), { locked: !open }, open ? { code: post.code } : {}));
       if (!pm[2] && M === 'DELETE') {
         if (post.owner !== me) return json(res, 403, { error: 'ลบได้เฉพาะของตัวเอง' });
@@ -2774,7 +2838,6 @@ process.on('unhandledRejection', (e) => console.error('unhandled:', e));
     }
   }
 
-  // Restart online site runtimes
   let siteIdx = 0;
   for (const site of Object.values(hub.sites)) {
     if (site.tier === 'online' && site.desired && site.serverCode && findTokenOfSlug(site.slug)) {
