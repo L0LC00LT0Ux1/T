@@ -59,7 +59,6 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, X-Site-Token, X-File-Name, X-Session, Authorization',
   'Access-Control-Max-Age': '86400'
 };
-function withCors(extra) { return Object.assign({}, CORS_HEADERS, extra || {}); }
 
 // ============ ID GEN ============
 function genPublicId(existing) {
@@ -1402,6 +1401,75 @@ async function deleteSiteFile(fileId) {
   return true;
 }
 
+// ============ SITE VIEW (Lock UI) ============
+function buildLockPage(slug, fileId, size, mime, originalName) {
+  const sizeKb = ((size || 0) / 1024).toFixed(2);
+  const fname = originalName ? String(originalName).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0, 60) : 'script.lua';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔒 Script Locked — Alexa Hub</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(ellipse at top,#1a0b2e 0%,#0a0e1a 50%,#050810 100%);color:#e5e7eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;position:relative}
+body::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(168,85,247,.15) 0%,transparent 50%);animation:rotate 30s linear infinite;pointer-events:none}
+@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.card{position:relative;z-index:1;max-width:560px;width:100%;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.15));border:1px solid rgba(168,85,247,.35);border-radius:28px;padding:56px 40px;text-align:center;backdrop-filter:blur(20px);box-shadow:0 20px 80px rgba(168,85,247,.3);animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.shield{font-size:96px;margin-bottom:24px;filter:drop-shadow(0 0 40px rgba(168,85,247,.9));animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.title{font-size:30px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(135deg,#f472b6,#a855f7,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:14px;line-height:1.3}
+.subtitle{font-size:14px;color:#a5b4fc;font-weight:600;margin-bottom:32px}
+.warn{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:12px;color:#fca5a5;font-size:13px;font-weight:600;margin-bottom:32px;text-align:left;line-height:1.5}
+.info{padding:20px;background:rgba(5,8,16,.6);border:1px solid rgba(99,102,241,.3);border-radius:14px;margin-bottom:24px;text-align:left}
+.row{display:flex;justify-content:space-between;padding:8px 0;font-size:12px;border-bottom:1px solid rgba(99,102,241,.15);gap:10px}
+.row:last-child{border-bottom:none}
+.label{color:#9ca3af;font-weight:500;flex:none}
+.value{color:#86efac;font-family:monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,#a855f7,#ec4899);border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;color:#fff;box-shadow:0 4px 20px rgba(168,85,247,.5)}
+.footer{margin-top:32px;padding-top:24px;border-top:1px solid rgba(99,102,241,.2);font-size:11px;color:#6b7280}
+.footer strong{color:#a855f7}
+.dot{display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;box-shadow:0 0 12px #10b981;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:480px){.card{padding:40px 24px}.shield{font-size:72px}.title{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="shield">🛡️</div>
+  <div class="title">SCRIPT LOCKED<br>BY ALEXA HUB</div>
+  <div class="subtitle">🔒 PROTECTED DISTRIBUTION SYSTEM</div>
+  <div class="warn">⚠️ สคริปต์นี้ถูกป้องกัน ไม่สามารถเข้าถึงโค้ดโดยตรงได้<br>This script is protected. Direct access is not permitted.</div>
+  <div class="info">
+    <div class="row"><span class="label">Status</span><span class="value"><span class="dot"></span>Active</span></div>
+    <div class="row"><span class="label">Protection</span><span class="value">14-Layer + Base64</span></div>
+    <div class="row"><span class="label">Provider</span><span class="value">Alexa Hub</span></div>
+    <div class="row"><span class="label">File</span><span class="value">${fname}</span></div>
+    <div class="row"><span class="label">Size</span><span class="value">${sizeKb} KB</span></div>
+    <div class="row"><span class="label">Access</span><span class="value">Executor Only</span></div>
+  </div>
+  <div class="badge">🔒 ENCRYPTED &amp; LOCKED</div>
+  <div class="footer">Powered by <strong>Alexa Hub Security System</strong></div>
+</div>
+</body>
+</html>`;
+}
+
+function buildErrorPage(msg) {
+  const safe = String(msg || 'Unknown error').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Error</title>
+<style>
+body{font-family:system-ui;background:#0a0e1a;color:#fca5a5;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
+.box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);border-radius:20px;padding:40px}
+h1{font-size:48px;margin-bottom:16px}
+p{color:#9ca3af;font-size:14px}
+</style></head>
+<body><div class="box"><h1>❌</h1><p>${safe}</p></div></body></html>`;
+}
+
 // ============ SITE NPM INSTALL ============
 const siteInstalls = {};
 
@@ -1649,13 +1717,11 @@ function findByPublicId(id) {
 // ============ HTTP SERVER ============
 const server = http.createServer(async (req, res) => {
   try {
-    // ===== CORS Global =====
+    // CORS Global
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Site-Token, X-File-Name, X-Session, Authorization');
     res.setHeader('Access-Control-Max-Age', '86400');
-
-    // ===== CORS Preflight =====
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
     const url = new URL(req.url, 'http://x');
@@ -1679,6 +1745,23 @@ const server = http.createServer(async (req, res) => {
       const site = own(hub.sites, apm[1]);
       if (!site || site.tier !== 'online') return json(res, 404, { error: 'not found' });
       return proxySiteRuntime(req, res, apm[1], apm[2] || '');
+    }
+
+    // ===== Site View (Lock UI) =====
+    const vm = p.match(/^\/sapi\/([a-z0-9][a-z0-9-]{2,29})\/view\/([a-f0-9]{24})$/);
+    if (vm && M === 'GET') {
+      const site = own(hub.sites, vm[1]);
+      if (!site) {
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', ...CORS_HEADERS });
+        return res.end(buildErrorPage('ไม่เจอเว็บนี้'));
+      }
+      const f = own(hub.siteFiles, vm[2]);
+      if (!f || f.slug !== site.slug) {
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', ...CORS_HEADERS });
+        return res.end(buildErrorPage('ไม่เจอไฟล์นี้'));
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS });
+      return res.end(buildLockPage(site.slug, vm[2], f.size || 0, f.mime || '', f.originalName || ''));
     }
 
     // Site File API
