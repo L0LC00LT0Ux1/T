@@ -444,7 +444,11 @@ function startBot(id) {
     HOME: dir, TMPDIR: dir, LANG: 'C.UTF-8',
     DISCORD_TOKEN: b.token || '',
     PYTHONPATH: path.join(dir, 'pylibs'),
-    PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1'
+    PYTHONUNBUFFERED: '1', PYTHONDONTWRITEBYTECODE: '1',
+    // ⭐ ส่ง Redis + Bot ID ให้บอทใช้อ่าน/เขียน state
+    UPSTASH_REDIS_REST_URL: REDIS_URL || '',
+    UPSTASH_REDIS_REST_TOKEN: REDIS_TOKEN || '',
+    BOT_ID: b.id
   };
   const opts = Object.assign({ cwd: dir, env }, dropOpts(owner));
   const py = b.lang === 'py';
