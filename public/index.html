@@ -1506,12 +1506,14 @@ function setSiteTab(t) {
 }
 function applyModeUI() {
   $$('#sModeSeg button').forEach((b) => b.classList.toggle('on', b.dataset.m === siteMode));
-  $('#sTabSeg [data-t="css"]').classList.toggle('hide', siteMode === 'full' && siteTier === 'normal');
-  $('#sTabSeg [data-t="js"]').classList.toggle('hide', siteMode === 'full' && siteTier === 'normal');
+  const hideCssJs = siteMode === 'full';
+  $('#sTabSeg [data-t="css"]').classList.toggle('hide', hideCssJs);
+  $('#sTabSeg [data-t="js"]').classList.toggle('hide', hideCssJs);
   const online = siteTier === 'online';
   $('#sTabSeg [data-t="pkg"]').classList.toggle('hide', !online);
   $('#sTabSeg [data-t="server"]').classList.toggle('hide', !online);
-  $('#sModeBox').classList.toggle('hide', online);
+  const htmlBtn = $('#sTabSeg [data-t="html"]');
+  if (htmlBtn) htmlBtn.textContent = siteMode === 'full' ? 'HTML (เต็มหน้า)' : 'HTML';
 }
 function applyTierUI() {
   const cards = [
@@ -1619,7 +1621,6 @@ async function loadSiteData() {
   } catch (e) { $('#sdInfo').textContent = e.message; }
 }
 
-/* ===== SITE SETTINGS ===== */
 async function openSiteSettings(slug) {
   curSettingsSlug = slug;
   const s = sites.find((x) => x.slug === slug);
@@ -1664,8 +1665,6 @@ function renderSiteSettings(slug, d) {
       h += '<div class="sub2" style="margin-top:14px"><b>พื้นที่เก็บไฟล์</b></div>';
       h += '<div class="usage-bar"><div class="fill ' + usageCls + '" style="width:' + usagePct.toFixed(1) + '%"></div><div class="pct">' + fmtBytes(d.used) + ' / ' + fmtBytes(d.quota) + ' (' + usagePct.toFixed(1) + '%)</div></div>';
       h += '<div class="foot">' + (d.fileCount || 0) + ' ไฟล์ · พื้นที่เหลือ ' + fmtBytes(Math.max(0, d.quota - d.used)) + '</div>';
-      h += '<div class="sub2" style="margin-top:14px"><b>วิธีใช้ในโค้ด JS</b></div>';
-      h += '<div class="console-list" style="max-height:none">' + esc(siteTokenUsageExample(d.token, slug)) + '</div>';
     } else {
       h += '<div class="warn-box">⚠️ ยังไม่มีโทเคน — แจ้งแอดมินเพื่อเปิดใช้งาน (โทเคนต้องเสกโดยแอดมินเท่านั้น)</div>';
       h += '<div class="foot" style="margin-top:8px">แจ้ง Public ID: <b>' + esc(d.slug) + '</b></div>';
@@ -1803,44 +1802,120 @@ async function siteInstallLibs(slug, action, pkgName) {
 }
 
 function siteTokenUsageExample(token, slug) {
+  const base = location.origin;
   return [
-    '// 1) วางโทเคน (ควรเก็บเป็น env หรือ hardcode เฉพาะที่ปลอดภัย)',
-    'const SITE_TOKEN = "' + token + '";',
-    'const SITE_SLUG = "' + slug + '";',
+    '═══════════════════════════════════════════════════════════',
+    '  🔑 ALEXA HUB — SITE TOKEN',
+    '═══════════════════════════════════════════════════════════',
     '',
-    '// 2) อัปโหลดไฟล์',
-    'async function uploadFile(file) {',
-    '  const r = await fetch("/sapi/" + SITE_SLUG + "/file", {',
+    '📍 Token ของคุณ:',
+    token,
+    '',
+    '🆔 Slug เว็บ:',
+    slug,
+    '',
+    '🌐 API Base:',
+    base,
+    '',
+    '═══════════════════════════════════════════════════════════',
+    '  📖 วิธีใช้ — อ่านให้ครบก่อนใช้งาน',
+    '═══════════════════════════════════════════════════════════',
+    '',
+    '⚠️ กฎสำคัญ:',
+    '   1. ห้ามแชร์ token นี้ในแชทสาธารณะ / Discord / GitHub',
+    '   2. ถ้า token รั่ว → ลบในแผงแอดมิน → สร้างใหม่ทันที',
+    '   3. Token นี้ใช้ได้เฉพาะเว็บ slug "' + slug + '" เท่านั้น',
+    '   4. โทเคนมีอายุถาวร จนกว่าจะลบเอง',
+    '',
+    '───────────────────────────────────────────────────────────',
+    '📤 1. อัปโหลดไฟล์',
+    '───────────────────────────────────────────────────────────',
+    '',
+    'JavaScript (fetch):',
+    '  const file = document.querySelector("input[type=file]").files[0];',
+    '  const res = await fetch("' + base + '/sapi/' + slug + '/file", {',
     '    method: "POST",',
     '    headers: {',
-    '      "X-Site-Token": SITE_TOKEN,',
+    '      "X-Site-Token": "' + token + '",',
     '      "Content-Type": file.type || "application/octet-stream",',
     '      "X-File-Name": encodeURIComponent(file.name)',
     '    },',
     '    body: file',
     '  });',
-    '  const d = await r.json();',
-    '  if (!r.ok) throw new Error(d.error);',
-    '  return d.url;  // เก็บ URL นี้ไปใช้ได้เลย',
-    '}',
+    '  const data = await res.json();',
+    '  console.log("Uploaded:", data.url);',
     '',
-    '// 3) ดูรายการไฟล์ + โควต้า',
-    'async function listFiles() {',
-    '  const r = await fetch("/sapi/" + SITE_SLUG + "/file/list", {',
-    '    headers: { "X-Site-Token": SITE_TOKEN }',
+    'cURL:',
+    '  curl -X POST "' + base + '/sapi/' + slug + '/file" \\',
+    '    -H "X-Site-Token: ' + token + '" \\',
+    '    -H "Content-Type: text/plain" \\',
+    '    -H "X-File-Name: script.lua" \\',
+    '    --data-binary @script.lua',
+    '',
+    'ตอบกลับ (200):',
+    '  { "id": "abc123...", "url": "/sapi/' + slug + '/file/abc123", "size": 12345 }',
+    '',
+    '───────────────────────────────────────────────────────────',
+    '📂 2. ดูรายการไฟล์ + โควต้า',
+    '───────────────────────────────────────────────────────────',
+    '',
+    'JavaScript:',
+    '  const res = await fetch("' + base + '/sapi/' + slug + '/file/list", {',
+    '    headers: { "X-Site-Token": "' + token + '" }',
     '  });',
-    '  return r.json();',
-    '}',
+    '  const data = await res.json();',
+    '  console.log("Used:", data.used, "Quota:", data.quota, "Files:", data.files);',
     '',
-    '// 4) ลบไฟล์',
-    'async function deleteFile(id) {',
-    '  return fetch("/sapi/" + SITE_SLUG + "/file/" + id, {',
+    'cURL:',
+    '  curl "' + base + '/sapi/' + slug + '/file/list" \\',
+    '    -H "X-Site-Token: ' + token + '"',
+    '',
+    'ตอบกลับ (200):',
+    '  { "files": [...], "used": 12345, "quota": 524288000 }',
+    '',
+    '───────────────────────────────────────────────────────────',
+    '🗑️ 3. ลบไฟล์',
+    '───────────────────────────────────────────────────────────',
+    '',
+    'JavaScript:',
+    '  const res = await fetch("' + base + '/sapi/' + slug + '/file/FILE_ID", {',
     '    method: "DELETE",',
-    '    headers: { "X-Site-Token": SITE_TOKEN }',
+    '    headers: { "X-Site-Token": "' + token + '" }',
     '  });',
-    '}',
     '',
-    '// ⚠️ อย่าใส่โทเคนลงในโค้ดที่ผู้ใช้อื่นอ่านได้ — เก็บใน server.js (Node runtime) เท่านั้น'
+    'cURL:',
+    '  curl -X DELETE "' + base + '/sapi/' + slug + '/file/FILE_ID" \\',
+    '    -H "X-Site-Token: ' + token + '"',
+    '',
+    '───────────────────────────────────────────────────────────',
+    '🔒 4. หน้า Lock UI (สำหรับแชร์)',
+    '───────────────────────────────────────────────────────────',
+    '',
+    'ใช้สำหรับแชร์ให้คนอื่นดู โดยไม่เห็นโค้ด:',
+    '',
+    '  ' + base + '/sapi/' + slug + '/view/FILE_ID',
+    '',
+    '→ เปิดในเบราว์เซอร์ เห็นหน้า "🔒 Script Locked" สวย ๆ',
+    '→ คนดูเห็นแค่ข้อมูลสรุป ไม่เห็น Lua code',
+    '',
+    '⚠️ ส่วน Loader ใน Executor ยังใช้ /file/ เหมือนเดิม:',
+    '   loadstring(game:HttpGet("' + base + '/sapi/' + slug + '/file/FILE_ID"))()',
+    '',
+    '───────────────────────────────────────────────────────────',
+    '❌ Error Codes ที่พบบ่อย',
+    '───────────────────────────────────────────────────────────',
+    '',
+    '  400 → ไม่มี token / ข้อมูลไม่ถูกต้อง',
+    '  401 → token ผิด หรือ unauthorized',
+    '  404 → ไม่เจอเว็บ / ไม่เจอไฟล์',
+    '  413 → ไฟล์ใหญ่เกิน 50MB หรือโควต้าเต็ม',
+    '  429 → ยิง request ถี่เกินไป',
+    '  500 → server error',
+    '',
+    '═══════════════════════════════════════════════════════════',
+    '  ⚠️ ข้อควรระวัง: อย่า hardcode token ในโค้ดที่ผู้ใช้อ่านได้',
+    '     ถ้าจำเป็นต้องใช้ → เก็บในฝั่ง server.js ของคุณ',
+    '═══════════════════════════════════════════════════════════'
   ].join('\n');
 }
 async function siteRuntimeAction(slug, action) {
